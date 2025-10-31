@@ -1,0 +1,13 @@
+[
+  {
+    "address": "192.168.1.2",
+    "pair_port": 41853,
+    "connect_port": 35681,
+    "password": "tfRCU",
+    "name": "Redmi Note 14 5G (beryl)",
+    "android_version": "15",
+    "manufacturer": "Xiaomi",
+    "model": "beryl",
+    "last_seen": "2025-10-31T20:11:18.581615"
+  }
+]

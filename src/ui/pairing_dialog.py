@@ -1,7 +1,5 @@
-import io
-import qrcode
 from gi.repository import Gtk, GLib
-from lib.adb_pairing import get_code, pair_device, connect_device, start_mdns_pairing
+from lib.adb_pairing import get_code, pair_device, start_mdns_pairing
 from ui.qr_widget import create_qr_widget
 from ui.constants import QR_SIZE, QR_CODE_LENGTH, DIALOG_TITLE, TITLE_TEXT, INSTRUCTIONS_TEXT, STATUS_TEXT, STATUS_EXPIRED, TRY_AGAIN_LABEL, CANCEL_LABEL, DONE_LABEL
 
@@ -98,9 +96,9 @@ def show_pairing_dialog(parent_window):
     device_ports = []
     zc = None
 
-    def on_pair_and_connect(addr, pair_port, connect_port):
-        pair_device(addr, pair_port, PASSWORD, status_cb=status.set_text)
-        connect_device(addr, connect_port, status_cb=status.set_text)
+    def on_pair_and_connect(addr, pair_port, connect_port, password):
+        pair_device(addr, pair_port, connect_port, password, status_cb=status.set_text)
+        # connect_device is now handled inside pair_device, so no need to call it separately
         spinner.stop()
         if qr_box is not None:
             try:

@@ -25,7 +25,8 @@ class MirageApp(Adw.Application):
         win.set_default_size(700, 520)
 
         # Build dashboard UI and get Add Device button
-        add_btn = build_dashboard_window(self, win)
+        content, add_btn = build_dashboard_window(self, win)
+        win.set_content(content)
         add_btn.connect("clicked", lambda btn: show_pairing_dialog(win))
         win.present()
 
