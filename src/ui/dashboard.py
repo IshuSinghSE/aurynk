@@ -126,38 +126,63 @@ def build_dashboard_window(app, win):
             address = device.get('address')
             port = device.get('connect_port') or device.get('pair_port')
             connected = is_device_connected(address, port)
-            if connected:
-                connect_btn = Gtk.Button()
+            def set_connected():
                 label = Gtk.Label()
                 label.set_markup("<span weight='bold' foreground='#39ff14'>Connected</span>")
                 connect_btn.set_child(label)
                 connect_btn.set_sensitive(True)
-                def on_disconnect_clicked(_btn, address=address, port=port, dev_name=dev_name):
-                    alert = Adw.AlertDialog()
-                    alert.set_title(f"Disconnect {dev_name}?")
-                    alert.set_body(f"Are you sure you want to disconnect from\n {device.get('name')}?")
-                    alert.add_response("cancel", "Cancel")
-                    alert.add_response("ok", "Disconnect")
-                    alert.set_response_appearance("ok", Adw.ResponseAppearance.DESTRUCTIVE)
-                    def on_response(dialog, response):
-                        if response == "ok":
-                            import subprocess
-                            subprocess.run(["adb", "disconnect", f"{address}:{port}"])
-                            connect_btn.set_label("Connect")
-                            connect_btn.set_sensitive(True)
-                            connect_btn.get_style_context().remove_class("suggested-action")
-                    alert.connect("response", on_response)
-                    alert.present()
-                connect_btn.connect("clicked", on_disconnect_clicked)
+                for handler_id in getattr(connect_btn, '_handler_ids', []):
+                    connect_btn.disconnect(handler_id)
+                connect_btn._handler_ids = []
+                handler_id = connect_btn.connect("clicked", on_disconnect_clicked)
+                connect_btn._handler_ids.append(handler_id)
+            def set_disconnected():
+                label = Gtk.Label()
+                label.set_markup("<span weight='bold'>Connect</span>")
+                connect_btn.set_child(label)
+                connect_btn.set_sensitive(True)
+                for handler_id in getattr(connect_btn, '_handler_ids', []):
+                    connect_btn.disconnect(handler_id)
+                connect_btn._handler_ids = []
+                handler_id = connect_btn.connect("clicked", do_connect)
+                connect_btn._handler_ids.append(handler_id)
+            def set_offline():
+                label = Gtk.Label()
+                label.set_markup("<span weight='bold' foreground='red'>Device Offline</span>")
+                connect_btn.set_child(label)
+                connect_btn.set_sensitive(True)
+                for handler_id in getattr(connect_btn, '_handler_ids', []):
+                    connect_btn.disconnect(handler_id)
+                connect_btn._handler_ids = []
+                handler_id = connect_btn.connect("clicked", do_connect)
+                connect_btn._handler_ids.append(handler_id)
+            connect_btn = Gtk.Button()
+            connect_btn._handler_ids = []
+            def do_connect(_btn):
+                import subprocess
+                result = subprocess.run(["adb", "connect", f"{address}:{port}"], capture_output=True, text=True)
+                if "connected" in result.stdout.lower() or "already connected" in result.stdout.lower():
+                    set_connected()
+                else:
+                    set_offline()
+            def on_disconnect_clicked(_btn, address=address, port=port, dev_name=dev_name):
+                alert = Adw.AlertDialog()
+                alert.set_title(f"Disconnect {dev_name}?")
+                alert.set_body(f"Are you sure you want to disconnect from\n {device.get('name')}?")
+                alert.add_response("cancel", "Cancel")
+                alert.add_response("ok", "Disconnect")
+                alert.set_response_appearance("ok", Adw.ResponseAppearance.DESTRUCTIVE)
+                def on_response(dialog, response):
+                    if response == "ok":
+                        import subprocess
+                        subprocess.run(["adb", "disconnect", f"{address}:{port}"])
+                        set_disconnected()
+                alert.connect("response", on_response)
+                alert.present()
+            if connected:
+                set_connected()
             else:
-                connect_btn = Gtk.Button(label="Connect")
-                def do_connect(_btn):
-                    import subprocess
-                    subprocess.run(["adb", "connect", f"{address}:{port}"])
-                    connect_btn.set_label("Connected")
-                    connect_btn.get_style_context().add_class("suggested-action")
-                    connect_btn.set_sensitive(False)
-                connect_btn.connect("clicked", do_connect)
+                set_disconnected()
             connect_btn.set_halign(Gtk.Align.END)
             connect_btn.set_valign(Gtk.Align.CENTER)
             row.append(connect_btn)

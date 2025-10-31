@@ -11,6 +11,25 @@ def build_device_info_page(device, screenshot_path=None, on_refresh_screenshot=N
     card.set_margin_end(16)
     card.set_css_classes(["frame", "background"])
 
+    # Top bar for refresh icon button (right aligned)
+    topbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+    topbar.set_halign(Gtk.Align.END)
+    topbar.set_hexpand(True)
+    refresh_icon_btn = Gtk.Button()
+    refresh_icon_btn.set_icon_name("view-refresh-symbolic")
+    refresh_icon_btn.set_tooltip_text("Refresh all device data")
+    refresh_icon_btn.get_style_context().add_class("flat")
+    refresh_icon_btn.set_valign(Gtk.Align.CENTER)
+    def on_refresh_all(_btn):
+        # Full data refresh: screenshot, spec, thumbnail, etc.
+        from lib.device_store import fetch_and_update_device_data, load_paired_devices
+        fetch_and_update_device_data(device)
+        # Optionally reload UI or notify user here
+        if on_refresh_screenshot:
+            on_refresh_screenshot(full_refresh=True)
+    refresh_icon_btn.connect("clicked", on_refresh_all)
+    topbar.append(refresh_icon_btn)
+
     # Use a grid for two-column layout
     grid = Gtk.Grid()
     grid.set_column_spacing(32)
@@ -25,8 +44,10 @@ def build_device_info_page(device, screenshot_path=None, on_refresh_screenshot=N
     screenshot_box.set_hexpand(False)
     screenshot_box.set_vexpand(True)
     screenshot_img = Gtk.Image()
-    if screenshot_path:
-        screenshot_img.set_from_file(screenshot_path)
+    # Use thumbnail from device schema if available, else fallback to screenshot_path
+    thumb_path = device.get('thumbnail') or screenshot_path
+    if thumb_path:
+        screenshot_img.set_from_file(thumb_path)
     screenshot_img.set_pixel_size(340)
     screenshot_img.set_halign(Gtk.Align.CENTER)
     screenshot_img.set_valign(Gtk.Align.START)
@@ -66,6 +87,7 @@ def build_device_info_page(device, screenshot_path=None, on_refresh_screenshot=N
         basic_grid.attach(l, 0, row, 1, 1)
         basic_grid.attach(v, 1, row, 1, 1)
     row = 0
+    add_basic_row("Device Name:", device.get('name',''), row); row+=1
     add_basic_row("Manufacturer:", device.get('manufacturer',''), row); row+=1
     add_basic_row("Model:", device.get('model',''), row); row+=1
     add_basic_row("Android Version:", device.get('android_version',''), row); row+=1
@@ -85,6 +107,8 @@ def build_device_info_page(device, screenshot_path=None, on_refresh_screenshot=N
     conn_grid = Gtk.Grid()
     conn_grid.set_column_spacing(12)
     conn_grid.set_row_spacing(6)
+
+
     def add_conn_row(label, value, row):
         l = Gtk.Label(label=label)
         l.set_halign(Gtk.Align.START)
@@ -100,33 +124,30 @@ def build_device_info_page(device, screenshot_path=None, on_refresh_screenshot=N
     add_conn_row("Last Seen:", device.get('last_seen',''), row); row+=1
     info_box.append(conn_grid)
 
-    # Storage Section
-    storage_header = Gtk.Label()
-    storage_header.set_markup("<span size='large' weight='bold'>Storage</span>")
-    storage_header.set_halign(Gtk.Align.START)
-    storage_header.set_margin_top(8)
-    info_box.append(storage_header)
-    storage_total = device.get('storage_total','')
-    storage_used = device.get('storage_used','')
-    storage_avail = device.get('storage_avail','')
-    storage_perc = device.get('storage_perc','')
-    info_box.append(Gtk.Label(label=f"Total: {storage_total}"))
-    info_box.append(Gtk.Label(label=f"Used: {storage_used} ({storage_perc})"))
-    info_box.append(Gtk.Label(label=f"Available: {storage_avail}"))
-    if storage_perc:
-        try:
-            perc = float(storage_perc.strip('%'))/100
-            bar = Gtk.ProgressBar()
-            bar.set_fraction(perc)
-            bar.set_show_text(False)
-            bar.set_margin_top(4)
-            bar.set_margin_bottom(8)
-            info_box.append(bar)
-        except Exception:
-            pass
+    # Specs Section
+    specs_header = Gtk.Label()
+    specs_header.set_markup("<span size='large' weight='bold'>Specs</span>")
+    specs_header.set_halign(Gtk.Align.START)
+    specs_header.set_margin_top(8)
+    info_box.append(specs_header)
+    spec = device.get('spec', {})
+    ram = spec.get('ram', '')
+    storage = spec.get('storage', '')
+    battery = spec.get('battery', '')
+    # Horizontal box for RAM, Battery, Storage
+    hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=24)
+    hbox.set_halign(Gtk.Align.START)
+    hbox.append(Gtk.Label(label=f"RAM: {ram}"))
+    hbox.append(Gtk.Label(label=f"Battery: {battery}"))
+    hbox.append(Gtk.Label(label=f"Storage: {storage}"))
+    info_box.append(hbox)
 
     # Add info_box to grid
     grid.attach(info_box, 1, 0, 1, 2)
 
-    card.set_child(grid)
+    # Stack topbar above grid in a vertical box
+    vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+    vbox.append(topbar)
+    vbox.append(grid)
+    card.set_child(vbox)
     return card

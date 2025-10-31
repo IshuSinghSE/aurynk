@@ -159,3 +159,5 @@ def start_mdns_pairing(password, on_pair_and_connect, device_ports=None):
 	ServiceBrowser(zc, "_adb-tls-pairing._tcp.local.", handlers=[on_service_state_change])
 	ServiceBrowser(zc, "_adb-tls-connect._tcp.local.", handlers=[on_service_state_change])
 	return zc, device_ports
+
+
