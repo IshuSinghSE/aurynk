@@ -1,13 +1,53 @@
 [
   {
+    "address": "192.168.1.4",
+    "pair_port": 46293,
+    "connect_port": 38645,
+    "password": "CJdfm",
+    "name": "a35x",
+    "android_version": "16",
+    "manufacturer": "samsung",
+    "model": "a35x",
+    "last_seen": "2025-11-01T00:33:24.333485",
+    "spec": {
+      "ram": "7436 MB",
+      "storage": "235415 MB",
+      "battery": "82%"
+    },
+    "thumbnail": "/tmp/192_168_1_4_screen.png"
+  },
+  {
+    "address": "192.168.1.8",
+    "pair_port": 36001,
+    "connect_port": 34253,
+    "password": "ICwMK",
+    "name": "1907",
+    "android_version": "12",
+    "manufacturer": "vivo",
+    "model": "1907",
+    "last_seen": "2025-11-01T00:18:12.586322",
+    "spec": {
+      "ram": "",
+      "storage": "",
+      "battery": ""
+    },
+    "thumbnail": "/tmp/192_168_1_8_screen.png"
+  },
+  {
     "address": "192.168.1.2",
-    "pair_port": 41853,
+    "pair_port": 45961,
     "connect_port": 35681,
-    "password": "tfRCU",
+    "password": "ErTKn",
     "name": "Redmi Note 14 5G (beryl)",
     "android_version": "15",
     "manufacturer": "Xiaomi",
     "model": "beryl",
-    "last_seen": "2025-10-31T20:11:18.581615"
+    "last_seen": "2025-11-01T00:17:56.264367",
+    "spec": {
+      "ram": "7503 MB",
+      "storage": "114186 MB",
+      "battery": "58%"
+    },
+    "thumbnail": "/tmp/192_168_1_2_screen.png"
   }
 ]

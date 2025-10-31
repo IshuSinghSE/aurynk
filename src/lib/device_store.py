@@ -41,9 +41,11 @@ class DeviceInfo(TypedDict, total=False):
 # Fetch all device data (screenshot, spec, thumbnail) and update the JSON file
 def fetch_and_update_device_data(device_info):
     import subprocess
+    serial = f"{device_info['address']}:{device_info['connect_port']}"
+    
     # Fetch RAM
     try:
-        meminfo = subprocess.run(["adb", "shell", "cat", "/proc/meminfo"], capture_output=True, text=True)
+        meminfo = subprocess.run(["adb","-s", serial, "shell", "cat", "/proc/meminfo"], capture_output=True, text=True)
         import re
         match = re.search(r"MemTotal:\s+(\d+) kB", meminfo.stdout)
         ram = f"{int(match.group(1))//1024} MB" if match else ""
@@ -51,7 +53,7 @@ def fetch_and_update_device_data(device_info):
         ram = ""
     # Fetch storage
     try:
-        df = subprocess.run(["adb", "shell", "df", "/data"], capture_output=True, text=True)
+        df = subprocess.run(["adb","-s", serial, "shell", "df", "/data"], capture_output=True, text=True)
         lines = df.stdout.splitlines()
         if len(lines) > 1:
             parts = lines[1].split()
@@ -62,7 +64,7 @@ def fetch_and_update_device_data(device_info):
         storage = ""
     # Fetch battery
     try:
-        battery = subprocess.run(["adb", "shell", "dumpsys", "battery"], capture_output=True, text=True)
+        battery = subprocess.run(["adb","-s", serial, "shell", "dumpsys", "battery"], capture_output=True, text=True)
         import re
         match = re.search(r"level: (\d+)", battery.stdout)
         battery_str = f"{match.group(1)}%" if match else ""
@@ -70,9 +72,9 @@ def fetch_and_update_device_data(device_info):
         battery_str = ""
     # Fetch screenshot (thumbnail)
     try:
-        subprocess.run(["adb", "shell", "screencap", "-p", "/sdcard/screen.png"])
+        subprocess.run(["adb","-s", serial, "shell", "screencap", "-p", "/sdcard/screen.png"])
         local_path = f"/tmp/{device_info['address'].replace('.', '_')}_screen.png"
-        subprocess.run(["adb", "pull", "/sdcard/screen.png", local_path])
+        subprocess.run(["adb","-s", serial, "pull", "/sdcard/screen.png", local_path])
         thumbnail = local_path
     except Exception:
         thumbnail = ""
@@ -80,7 +82,6 @@ def fetch_and_update_device_data(device_info):
     device_info["spec"] = {
         "ram": ram,
         "storage": storage,
-        "cpu": cpu,
         "battery": battery_str
     }
     device_info["thumbnail"] = thumbnail

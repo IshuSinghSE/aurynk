@@ -60,14 +60,15 @@ def pair_device(address, pair_port, connect_port, password, status_cb=None):
 		"connect_port": connect_port,
 		"password": password
 	}
+	serial = f"{address}:{connect_port}"
 	try:
 		# Get market name (friendly name) and device code
 		print("[DEBUG] Fetching ro.product.marketname...")
-		marketname_proc = subprocess.run(["adb", "shell", "getprop", "ro.product.marketname"], capture_output=True, text=True)
+		marketname_proc = subprocess.run(["adb","-s", serial, "shell", "getprop", "ro.product.marketname"], capture_output=True, text=True)
 		marketname = marketname_proc.stdout.strip()
 		print(f"[DEBUG] marketname: {marketname}")
 		print("[DEBUG] Fetching ro.product.device...")
-		model_proc = subprocess.run(["adb", "shell", "getprop", "ro.product.device"], capture_output=True, text=True)
+		model_proc = subprocess.run(["adb","-s", serial, "shell", "getprop", "ro.product.device"], capture_output=True, text=True)
 		model = model_proc.stdout.strip()
 		print(f"[DEBUG] model: {model}")
 		# Compose device name as 'marketname (model)' if marketname exists, else fallback to model
@@ -76,11 +77,11 @@ def pair_device(address, pair_port, connect_port, password, status_cb=None):
 		else:
 			device_info["name"] = model or address
 		print("[DEBUG] Fetching ro.build.version.release...")
-		android_version = subprocess.run(["adb", "shell", "getprop", "ro.build.version.release"], capture_output=True, text=True)
+		android_version = subprocess.run(["adb","-s", serial, "shell", "getprop", "ro.build.version.release"], capture_output=True, text=True)
 		device_info["android_version"] = android_version.stdout.strip()
 		print(f"[DEBUG] android_version: {device_info['android_version']}")
 		print("[DEBUG] Fetching ro.product.manufacturer...")
-		manufacturer = subprocess.run(["adb", "shell", "getprop", "ro.product.manufacturer"], capture_output=True, text=True)
+		manufacturer = subprocess.run(["adb","-s", serial, "shell", "getprop", "ro.product.manufacturer"], capture_output=True, text=True)
 		device_info["manufacturer"] = manufacturer.stdout.strip()
 		print(f"[DEBUG] manufacturer: {device_info['manufacturer']}")
 		# Store device model as well
@@ -103,13 +104,13 @@ def pair_device(address, pair_port, connect_port, password, status_cb=None):
 	return True
 
 def connect_device(address, port, status_cb=None):
-	# if status_cb:
-	# 	status_cb("Connecting device...")
+	if status_cb:
+		status_cb("Connecting device...")
 	args = ["adb", "connect", f"{address}:{port}"]
 	proc = subprocess.run(args, capture_output=True)
 	if proc.returncode == 0:
-		# if status_cb:
-		# 	status_cb("Connected successfully!")
+		if status_cb:
+			status_cb("Connected successfully!")
 		return True
 	else:
 		if status_cb:
