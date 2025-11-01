@@ -1,0 +1,9 @@
+mirage (0.1.0-1) unstable; urgency=medium
+
+  * Initial release
+  * Wireless device pairing via QR code
+  * Device information display
+  * Screenshot capture functionality
+  * Modern GTK4/libadwaita interface
+
+ -- IshuSinghSE <your-email@example.com>  Fri, 01 Nov 2025 00:00:00 +0000

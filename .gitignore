@@ -8,3 +8,60 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Build artifacts
+builddir/
+build-dir/
+.flatpak-builder/
+
+# Generated GResource files (should be built, not committed)
+*.gresource
+data/*.gresource
+data/com.yourdomain.mirage.gresource
+
+# Meson
+meson-logs/
+meson-private/
+
+# Debian
+debian/.debhelper/
+debian/mirage/
+debian/files
+debian/*.substvars
+debian/*.log
+*.deb
+*.changes
+*.buildinfo
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.orig
+.*.swp
+
+# Runtime/user data files (should not be in repo)
+data/mirage_paired_devices.json
+data/*_paired_devices.json
+/tmp/mirage_*
+*.log
+
+# Screenshots and temporary images (runtime generated)
+data/icons/*_screen.png
+data/icons/*_screenshot.png
+
+# Lock files (optional - uncomment if you want to ignore)
+# uv.lock
+
+# temp --- IGNORE ---
+/temp/

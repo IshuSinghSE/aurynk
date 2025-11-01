@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="libadwaita" version="1.0"/>
+  
+  <object class="GtkBox" id="main_content">
+    <property name="orientation">vertical</property>
+    
+    <child>
+      <object class="AdwHeaderBar" id="header_bar">
+        <!-- Logo and title at the start -->
+        <child type="start">
+          <object class="GtkBox" id="app_logo_box">
+            <property name="orientation">horizontal</property>
+            <property name="spacing">8</property>
+            <child>
+              <object class="GtkImage" id="app_logo">
+                <property name="icon-name">com.yourdomain.mirage</property>
+                <property name="pixel-size">40</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <!-- Remove the center title (middle Mirage label) -->
+        <!-- Add Device button at the end -->
+        <child type="end">
+          <object class="GtkButton" id="add_device_button">
+            <property name="label">Add Device</property>
+            <property name="icon-name">list-add-symbolic</property>
+            <property name="valign">center</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    
+    <child>
+      <object class="GtkScrolledWindow">
+        <property name="vexpand">true</property>
+        <property name="hexpand">true</property>
+        
+        <child>
+          <object class="GtkBox" id="device_list_container">
+            <property name="orientation">vertical</property>
+            <property name="spacing">12</property>
+            <property name="margin-top">24</property>
+            <property name="margin-bottom">24</property>
+            <property name="margin-start">32</property>
+            <property name="margin-end">32</property>
+            
+            <child>
+              <object class="GtkLabel" id="devices_title">
+                <property name="label">Paired Devices</property>
+                <property name="halign">start</property>
+                <property name="margin-bottom">12</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                  <attribute name="scale" value="1.2"/>
+                </attributes>
+              </object>
+            </child>
+            
+            <child>
+              <object class="GtkBox" id="device_list">
+                <property name="orientation">vertical</property>
+                <property name="spacing">8</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

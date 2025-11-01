@@ -1,8 +1,0 @@
-[Desktop Entry]
-Name=Mirage
-Exec=python3 /home/ashu/Code/linux/mirage/src/main.py
-Icon=com.yourdomain.mirage
-Type=Application
-Categories=Utility;
-Terminal=false
-StartupNotify=true

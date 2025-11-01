@@ -1,14 +1,61 @@
 [project]
 name = "mirage"
 version = "0.1.0"
-description = "Add your description here"
+description = "Android Device Manager for Linux with wireless pairing and device management"
 readme = "README.md"
 requires-python = ">=3.11"
+license = {text = "GPL-3.0-or-later"}
+authors = [
+    {name = "IshuSinghSE", email = "your-email@example.com"}
+]
+keywords = ["android", "adb", "device-manager", "gtk", "libadwaita", "wireless"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: System :: Hardware",
+    "Topic :: Utilities",
+]
 dependencies = [
     "pillow>=12.0.0",
     "pygobject>=3.54.5",
     "qrcode>=8.2",
-    "rich>=14.2.0",
-    "ruff>=0.14.3",
     "zeroconf>=0.148.0",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "rich>=14.2.0",
+    "ruff>=0.14.3",
+]
+
+[project.urls]
+Homepage = "https://github.com/IshuSinghSE/mirage"
+Repository = "https://github.com/IshuSinghSE/mirage.git"
+Issues = "https://github.com/IshuSinghSE/mirage/issues"
+
+[project.scripts]
+mirage = "mirage.app:main"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["mirage"]
+
+[tool.setuptools.package-data]
+mirage = ["*.py"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]  # Line too long (handled by formatter)
+

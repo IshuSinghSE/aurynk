@@ -1,0 +1,45 @@
+Source: mirage
+Section: utils
+Priority: optional
+Maintainer: IshuSinghSE <your-email@example.com>
+Build-Depends: debhelper-compat (= 13),
+               dh-python,
+               python3-all,
+               python3-setuptools,
+               meson (>= 0.59.0),
+               ninja-build,
+               libgtk-4-dev,
+               libadwaita-1-dev,
+               python3-gi,
+               python3-pil,
+               python3-qrcode,
+               python3-zeroconf,
+               android-tools-adb,
+               glib-2.0-dev
+Standards-Version: 4.6.0
+Homepage: https://github.com/IshuSinghSE/mirage
+Vcs-Browser: https://github.com/IshuSinghSE/mirage
+Vcs-Git: https://github.com/IshuSinghSE/mirage.git
+Rules-Requires-Root: no
+
+Package: mirage
+Architecture: all
+Depends: ${python3:Depends},
+         ${misc:Depends},
+         python3-gi,
+         gir1.2-gtk-4.0,
+         gir1.2-adw-1,
+         python3-pil,
+         python3-qrcode,
+         python3-zeroconf,
+         android-tools-adb
+Description: Android Device Manager for Linux
+ Mirage is a modern Android device manager for Linux that allows you to
+ wirelessly pair and manage your Android devices using ADB (Android Debug Bridge).
+ .
+ Features:
+  * Wireless pairing via QR code
+  * Device information and specifications
+  * Screenshot capture
+  * Modern GTK4/libadwaita interface
+  * Easy device management

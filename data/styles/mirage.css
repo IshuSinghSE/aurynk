@@ -1,0 +1,16 @@
+
+.image-button {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    outline: none;
+    padding: 0;
+}
+/* Mirage GTK custom styles */
+
+.clickable-image {
+    transition: all 150ms ease;
+}
+.hovered-image {
+    transform: scale(1.15);
+}

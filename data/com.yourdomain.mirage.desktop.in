@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Mirage
+Comment=Android Device Manager for Linux
+Exec=mirage
+Icon=com.yourdomain.mirage
+Terminal=false
+Type=Application
+Categories=GTK;Utility;System;
+Keywords=android;adb;wireless;device;phone;tablet;scrcpy;
+StartupNotify=true

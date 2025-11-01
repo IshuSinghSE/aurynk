@@ -1,0 +1,80 @@
+app-id: com.yourdomain.mirage
+runtime: org.gnome.Platform
+runtime-version: '45'
+sdk: org.gnome.Sdk
+command: mirage
+
+finish-args:
+  # X11 + XShm access
+  - --share=ipc
+  - --socket=fallback-x11
+  # Wayland access
+  - --socket=wayland
+  # Network access for ADB wireless
+  - --share=network
+  # Access to home directory for storing device data
+  - --filesystem=home
+  # System D-Bus (for notifications, etc.)
+  - --socket=session-bus
+  # For ADB communication
+  - --device=all
+  # Allow subprocess spawning (for adb commands)
+  - --talk-name=org.freedesktop.Flatpak
+
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /man
+  - /share/doc
+  - /share/gtk-doc
+  - /share/man
+  - /share/pkgconfig
+  - '*.la'
+  - '*.a'
+
+modules:
+  # Python dependencies
+  - name: python3-pillow
+    buildsystem: simple
+    build-commands:
+      - pip3 install --verbose --exists-action=i --no-index --find-links="file://${PWD}"
+        --prefix=${FLATPAK_DEST} pillow
+    sources:
+      - type: file
+        url: https://files.pythonhosted.org/packages/cd/74/ad3d526f3bf7b6d3f408b73fde271ec69dfac8b81341a318ce825f2b3812/pillow-10.4.0.tar.gz
+        sha256: 166c1cd4d24309b30d61f79f4a9114b7b2313d7450912277855ff5dfd7cd4a06
+
+  - name: python3-qrcode
+    buildsystem: simple
+    build-commands:
+      - pip3 install --verbose --exists-action=i --no-index --find-links="file://${PWD}"
+        --prefix=${FLATPAK_DEST} qrcode[pil]
+    sources:
+      - type: file
+        url: https://files.pythonhosted.org/packages/5a/e9/27ed8df53e2f1810d7927cd2ce8e0d70baf30c03bc6c1a8d8f00e1c93a88/qrcode-8.2.tar.gz
+        sha256: 625e8e8ecbf4e729ce8c8f7c2ccef27e4c0e567b5bad8596fe2d7d1b3a1a05cd
+
+  - name: python3-zeroconf
+    buildsystem: simple
+    build-commands:
+      - pip3 install --verbose --exists-action=i --no-index --find-links="file://${PWD}"
+        --prefix=${FLATPAK_DEST} zeroconf
+    sources:
+      - type: file
+        url: https://files.pythonhosted.org/packages/a9/51/98e6c22e58a8b5e3ba2e3657843c4dbfccc00c74db09c0edb8ef74ea0b45/zeroconf-0.148.0.tar.gz
+        sha256: 964194c1e5bc45b8f5d7ac1629b6e0fc42e0fcf6d1a9d0ff93c1e6268f4c9c40
+
+  # ADB (Android Debug Bridge)
+  - name: android-tools
+    buildsystem: cmake-ninja
+    sources:
+      - type: git
+        url: https://github.com/nmeum/android-tools.git
+        tag: 34.0.5
+
+  # Main application
+  - name: mirage
+    buildsystem: meson
+    sources:
+      - type: dir
+        path: .
