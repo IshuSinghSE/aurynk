@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "GPL-3.0-or-later"}
 authors = [
-    {name = "IshuSinghSE", email = "your-email@example.com"}
+    {name = "IshuSinghSE", email = "ishu.111636@yahoo.com"}
 ]
 keywords = ["android", "adb", "device-manager", "gtk", "libadwaita", "wireless"]
 classifiers = [

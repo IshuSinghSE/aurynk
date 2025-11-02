@@ -1,4 +1,4 @@
-mirage (0.1.0-1) noble; urgency=medium
+mirage (0.1.0) noble; urgency=medium
 
   * Initial release
   * Wireless device pairing via QR code

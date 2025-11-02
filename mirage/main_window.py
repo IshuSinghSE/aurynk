@@ -54,9 +54,9 @@ class MirageWindow(Adw.ApplicationWindow):
         
     def _load_custom_css(self):
         css_provider = Gtk.CssProvider()
-        css_path = "data/styles/mirage.css"
+        css_path = "/com/yourdomain/mirage/styles/mirage.css"
         try:
-            css_provider.load_from_path(css_path)
+            css_provider.load_from_resource(css_path)
             Gtk.StyleContext.add_provider_for_display(
                 Gdk.Display.get_default(),
                 css_provider,
@@ -170,9 +170,9 @@ class MirageWindow(Adw.ApplicationWindow):
 
             # Load CSS for scaling effect from external file if not already loaded
             css_provider = Gtk.CssProvider()
-            css_path = "data/styles/mirage.css"
+            css_path = "/com/yourdomain/mirage/styles/mirage.css"
             try:
-                css_provider.load_from_path(css_path)
+                css_provider.load_from_resource(css_path)
                 Gtk.StyleContext.add_provider_for_display(
                     Gdk.Display.get_default(),
                     css_provider,

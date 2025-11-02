@@ -1,5 +1,0 @@
-# Meson options for Mirage
-
-# No custom options for now
-# You can add options like:
-# option('profile', type: 'combo', choices: ['default', 'development'], value: 'default', description: 'Build profile')

@@ -4,8 +4,18 @@
     <!-- Application Icon -->
     <file alias="icons/app-icon.png">icons/com.yourdomain.mirage.png</file>
     
+    <!-- Additional Icons -->
+    <file>icons/add_device.png</file>
+    <file>icons/mirror.png</file>
+    <file>icons/192_168_1_2_screen.png</file>
+    <file>icons/device.png</file>
+    
     <!-- UI Templates -->
     <file preprocess="xml-stripblanks">ui/main_window.ui</file>
     <file preprocess="xml-stripblanks">ui/device_details_window.ui</file>
+    
+    <!-- CSS Styles -->
+    <file>styles/mirage.css</file>
+    <file>styles/device_status.css</file>
   </gresource>
 </gresources>

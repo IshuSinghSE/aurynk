@@ -2,6 +2,7 @@
 """Device details window."""
 
 import gi
+import os
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
@@ -55,23 +56,23 @@ class DeviceDetailsWindow(Adw.Window):
         left_box.set_valign(Gtk.Align.START)
         
         screenshot_label = Gtk.Label()
-        screenshot_label.set_markup('<span size="large" weight="bold">Preview</span>')
-        screenshot_label.set_halign(Gtk.Align.START)
+        screenshot_label.set_markup('<span size="x-large" weight="bold">Preview</span>')
+        screenshot_label.set_halign(Gtk.Align.CENTER)
         left_box.append(screenshot_label)
         
         self.screenshot_image = Gtk.Image()
         self.screenshot_image.set_pixel_size(360)
         
         # Load thumbnail if available
-        thumbnail = self.device.get("thumbnail")
-        if thumbnail:
-            self.screenshot_image.set_from_file(thumbnail)
-        else:
-            self.screenshot_image.set_from_icon_name("image-missing")
+        thumbnail = self.device.get('thumbnail')
+        if thumbnail and not os.path.isabs(thumbnail):
+            thumbnail = os.path.expanduser(os.path.join('~/.local/share/mirage/screenshots', thumbnail))
+        if not thumbnail or not os.path.exists(thumbnail):
+            thumbnail = 'data/icons/mirror.png'
+        self.screenshot_image.set_from_file(thumbnail)
         
         left_box.append(self.screenshot_image)
         
-       
         
         # Actions section
         actions_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
