@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>com.yourdomain.mirage</id>
+  <id>com.yourdomain.aurynk</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   
-  <name>Mirage</name>
+  <name>Aurynk</name>
   <summary>Android Device Manager for Linux</summary>
   
   <description>
     <p>
-      Mirage is a modern Android device manager for Linux that allows you to
+      Aurynk is a modern Android device manager for Linux that allows you to
       wirelessly pair and manage your Android devices using ADB (Android Debug Bridge).
     </p>
     <p>Features:</p>
@@ -29,19 +29,19 @@
     </screenshot>
   </screenshots>
   
-  <url type="homepage">https://github.com/IshuSinghSE/mirage</url>
-  <url type="bugtracker">https://github.com/IshuSinghSE/mirage/issues</url>
+  <url type="homepage">https://github.com/IshuSinghSE/aurynk</url>
+  <url type="bugtracker">https://github.com/IshuSinghSE/aurynk/issues</url>
   
   <developer_name>IshuSinghSE</developer_name>
   
-  <launchable type="desktop-id">com.yourdomain.mirage.desktop</launchable>
+  <launchable type="desktop-id">com.yourdomain.aurynk.desktop</launchable>
   
   <provides>
-    <binary>mirage</binary>
+    <binary>aurynk</binary>
   </provides>
   
   <releases>
-    <release version="0.1.0" date="2025-11-01">
+    <release version="0.1.0" date="2025-11-02">
       <description>
         <p>Initial release</p>
         <ul>

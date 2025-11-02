@@ -8,8 +8,8 @@ gi.require_version("Adw", "1")
 from gi.repository import Gtk, Adw, GLib
 import threading
 
-from mirage.adb_controller import ADBController
-from mirage.qr_widget import create_qr_widget
+from aurynk.adb_controller import ADBController
+from aurynk.qr_widget import create_qr_widget
 
 
 class PairingDialog(Gtk.Dialog):

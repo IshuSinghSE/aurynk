@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""scrcpy interaction and management for Mirage."""
+"""scrcpy interaction and management for Aurynk."""
 
 import subprocess
 from typing import Optional
@@ -15,7 +15,7 @@ class ScrcpyManager:
         serial = f"{address}:{port}"
         if serial in self.processes:
             return True  # Already running
-        window_title = f"{device_name}" if device_name else f"Mirage: {serial}"
+        window_title = f"{device_name}" if device_name else f"Aurynk: {serial}"
         try:
             proc = subprocess.Popen([
                 "scrcpy",

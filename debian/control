@@ -1,4 +1,4 @@
-Source: mirage
+Source: aurynk
 Section: utils
 Priority: optional
 Maintainer: IshuSinghSE <ishu.111636@yahoo.com>
@@ -17,12 +17,12 @@ Build-Depends: debhelper-compat (= 13),
                android-tools-adb,
                libglib2.0-dev
 Standards-Version: 4.6.0
-Homepage: https://github.com/IshuSinghSE/mirage
-Vcs-Browser: https://github.com/IshuSinghSE/mirage
-Vcs-Git: https://github.com/IshuSinghSE/mirage.git
+Homepage: https://github.com/IshuSinghSE/aurynk
+Vcs-Browser: https://github.com/IshuSinghSE/aurynk
+Vcs-Git: https://github.com/IshuSinghSE/aurynk.git
 Rules-Requires-Root: no
 
-Package: mirage
+Package: aurynk
 Architecture: all
 Depends: ${python3:Depends},
          ${misc:Depends},
@@ -34,7 +34,7 @@ Depends: ${python3:Depends},
          python3-zeroconf,
          android-tools-adb
 Description: Android Device Manager for Linux
- Mirage is a modern Android device manager for Linux that allows you to
+ Aurynk is a modern Android device manager for Linux that allows you to
  wirelessly pair and manage your Android devices using ADB (Android Debug Bridge).
  .
  Features:

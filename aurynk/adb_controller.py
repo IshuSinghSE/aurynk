@@ -14,7 +14,7 @@ from zeroconf import Zeroconf, ServiceBrowser, ServiceStateChange, IPVersion
 
 
 # Permanent device store path
-DEVICE_STORE_DIR = os.path.join(os.path.expanduser("~"), ".local", "share", "mirage")
+DEVICE_STORE_DIR = os.path.join(os.path.expanduser("~"), ".local", "share", "aurynk")
 DEVICE_STORE_PATH = os.path.join(DEVICE_STORE_DIR, "paired_devices.json")
 
 # Ensure permanent storage directory exists
@@ -249,11 +249,11 @@ class ADBController:
         return specs
 
     def capture_screenshot(self, address: str, connect_port: int) -> Optional[str]:
-        """Capture device screenshot and return local path. If locked or screen off, use old image. Otherwise, go to home, take screenshot, return to previous app. Screenshots are stored in ~/.local/share/mirage/screenshots/."""
+        """Capture device screenshot and return local path. If locked or screen off, use old image. Otherwise, go to home, take screenshot, return to previous app. Screenshots are stored in ~/.local/share/aurynk/screenshots/."""
         serial = f"{address}:{connect_port}"
         screenshot_dir = os.path.join(DEVICE_STORE_DIR, "screenshots")
         os.makedirs(screenshot_dir, exist_ok=True)
-        local_path = os.path.join(screenshot_dir, f"mirage_{address.replace('.', '_')}_screen.png")
+        local_path = os.path.join(screenshot_dir, f"aurynk_{address.replace('.', '_')}_screen.png")
         try:
             # 1. Check if device is locked or screen is off
             # Check screen state
@@ -291,7 +291,7 @@ class ADBController:
 
             # 4. Take screenshot on home
             subprocess.run(
-                ["adb", "-s", serial, "shell", "screencap", "-p", "/sdcard/mirage_screen.png"],
+                ["adb", "-s", serial, "shell", "screencap", "-p", "/sdcard/aurynk_screen.png"],
                 check=True,
                 timeout=10,
             )
@@ -302,7 +302,7 @@ class ADBController:
 
             # 6. Pull to local temp directory
             subprocess.run(
-                ["adb", "-s", serial, "pull", "/sdcard/mirage_screen.png", local_path],
+                ["adb", "-s", serial, "pull", "/sdcard/aurynk_screen.png", local_path],
                 check=True,
                 timeout=10,
             )

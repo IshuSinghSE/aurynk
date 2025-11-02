@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: mirage
+Upstream-Name: aurynk
 Upstream-Contact: IshuSinghSE <ishu.111636@yahoo.com>
-Source: https://github.com/IshuSinghSE/mirage
+Source: https://github.com/IshuSinghSE/aurynk
 
 Files: *
 Copyright: 2025 IshuSinghSE

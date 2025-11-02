@@ -1,6 +1,6 @@
 
 #!/usr/bin/env python3
-"""Main window for Mirage application."""
+"""Main window for Aurynk application."""
 
 import gi
 from gi.repository import Gtk, Adw, Gio, Gdk
@@ -9,14 +9,14 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
 import os
-from mirage.adb_controller import ADBController
-from mirage.scrcpy_manager import ScrcpyManager
-from mirage.lib.adb_pairing import is_device_connected
+from aurynk.adb_controller import ADBController
+from aurynk.scrcpy_manager import ScrcpyManager
+from aurynk.lib.adb_pairing import is_device_connected
 
-class MirageWindow(Adw.ApplicationWindow):
+class AurynkWindow(Adw.ApplicationWindow):
     """Main application window."""
 
-    __gtype_name__ = "MirageWindow"
+    __gtype_name__ = "AurynkWindow"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -25,8 +25,8 @@ class MirageWindow(Adw.ApplicationWindow):
         # Load custom CSS for outlined button
         self._load_custom_css()
         # Window properties
-        self.set_title("Mirage")
-        self.set_icon_name("com.yourdomain.mirage")
+        self.set_title("Aurynk")
+        self.set_icon_name("com.yourdomain.aurynk")
         self.set_default_size(700, 520)
         # Try to load UI from GResource, fall back to programmatic UI
         try:
@@ -54,7 +54,7 @@ class MirageWindow(Adw.ApplicationWindow):
         
     def _load_custom_css(self):
         css_provider = Gtk.CssProvider()
-        css_path = "/com/yourdomain/mirage/styles/mirage.css"
+        css_path = "/com/yourdomain/aurynk/styles/aurynk.css"
         try:
             css_provider.load_from_resource(css_path)
             Gtk.StyleContext.add_provider_for_display(
@@ -170,7 +170,7 @@ class MirageWindow(Adw.ApplicationWindow):
 
             # Load CSS for scaling effect from external file if not already loaded
             css_provider = Gtk.CssProvider()
-            css_path = "/com/yourdomain/mirage/styles/mirage.css"
+            css_path = "/com/yourdomain/aurynk/styles/aurynk.css"
             try:
                 css_provider.load_from_resource(css_path)
                 Gtk.StyleContext.add_provider_for_display(
@@ -313,14 +313,14 @@ class MirageWindow(Adw.ApplicationWindow):
 
     def _on_add_device_clicked(self, button):
         """Handle Add Device button click."""
-        from mirage.pairing_dialog import PairingDialog
+        from aurynk.pairing_dialog import PairingDialog
         
         dialog = PairingDialog(self)
         dialog.present()
 
     def _on_device_details_clicked(self, button, device):
         """Handle device details button click."""
-        from mirage.device_details_window import DeviceDetailsWindow
+        from aurynk.device_details_window import DeviceDetailsWindow
         
         details_window = DeviceDetailsWindow(device, self)
         details_window.present()

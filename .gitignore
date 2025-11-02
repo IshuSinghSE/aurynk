@@ -17,7 +17,7 @@ build-dir/
 # Generated GResource files (should be built, not committed)
 *.gresource
 data/*.gresource
-data/com.yourdomain.mirage.gresource
+data/com.yourdomain.aurynk.gresource
 
 # Meson
 meson-logs/
@@ -25,7 +25,7 @@ meson-private/
 
 # Debian
 debian/.debhelper/
-debian/mirage/
+debian/aurynk/
 debian/files
 debian/*.substvars
 debian/*.log
@@ -51,9 +51,9 @@ Thumbs.db
 .*.swp
 
 # Runtime/user data files (should not be in repo)
-data/mirage_paired_devices.json
+data/aurynk_paired_devices.json
 data/*_paired_devices.json
-/tmp/mirage_*
+/tmp/aurynk_*
 *.log
 
 # Screenshots and temporary images (runtime generated)
