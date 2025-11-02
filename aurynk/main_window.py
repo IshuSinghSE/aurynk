@@ -38,7 +38,7 @@ class AurynkWindow(Adw.ApplicationWindow):
     def _setup_ui_from_template(self):
         """Load UI from XML template (GResource)."""
         builder = Gtk.Builder.new_from_resource(
-            "/com/yourdomain/mirage/ui/main_window.ui"
+            "/com/yourdomain/aurynk/ui/main_window.ui"
         )
         main_content = builder.get_object("main_content")
         if main_content:
@@ -210,7 +210,7 @@ class AurynkWindow(Adw.ApplicationWindow):
         # Use permanent location for screenshots
         screenshot_path = device.get('thumbnail')
         if screenshot_path and not os.path.isabs(screenshot_path):
-            screenshot_path = os.path.expanduser(os.path.join('~/.local/share/mirage/screenshots', screenshot_path))
+            screenshot_path = os.path.expanduser(os.path.join('~/.local/share/aurynk/screenshots', screenshot_path))
         if not screenshot_path or not os.path.exists(screenshot_path):
             screenshot_path = 'data/icons/mirror.png'
         icon = Gtk.Image.new_from_file(screenshot_path)
