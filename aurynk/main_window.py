@@ -212,8 +212,10 @@ class AurynkWindow(Adw.ApplicationWindow):
         if screenshot_path and not os.path.isabs(screenshot_path):
             screenshot_path = os.path.expanduser(os.path.join('~/.local/share/aurynk/screenshots', screenshot_path))
         if not screenshot_path or not os.path.exists(screenshot_path):
-            screenshot_path = 'data/icons/mirror.png'
-        icon = Gtk.Image.new_from_file(screenshot_path)
+            # Use Flatpak-compliant GResource path for fallback icon
+            icon = Gtk.Image.new_from_resource("/com/yourdomain/aurynk/icons/org.yourdomain.aurynk.png")
+        else:
+            icon = Gtk.Image.new_from_file(screenshot_path)
         icon.set_margin_top(4)
         icon.set_margin_bottom(4)
 

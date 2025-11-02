@@ -2,13 +2,13 @@
 <gresources>
   <gresource prefix="/com/yourdomain/aurynk">
     <!-- Application Icon -->
-    <file alias="icons/app-icon.png">icons/com.yourdomain.aurynk.png</file>
-    
+    <file alias="icons/app-icon.png">icons/org.yourdomain.aurynk.png</file>
+
     <!-- Additional Icons -->
-    <file>icons/add_device.png</file>
-    <file>icons/mirror.png</file>
-  <file>icons/demo.png</file>
-    <file>icons/device.png</file>
+    <file>icons/org.yourdomain.aurynk.add-device.png</file>
+    <file>icons/org.yourdomain.aurynk.mirror.png</file>
+    <file>icons/org.yourdomain.aurynk.png</file>
+    <file>icons/org.yourdomain.aurynk.device.png</file>
     
     <!-- UI Templates -->
     <file preprocess="xml-stripblanks">ui/main_window.ui</file>

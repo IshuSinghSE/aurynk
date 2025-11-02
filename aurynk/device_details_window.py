@@ -68,8 +68,10 @@ class DeviceDetailsWindow(Adw.Window):
         if thumbnail and not os.path.isabs(thumbnail):
             thumbnail = os.path.expanduser(os.path.join('~/.local/share/aurynk/screenshots', thumbnail))
         if not thumbnail or not os.path.exists(thumbnail):
-            thumbnail = 'data/icons/mirror.png'
-        self.screenshot_image.set_from_file(thumbnail)
+            # Use Flatpak-compliant GResource path for fallback icon
+            self.screenshot_image.set_from_resource("/com/yourdomain/aurynk/icons/org.yourdomain.aurynk.png")
+        else:
+            self.screenshot_image.set_from_file(thumbnail)
         
         left_box.append(self.screenshot_image)
         
