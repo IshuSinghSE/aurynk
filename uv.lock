@@ -42,7 +42,7 @@ wheels = [
 ]
 
 [[package]]
-name = "mirage"
+name = "aurynk"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

@@ -15,13 +15,13 @@
             <property name="spacing">8</property>
             <child>
               <object class="GtkImage" id="app_logo">
-                <property name="icon-name">com.yourdomain.mirage</property>
+                <property name="icon-name">com.yourdomain.aurynk</property>
                 <property name="pixel-size">40</property>
               </object>
             </child>
           </object>
         </child>
-        <!-- Remove the center title (middle Mirage label) -->
+        <!-- Remove the center title (middle Aurynk label) -->
         <!-- Add Device button at the end -->
         <child type="end">
           <object class="GtkButton" id="add_device_button">

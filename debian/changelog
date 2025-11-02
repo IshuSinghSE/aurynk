@@ -1,4 +1,4 @@
-mirage (0.1.0) noble; urgency=medium
+aurynk (0.1.0) noble; urgency=medium
 
   * Initial release
   * Wireless device pairing via QR code
@@ -6,4 +6,4 @@ mirage (0.1.0) noble; urgency=medium
   * Screenshot capture functionality
   * Modern GTK4/libadwaita interface
 
- -- IshuSinghSE <ishu.111636@yahoo.com>  Fri, 01 Nov 2025 00:00:00 +0000
+ -- IshuSinghSE <ishu.111636@yahoo.com>  Sat, 02 Nov 2025 00:00:00 +0000

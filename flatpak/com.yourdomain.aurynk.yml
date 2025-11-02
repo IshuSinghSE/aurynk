@@ -1,8 +1,8 @@
-app-id: com.yourdomain.mirage
+app-id: com.yourdomain.aurynk
 runtime: org.gnome.Platform
 runtime-version: '48'
 sdk: org.gnome.Sdk
-command: mirage
+command: aurynk
 
 finish-args:
   # X11 + XShm access
@@ -71,7 +71,7 @@ modules:
         tag: 34.0.5
 
   # Main application
-  - name: mirage
+  - name: aurynk
     buildsystem: meson
     sources:
       - type: dir

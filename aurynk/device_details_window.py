@@ -9,7 +9,7 @@ gi.require_version("Adw", "1")
 from gi.repository import Gtk, Adw
 import threading
 
-from mirage.adb_controller import ADBController
+from aurynk.adb_controller import ADBController
 
 
 class DeviceDetailsWindow(Adw.Window):
@@ -66,7 +66,7 @@ class DeviceDetailsWindow(Adw.Window):
         # Load thumbnail if available
         thumbnail = self.device.get('thumbnail')
         if thumbnail and not os.path.isabs(thumbnail):
-            thumbnail = os.path.expanduser(os.path.join('~/.local/share/mirage/screenshots', thumbnail))
+            thumbnail = os.path.expanduser(os.path.join('~/.local/share/aurynk/screenshots', thumbnail))
         if not thumbnail or not os.path.exists(thumbnail):
             thumbnail = 'data/icons/mirror.png'
         self.screenshot_image.set_from_file(thumbnail)

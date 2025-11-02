@@ -1,4 +1,4 @@
-project('mirage',
+project('aurynk',
   version: '0.1.0',
   meson_version: '>= 0.59.0'
 )
@@ -16,8 +16,8 @@ subdir('data')
 
 # install python package
 python_dir = join_paths(get_option('prefix'), py.get_install_dir())
-install_subdir('mirage', install_dir: python_dir)
+install_subdir('aurynk', install_dir: python_dir)
 
 # install launcher
-install_data('scripts/mirage', install_dir: get_option('bindir'), install_mode: 'rwxr-xr-x', rename: 'mirage')
+install_data('scripts/aurynk', install_dir: get_option('bindir'), install_mode: 'rwxr-xr-x', rename: 'aurynk')
 

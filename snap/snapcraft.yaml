@@ -1,4 +1,4 @@
-name: mirage
+name: aurynk
 base: core24
 version: '0.1.0' 
 summary: A modern GTK4/Libadwaita GUI for scrcpy and ADB.
@@ -9,10 +9,8 @@ description: |
 grade: stable
 confinement: strict
 parts:
-  mirage:
+  aurynk:
     plugin: meson
-    meson-parameters:
-      - -Dprofile=release
     source: .
     build-packages:
       - meson
@@ -28,9 +26,9 @@ parts:
       - adb        
       - scrcpy     
 apps:
-  mirage:
-    command: bin/mirage
-    desktop: data/desktop/com.yourdomain.mirage.desktop.in
+  aurynk:
+    command: bin/aurynk
+    desktop: data/desktop/com.yourdomain.aurynk.desktop.in
     plugs:
       - gnome          # Connects to the GNOME extension (themes, icons)
       - desktop        # Basic desktop access (D-Bus)

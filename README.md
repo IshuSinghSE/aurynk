@@ -1,7 +1,7 @@
-# Mirage - Android Device Manager for Linux
+# Aurynk - Android Device Manager for Linux
 
 <p align="center">
-  <img src="data/icons/com.yourdomain.mirage.png" alt="Mirage Logo" width="128"/>
+  <img src="data/icons/com.yourdomain.aurynk.png" alt="Aurynk Logo" width="128"/>
 </p>
 
 A modern Android device manager for Linux that allows you to wirelessly pair and manage your Android devices using ADB (Android Debug Bridge).
@@ -36,8 +36,8 @@ A modern Android device manager for Linux that allows you to wirelessly pair and
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/IshuSinghSE/mirage.git
-   cd mirage
+   git clone https://github.com/IshuSinghSE/aurynk.git
+   cd aurynk
    ```
 
 2. **Install Python dependencies:**
@@ -47,13 +47,13 @@ A modern Android device manager for Linux that allows you to wirelessly pair and
 
 3. **Compile GResources:**
    ```bash
-   glib-compile-resources --sourcedir=data data/com.yourdomain.mirage.gresource.xml \
-       --target=data/com.yourdomain.mirage.gresource
+   glib-compile-resources --sourcedir=data data/com.yourdomain.aurynk.gresource.xml \
+       --target=data/com.yourdomain.aurynk.gresource
    ```
 
 4. **Run directly:**
    ```bash
-   python -m mirage
+   python -m aurynk
    ```
 
 ### Building with Meson (System Installation)
@@ -68,27 +68,27 @@ sudo meson install -C build
 
 ```bash
 dpkg-buildpackage -us -uc -b
-sudo dpkg -i ../mirage_0.1.0-1_all.deb
+sudo dpkg -i ../aurynk_0.1.0-1_all.deb
 ```
 
 ### Building a Flatpak
 
 ```bash
-flatpak-builder --force-clean build-dir flatpak/com.yourdomain.mirage.yml
-flatpak-builder --user --install --force-clean build-dir flatpak/com.yourdomain.mirage.yml
+flatpak-builder --force-clean build-dir flatpak/com.yourdomain.aurynk.yml
+flatpak-builder --user --install --force-clean build-dir flatpak/com.yourdomain.aurynk.yml
 ```
 
 ## Usage
 
 ### Pairing a Device
 
-1. Launch Mirage
+1. Launch Aurynk
 2. Click the "Add Device" button
 3. On your Android device:
    - Go to **Settings** → **Developer Options** → **Wireless Debugging**
    - Enable **Wireless Debugging**
    - Tap **Pair device with QR code**
-4. Scan the QR code displayed in Mirage
+4. Scan the QR code displayed in Aurynk
 5. Your device will be automatically paired and connected
 
 ### Viewing Device Details
@@ -108,29 +108,29 @@ flatpak-builder --user --install --force-clean build-dir flatpak/com.yourdomain.
 ## Project Structure
 
 ```
-mirage/                             # Project root (Git repository)
-├── mirage/                         # Python package (importable code)
+aurynk/                             # Project root (Git repository)
+├── aurynk/                         # Python package (importable code)
 │   ├── __init__.py
 │   ├── __main__.py                 # Module entry point
-│   ├── app.py                      # MirageApp(Adw.Application)
-│   ├── main_window.py              # MirageWindow(Adw.ApplicationWindow)
+│   ├── app.py                      # AurynkApp(Adw.Application)
+│   ├── main_window.py              # AurynkWindow(Adw.ApplicationWindow)
 │   ├── adb_controller.py           # All ADB/device management logic
 │   ├── pairing_dialog.py           # Pairing dialog
 │   ├── device_details_window.py    # Device details window
 │   └── qr_widget.py                # QR code widget
 │
 ├── data/                           # Application data
-│   ├── com.yourdomain.mirage.gresource.xml
-│   ├── com.yourdomain.mirage.desktop.in
-│   ├── com.yourdomain.mirage.appdata.xml
+│   ├── com.yourdomain.aurynk.gresource.xml
+│   ├── com.yourdomain.aurynk.desktop.in
+│   ├── com.yourdomain.aurynk.appdata.xml
 │   ├── icons/
-│   │   └── com.yourdomain.mirage.png
+│   │   └── com.yourdomain.aurynk.png
 │   └── ui/
 │       ├── main_window.ui
 │       └── device_details_window.ui
 │
 ├── flatpak/                        # Flatpak manifest
-│   └── com.yourdomain.mirage.yml
+│   └── com.yourdomain.aurynk.yml
 │
 ├── debian/                         # Debian packaging
 │   ├── control
@@ -150,7 +150,7 @@ For development, you can run the app directly without installation:
 
 ```bash
 # From the project root
-python -m mirage
+python -m aurynk
 ```
 
 ### Code Style
@@ -209,5 +209,5 @@ This project is licensed under the GNU General Public License v3.0 or later - se
 
 ## Links
 
-- **GitHub**: https://github.com/IshuSinghSE/mirage
-- **Issues**: https://github.com/IshuSinghSE/mirage/issues
+- **GitHub**: https://github.com/IshuSinghSE/aurynk
+- **Issues**: https://github.com/IshuSinghSE/aurynk/issues

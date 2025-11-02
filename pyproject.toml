@@ -1,5 +1,5 @@
 [project]
-name = "mirage"
+name = "aurynk"
 version = "0.1.0"
 description = "Android Device Manager for Linux with wireless pairing and device management"
 readme = "README.md"
@@ -34,22 +34,22 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/IshuSinghSE/mirage"
-Repository = "https://github.com/IshuSinghSE/mirage.git"
-Issues = "https://github.com/IshuSinghSE/mirage/issues"
+Homepage = "https://github.com/IshuSinghSE/aurynk"
+Repository = "https://github.com/IshuSinghSE/aurynk.git"
+Issues = "https://github.com/IshuSinghSE/aurynk/issues"
 
 [project.scripts]
-mirage = "mirage.app:main"
+aurynk = "aurynk.app:main"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["mirage"]
+packages = ["aurynk"]
 
 [tool.setuptools.package-data]
-mirage = ["*.py"]
+aurynk = ["*.py"]
 
 [tool.ruff]
 line-length = 100

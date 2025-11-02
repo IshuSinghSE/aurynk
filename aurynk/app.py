@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Main application class for Mirage."""
+"""Main application class for Aurynk."""
 
 import sys
 import os
@@ -9,15 +9,15 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Gtk, Adw, Gio
 
-from mirage.main_window import MirageWindow
+from aurynk.main_window import AurynkWindow
 
 
-class MirageApp(Adw.Application):
+class AurynkApp(Adw.Application):
     """Main application class."""
 
     def __init__(self):
         super().__init__(
-            application_id="com.yourdomain.mirage",
+            application_id="com.yourdomain.aurynk",
             flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
         )
 
@@ -31,7 +31,7 @@ class MirageApp(Adw.Application):
         # Get or create the main window
         win = self.props.active_window
         if not win:
-            win = MirageWindow(application=self)
+            win = AurynkWindow(application=self)
         win.present()
 
     def _load_gresource(self):
@@ -39,14 +39,14 @@ class MirageApp(Adw.Application):
         resource = None
         candidates = [
             # Running from source (development)
-            os.path.join(os.getcwd(), "data", "com.yourdomain.mirage.gresource"),
+            os.path.join(os.getcwd(), "data", "com.yourdomain.aurynk.gresource"),
             os.path.join(
-                os.path.dirname(__file__), "..", "data", "com.yourdomain.mirage.gresource"
+                os.path.dirname(__file__), "..", "data", "com.yourdomain.aurynk.gresource"
             ),
             # Installed system-wide
-            "/usr/share/mirage/com.yourdomain.mirage.gresource",
+            "/usr/share/aurynk/com.yourdomain.aurynk.gresource",
             # Flatpak installation
-            "/app/share/mirage/com.yourdomain.mirage.gresource",
+            "/app/share/aurynk/com.yourdomain.aurynk.gresource",
         ]
 
         for path in candidates:
@@ -65,7 +65,7 @@ class MirageApp(Adw.Application):
 
 def main(argv):
     """Main entry point for the application."""
-    app = MirageApp()
+    app = AurynkApp()
     return app.run(argv)
 
 

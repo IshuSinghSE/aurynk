@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
-  <gresource prefix="/com/yourdomain/mirage">
+  <gresource prefix="/com/yourdomain/aurynk">
     <!-- Application Icon -->
-    <file alias="icons/app-icon.png">icons/com.yourdomain.mirage.png</file>
+    <file alias="icons/app-icon.png">icons/com.yourdomain.aurynk.png</file>
     
     <!-- Additional Icons -->
     <file>icons/add_device.png</file>
@@ -15,7 +15,7 @@
     <file preprocess="xml-stripblanks">ui/device_details_window.ui</file>
     
     <!-- CSS Styles -->
-    <file>styles/mirage.css</file>
+    <file>styles/aurynk.css</file>
     <file>styles/device_status.css</file>
   </gresource>
 </gresources>
