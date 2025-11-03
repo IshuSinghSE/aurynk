@@ -2,7 +2,7 @@
 """ADB/scrcpy controller for device management."""
 
 import os
-from aurynk.device_store import DeviceStore
+from aurynk.utils.device_store import DeviceStore
 import random
 import string
 import subprocess

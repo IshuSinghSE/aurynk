@@ -9,7 +9,7 @@ gi.require_version("Adw", "1")
 from gi.repository import Gtk, Adw
 import threading
 
-from aurynk.adb_controller import ADBController
+from aurynk.lib.adb_controller import ADBController
 
 
 class DeviceDetailsWindow(Adw.Window):
@@ -238,10 +238,19 @@ class DeviceDetailsWindow(Adw.Window):
 
     def _on_remove_device(self, button):
         """Handle remove device button click."""
-        # Show confirmation dialog
+        # Show confirmation dialog with improved layout
         dialog = Adw.MessageDialog.new(self)
         dialog.set_heading("Remove Device?")
-        dialog.set_body(f"Are you sure you want to remove '{self.device.get('name', 'this device')}'?")
+        # Use line break and wrapping for the body label
+        body_text = f"Are you sure you want to remove \n {self.device.get('name', 'this device')} ?"
+        dialog.set_body(body_text)
+        # Set minimum width for dialog
+        dialog.set_default_size(340, 120)
+        # Enable label wrapping (Adw.MessageDialog uses a GtkLabel internally)
+        body_label = dialog.get_body_label() if hasattr(dialog, 'get_body_label') else None
+        if body_label:
+            body_label.set_line_wrap(True)
+            body_label.set_max_width_chars(40)
         dialog.add_response("cancel", "Cancel")
         dialog.add_response("remove", "Remove")
         dialog.set_response_appearance("remove", Adw.ResponseAppearance.DESTRUCTIVE)

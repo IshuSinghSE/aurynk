@@ -8,8 +8,8 @@ gi.require_version("Adw", "1")
 from gi.repository import Gtk, Adw, GLib
 import threading
 
-from aurynk.adb_controller import ADBController
-from aurynk.qr_widget import create_qr_widget
+from aurynk.lib.adb_controller import ADBController
+from aurynk.widgets.qr_widget import create_qr_widget
 
 
 class PairingDialog(Gtk.Dialog):
@@ -155,7 +155,7 @@ class PairingDialog(Gtk.Dialog):
         self.spinner.stop()
         self._update_status("✓ Device paired successfully!")
         # Close dialog after a short delay
-        from aurynk.device_events import notify_device_changed
+        from aurynk.utils.device_events import notify_device_changed
         notify_device_changed()  # Defensive, but not strictly needed since DeviceStore does this
         GLib.timeout_add_seconds(2, self._on_cancel, None)
 

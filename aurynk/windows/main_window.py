@@ -9,10 +9,10 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
 import os
-from aurynk.adb_controller import ADBController
-from aurynk.device_events import register_device_change_callback, unregister_device_change_callback
-from aurynk.scrcpy_manager import ScrcpyManager
-from aurynk.lib.adb_pairing import is_device_connected
+from aurynk.lib.adb_controller import ADBController
+from aurynk.utils.device_events import register_device_change_callback, unregister_device_change_callback
+from aurynk.lib.scrcpy_manager import ScrcpyManager
+from aurynk.utils.adb_pairing import is_device_connected
 
 class AurynkWindow(Adw.ApplicationWindow):
     """Main application window."""
@@ -272,7 +272,7 @@ class AurynkWindow(Adw.ApplicationWindow):
             connected = is_device_connected(address, connect_port)
         if connected:
             status_btn.set_label("Disconnect")
-            status_btn.add_css_class("success")
+            status_btn.add_css_class("destructive-action")
         else:
             status_btn.set_label("Connect")
             status_btn.add_css_class("suggested-action")
@@ -324,14 +324,14 @@ class AurynkWindow(Adw.ApplicationWindow):
 
     def _on_add_device_clicked(self, button):
         """Handle Add Device button click."""
-        from aurynk.pairing_dialog import PairingDialog
+        from aurynk.dialogs.pairing_dialog import PairingDialog
         
         dialog = PairingDialog(self)
         dialog.present()
 
     def _on_device_details_clicked(self, button, device):
         """Handle device details button click."""
-        from aurynk.device_details_window import DeviceDetailsWindow
+        from aurynk.windows.device_details_window import DeviceDetailsWindow
         
         details_window = DeviceDetailsWindow(device, self)
         details_window.present()

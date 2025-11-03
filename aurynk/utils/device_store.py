@@ -25,7 +25,7 @@ class DeviceStore:
         return self._devices.copy()
 
     def add_or_update_device(self, device_info: Dict[str, Any]):
-        from aurynk.device_events import notify_device_changed
+        from aurynk.utils.device_events import notify_device_changed
         address = device_info.get("address")
         existing_idx = None
         for idx, device in enumerate(self._devices):
@@ -40,7 +40,7 @@ class DeviceStore:
         notify_device_changed()
 
     def remove_device(self, address: str):
-        from aurynk.device_events import notify_device_changed
+        from aurynk.utils.device_events import notify_device_changed
         import subprocess
         # Find the device to get its connect_port
         device = next((d for d in self._devices if d.get("address") == address), None)

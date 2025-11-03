@@ -39,13 +39,11 @@ def create_qr_widget(data: str, size: int = 200) -> Gtk.Box:
 
     try:
         # Generate QR code
-        # qr_image = qrcode.make(data) # Simple version
-
         qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_L)
         qr.add_data(data)
 
         qr_image = qr.make_image(image_factory=StyledPilImage, module_drawer=CircleModuleDrawer())
-        
+
         # Convert to PNG bytes
         buf = io.BytesIO()
         qr_image.save(buf, format='PNG')
@@ -60,7 +58,11 @@ def create_qr_widget(data: str, size: int = 200) -> Gtk.Box:
         # Create image widget
         image = Gtk.Image()
         image.set_from_pixbuf(pixbuf)
-            # Wrap in a frame for rounded corners
+
+        if hasattr(image, 'set_pixel_size'):
+            image.set_pixel_size(size)
+            
+        # Wrap in a frame for rounded corners
         frame = Gtk.Frame()
         frame.set_child(image)
         frame.add_css_class("qr-image")
@@ -68,10 +70,6 @@ def create_qr_widget(data: str, size: int = 200) -> Gtk.Box:
         frame.set_halign(Gtk.Align.CENTER)
         qr_box.append(frame)
 
-        if hasattr(image, 'set_pixel_size'):
-            image.set_pixel_size(size)
-        qr_box.append(image)
-        
     except Exception as e:
         print(f"Error generating QR code: {e}")
         error_label = Gtk.Label(label=f"Error: {e}")
