@@ -32,62 +32,64 @@ class PairingDialog(Gtk.Dialog):
         self._start_pairing()
 
     def _setup_ui(self):
-        """Setup the dialog UI."""
+        """Setup the dialog UI (minimal, modern, beautiful)."""
         content = self.get_content_area()
-        content.set_spacing(16)
-        content.set_margin_top(24)
-        content.set_margin_bottom(24)
-        content.set_margin_start(24)
-        content.set_margin_end(24)
+        content.set_spacing(0)
+        content.set_margin_top(32)
+        content.set_margin_bottom(32)
+        content.set_margin_start(32)
+        content.set_margin_end(32)
 
-        # Title
+        # Title (centered, bold, large)
         title = Gtk.Label()
-        title.set_markup('<span size="x-large" weight="bold">How to Pair New Device</span>')
-        title.set_halign(Gtk.Align.START)
+        title.set_markup('<span size="xx-large" weight="bold">How to Pair New Device</span>')
+        title.set_halign(Gtk.Align.CENTER)
+        title.set_margin_bottom(8)
         content.append(title)
 
-        # Instructions
-        instructions = Gtk.Label(
-            label="1. On your phone, go to: Developer Options > Wireless Debugging\n"
-                  "2. Tap 'Pair device with QR code' and scan"
-        )
-        instructions.set_justify(Gtk.Justification.LEFT)
-        instructions.set_halign(Gtk.Align.START)
+        # Instructions (modern, clear, above QR)
+        instructions = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        instructions.set_halign(Gtk.Align.CENTER)
+        instructions.set_margin_bottom(18)
+
+        instr1 = Gtk.Label()
+        instr1.set_markup('<span size="medium">1. On your phone, go to <b>Developer Options → Wireless Debugging</b></span>')
+        instr1.set_halign(Gtk.Align.CENTER)
+        instr1.get_style_context().add_class("dim-label")
+        instr2 = Gtk.Label()
+        instr2.set_markup('<span size="medium">2. Tap <b>Pair device with QR code</b> and scan below</span>')
+        instr2.set_halign(Gtk.Align.CENTER)
+        instr2.get_style_context().add_class("dim-label")
+        instructions.append(instr1)
+        instructions.append(instr2)
         content.append(instructions)
 
-        # QR code container
-        self.qr_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        # QR code container (centered)
+        self.qr_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         self.qr_container.set_halign(Gtk.Align.CENTER)
         self.qr_container.set_valign(Gtk.Align.CENTER)
+        self.qr_container.set_margin_top(16)
         content.append(self.qr_container)
 
-        # Spinner
+        # Spinner (centered, below QR)
         self.spinner = Gtk.Spinner()
         self.spinner.set_halign(Gtk.Align.CENTER)
         self.spinner.start()
 
-        # Status label
+        # Status label (centered, subtle)
         self.status_label = Gtk.Label(label="Generating QR code...")
         self.status_label.set_halign(Gtk.Align.CENTER)
+        self.status_label.set_margin_top(8)
+        self.status_label.get_style_context().add_class("dim-label")
 
-        # Try again button (hidden initially)
-        self.try_again_btn = Gtk.Button(label="Try Again")
-        self.try_again_btn.set_halign(Gtk.Align.CENTER)
-        self.try_again_btn.set_visible(False)
-        self.try_again_btn.connect("clicked", self._on_try_again)
-        content.append(self.try_again_btn)
-
-        # Button box
-        button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        button_box.set_halign(Gtk.Align.CENTER)
-        button_box.set_margin_top(12)
-
-        # Cancel button
-        cancel_btn = Gtk.Button(label="Cancel")
-        cancel_btn.connect("clicked", self._on_cancel)
-        button_box.append(cancel_btn)
-
-        content.append(button_box)
+        # Action button (dynamically changes between Cancel and Try Again)
+        self.action_btn = Gtk.Button()
+        self.action_btn.set_label("Cancel")
+        self.action_btn.add_css_class("destructive-action")
+        self.action_btn.connect("clicked", self._on_cancel)
+        self.action_btn.set_halign(Gtk.Align.CENTER)
+        self.action_btn.set_margin_top(18)
+        content.append(self.action_btn)
 
     def _start_pairing(self):
         """Start the pairing process."""
@@ -164,8 +166,13 @@ class PairingDialog(Gtk.Dialog):
     def _on_qr_expired(self):
         """Handle QR code expiry."""
         self.spinner.stop()
-        self.status_label.set_text("QR code expired. Click 'Try Again' to generate a new one.")
-        self.try_again_btn.set_visible(True)
+        self.status_label.set_text("QR code expired. Try again.")
+        # Change action button to Try Again
+        self.action_btn.set_label("Try Again")
+        self.action_btn.remove_css_class("destructive-action")
+        self.action_btn.add_css_class("suggested-action")
+        self.action_btn.disconnect_by_func(self._on_cancel)
+        self.action_btn.connect("clicked", self._on_try_again)
         # Cleanup
         if self.qr_timeout_id is not None:
             GLib.source_remove(self.qr_timeout_id)
@@ -179,7 +186,12 @@ class PairingDialog(Gtk.Dialog):
 
     def _on_try_again(self, button):
         """Handle Try Again button click."""
-        self.try_again_btn.set_visible(False)
+        # Change action button back to Cancel
+        self.action_btn.set_label("Cancel")
+        self.action_btn.remove_css_class("suggested-action")
+        self.action_btn.add_css_class("destructive-action")
+        self.action_btn.disconnect_by_func(self._on_try_again)
+        self.action_btn.connect("clicked", self._on_cancel)
         self._start_pairing()
 
     def _on_cancel(self, button):
