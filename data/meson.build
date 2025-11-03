@@ -2,21 +2,21 @@
 
 # Install icon
 install_data(
-  'icons' / 'com.yourdomain.aurynk.png',
+  'icons' / 'com.aurynk.aurynk.png',
   install_dir: datadir / 'icons' / 'hicolor' / 'scalable' / 'apps'
 )
 
 # If you have an SVG icon, also install it
 # install_data(
-#   'icons' / 'com.yourdomain.aurynk.svg',
+#   'icons' / 'com.aurynk.aurynk.svg',
 #   install_dir: datadir / 'icons' / 'hicolor' / 'scalable' / 'apps'
 # )
 
 # Compile GResource
 gnome = import('gnome')
 gresource = gnome.compile_resources(
-  'com.yourdomain.aurynk',
-  'com.yourdomain.aurynk.gresource.xml',
+  'com.aurynk.aurynk',
+  'com.aurynk.aurynk.gresource.xml',
   gresource_bundle: true,
   install: true,
   install_dir: pkgdatadir,
@@ -25,8 +25,8 @@ gresource = gnome.compile_resources(
 # Install desktop file
 i18n = import('i18n')
 desktop_file = i18n.merge_file(
-  input: 'com.yourdomain.aurynk.desktop.in',
-  output: 'com.yourdomain.aurynk.desktop',
+  input: 'com.aurynk.aurynk.desktop.in',
+  output: 'com.aurynk.aurynk.desktop',
   type: 'desktop',
   po_dir: '../po',  # If you add translations
   install: true,
@@ -41,8 +41,8 @@ endif
 
 # Install appdata file
 appdata_file = i18n.merge_file(
-  input: 'com.yourdomain.aurynk.appdata.xml',
-  output: 'com.yourdomain.aurynk.appdata.xml',
+  input: 'com.aurynk.aurynk.appdata.xml',
+  output: 'com.aurynk.aurynk.appdata.xml',
   po_dir: '../po',  # If you add translations
   install: true,
   install_dir: datadir / 'metainfo'

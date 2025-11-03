@@ -1,4 +1,4 @@
-app-id: com.yourdomain.aurynk
+app-id: com.aurynk.aurynk
 runtime: org.gnome.Platform
 runtime-version: '48'
 sdk: org.gnome.Sdk

@@ -17,7 +17,7 @@ build-dir/
 # Generated GResource files (should be built, not committed)
 *.gresource
 data/*.gresource
-data/com.yourdomain.aurynk.gresource
+data/com.aurynk.aurynk.gresource
 
 # Meson
 meson-logs/

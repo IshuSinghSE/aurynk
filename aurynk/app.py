@@ -9,7 +9,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Gtk, Adw, Gio
 
-from aurynk.main_window import AurynkWindow
+from aurynk.windows.main_window import AurynkWindow
 
 
 class AurynkApp(Adw.Application):
@@ -17,7 +17,7 @@ class AurynkApp(Adw.Application):
 
     def __init__(self):
         super().__init__(
-            application_id="com.yourdomain.aurynk",
+            application_id="com.aurynk.aurynk",
             flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
         )
 
@@ -39,14 +39,14 @@ class AurynkApp(Adw.Application):
         resource = None
         candidates = [
             # Running from source (development)
-            os.path.join(os.getcwd(), "data", "com.yourdomain.aurynk.gresource"),
+            os.path.join(os.getcwd(), "data", "com.aurynk.aurynk.gresource"),
             os.path.join(
-                os.path.dirname(__file__), "..", "data", "com.yourdomain.aurynk.gresource"
+                os.path.dirname(__file__), "..", "data", "com.aurynk.aurynk.gresource"
             ),
             # Installed system-wide
-            "/usr/share/aurynk/com.yourdomain.aurynk.gresource",
+            "/usr/share/aurynk/com.aurynk.aurynk.gresource",
             # Flatpak installation
-            "/app/share/aurynk/com.yourdomain.aurynk.gresource",
+            "/app/share/aurynk/com.aurynk.aurynk.gresource",
         ]
 
         for path in candidates:
@@ -54,6 +54,8 @@ class AurynkApp(Adw.Application):
                 if path and os.path.exists(path):
                     resource = Gio.Resource.load(path)
                     Gio.Resource._register(resource)
+                    from gi.repository import Gtk, Gdk
+                    Gtk.IconTheme.get_for_display(Gdk.Display.get_default()).add_resource_path("/com/aurynk/aurynk/icons")
                     print(f"✓ Loaded GResource from: {path}")
                     break
             except Exception as e:

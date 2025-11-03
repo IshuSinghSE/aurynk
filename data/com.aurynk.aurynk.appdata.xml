@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>com.yourdomain.aurynk</id>
+  <id>com.aurynk.aurynk</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   
@@ -34,7 +34,7 @@
   
   <developer_name>IshuSinghSE</developer_name>
   
-  <launchable type="desktop-id">com.yourdomain.aurynk.desktop</launchable>
+  <launchable type="desktop-id">com.aurynk.aurynk.desktop</launchable>
   
   <provides>
     <binary>aurynk</binary>

@@ -9,9 +9,10 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
 import os
-from aurynk.adb_controller import ADBController
-from aurynk.scrcpy_manager import ScrcpyManager
-from aurynk.lib.adb_pairing import is_device_connected
+from aurynk.lib.adb_controller import ADBController
+from aurynk.utils.device_events import register_device_change_callback, unregister_device_change_callback
+from aurynk.lib.scrcpy_manager import ScrcpyManager
+from aurynk.utils.adb_pairing import is_device_connected
 
 class AurynkWindow(Adw.ApplicationWindow):
     """Main application window."""
@@ -22,11 +23,17 @@ class AurynkWindow(Adw.ApplicationWindow):
         super().__init__(**kwargs)
         # Initialize ADB controller
         self.adb_controller = ADBController()
+        # Register for device change events
+        from gi.repository import GLib
+        def safe_refresh():
+            GLib.idle_add(self._refresh_device_list)
+        self._device_change_callback = safe_refresh
+        register_device_change_callback(self._device_change_callback)
         # Load custom CSS for outlined button
         self._load_custom_css()
         # Window properties
         self.set_title("Aurynk")
-        self.set_icon_name("com.yourdomain.aurynk")
+        self.set_icon_name("com.aurynk.aurynk")
         self.set_default_size(700, 520)
         # Try to load UI from GResource, fall back to programmatic UI
         try:
@@ -34,11 +41,14 @@ class AurynkWindow(Adw.ApplicationWindow):
         except Exception as e:
             print(f"Could not load UI template: {e}")
             self._setup_ui_programmatically()
+    def do_close(self):
+        unregister_device_change_callback(self._device_change_callback)
+        super().do_close()
 
     def _setup_ui_from_template(self):
         """Load UI from XML template (GResource)."""
         builder = Gtk.Builder.new_from_resource(
-            "/com/yourdomain/aurynk/ui/main_window.ui"
+            "/com/aurynk/aurynk/ui/main_window.ui"
         )
         main_content = builder.get_object("main_content")
         if main_content:
@@ -54,7 +64,7 @@ class AurynkWindow(Adw.ApplicationWindow):
         
     def _load_custom_css(self):
         css_provider = Gtk.CssProvider()
-        css_path = "/com/yourdomain/aurynk/styles/aurynk.css"
+        css_path = "/com/aurynk/aurynk/styles/aurynk.css"
         try:
             css_provider.load_from_resource(css_path)
             Gtk.StyleContext.add_provider_for_display(
@@ -121,9 +131,11 @@ class AurynkWindow(Adw.ApplicationWindow):
         if not hasattr(self, 'device_list_box') or self.device_list_box is None:
             # UI template not loaded yet, skip
             return
-            
+
+        # Force reload from file to get latest changes from other windows/processes
+        self.adb_controller.device_store.reload()
         devices = self.adb_controller.load_paired_devices()
-        
+
         # Clear existing device rows
         child = self.device_list_box.get_first_child()
         while child:
@@ -144,7 +156,7 @@ class AurynkWindow(Adw.ApplicationWindow):
             empty_box.set_hexpand(True)
             empty_box.set_vexpand(True)
             # Use Gtk.Image with EventControllerMotion for pointer cursor and scaling
-            empty_image = Gtk.Image.new_from_file("data/icons/add_device.png")
+            empty_image = Gtk.Image.new_from_resource("/com/aurynk/aurynk/icons/org.aurynk.aurynk.add-device.png")
             empty_image.set_pixel_size(120)
             empty_image.set_halign(Gtk.Align.CENTER)
             empty_image.set_valign(Gtk.Align.CENTER)
@@ -170,7 +182,7 @@ class AurynkWindow(Adw.ApplicationWindow):
 
             # Load CSS for scaling effect from external file if not already loaded
             css_provider = Gtk.CssProvider()
-            css_path = "/com/yourdomain/aurynk/styles/aurynk.css"
+            css_path = "/com/aurynk/aurynk/styles/aurynk.css"
             try:
                 css_provider.load_from_resource(css_path)
                 Gtk.StyleContext.add_provider_for_display(
@@ -185,7 +197,6 @@ class AurynkWindow(Adw.ApplicationWindow):
 
             empty_label = Gtk.Label()
             empty_label.set_markup(
-                '<span size="large">No paired devices</span>\n'
                 '<span alpha="50%" >Click "Add Device" to get started</span>'
             )
             empty_label.set_justify(Gtk.Justification.CENTER)
@@ -198,8 +209,6 @@ class AurynkWindow(Adw.ApplicationWindow):
     def _create_device_row(self, device):
         """Create a row widget for a device."""
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        row.set_margin_top(12)
-        row.set_margin_bottom(12)
         row.set_margin_start(24)
         row.set_margin_end(24)
         
@@ -213,7 +222,7 @@ class AurynkWindow(Adw.ApplicationWindow):
             screenshot_path = os.path.expanduser(os.path.join('~/.local/share/aurynk/screenshots', screenshot_path))
         if not screenshot_path or not os.path.exists(screenshot_path):
             # Use Flatpak-compliant GResource path for fallback icon
-            icon = Gtk.Image.new_from_resource("/com/yourdomain/aurynk/icons/org.yourdomain.aurynk.png")
+            icon = Gtk.Image.new_from_resource("/com/aurynk/aurynk/icons/org.aurynk.aurynk.device.png")
         else:
             icon = Gtk.Image.new_from_file(screenshot_path)
         icon.set_margin_top(4)
@@ -263,7 +272,7 @@ class AurynkWindow(Adw.ApplicationWindow):
             connected = is_device_connected(address, connect_port)
         if connected:
             status_btn.set_label("Disconnect")
-            status_btn.add_css_class("success")
+            status_btn.add_css_class("destructive-action")
         else:
             status_btn.set_label("Connect")
             status_btn.add_css_class("suggested-action")
@@ -315,14 +324,14 @@ class AurynkWindow(Adw.ApplicationWindow):
 
     def _on_add_device_clicked(self, button):
         """Handle Add Device button click."""
-        from aurynk.pairing_dialog import PairingDialog
+        from aurynk.dialogs.pairing_dialog import PairingDialog
         
         dialog = PairingDialog(self)
         dialog.present()
 
     def _on_device_details_clicked(self, button, device):
         """Handle device details button click."""
-        from aurynk.device_details_window import DeviceDetailsWindow
+        from aurynk.windows.device_details_window import DeviceDetailsWindow
         
         details_window = DeviceDetailsWindow(device, self)
         details_window.present()

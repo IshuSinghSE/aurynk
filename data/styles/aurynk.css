@@ -14,3 +14,8 @@
 .hovered-image {
     transform: scale(1.15);
 }
+
+.qr-image {
+    border-radius: 16px;
+    overflow: hidden;
+}

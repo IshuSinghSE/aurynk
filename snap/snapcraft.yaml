@@ -28,7 +28,7 @@ parts:
 apps:
   aurynk:
     command: bin/aurynk
-    desktop: data/desktop/com.yourdomain.aurynk.desktop.in
+    desktop: data/desktop/com.aurynk.aurynk.desktop.in
     plugs:
       - gnome          # Connects to the GNOME extension (themes, icons)
       - desktop        # Basic desktop access (D-Bus)

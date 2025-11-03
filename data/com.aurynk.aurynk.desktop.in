@@ -2,7 +2,7 @@
 Name=Aurynk
 Comment=Android Device Manager for Linux
 Exec=aurynk
-Icon=com.yourdomain.aurynk
+Icon=com.aurynk.aurynk
 Terminal=false
 Type=Application
 Categories=GTK;Utility;System;

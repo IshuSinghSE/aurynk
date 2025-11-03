@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """ADB/scrcpy controller for device management."""
 
-import json
 import os
+from aurynk.utils.device_store import DeviceStore
 import random
 import string
 import subprocess
@@ -13,12 +13,9 @@ from zeroconf import Zeroconf, ServiceBrowser, ServiceStateChange, IPVersion
 
 
 
-# Permanent device store path
+
 DEVICE_STORE_DIR = os.path.join(os.path.expanduser("~"), ".local", "share", "aurynk")
 DEVICE_STORE_PATH = os.path.join(DEVICE_STORE_DIR, "paired_devices.json")
-
-# Ensure permanent storage directory exists
-os.makedirs(DEVICE_STORE_DIR, exist_ok=True)
 
 
 
@@ -27,8 +24,7 @@ class ADBController:
 
     def __init__(self):
         """Initialize the ADB controller."""
-        # Ensure storage directory exists
-        os.makedirs(os.path.dirname(DEVICE_STORE_PATH), exist_ok=True)
+        self.device_store = DeviceStore(DEVICE_STORE_PATH)
 
     # ===== Device Pairing =====
 
@@ -317,56 +313,13 @@ class ADBController:
     # ===== Device Storage =====
 
     def load_paired_devices(self) -> List[Dict[str, Any]]:
-        """Load paired devices from JSON storage."""
-        if not os.path.exists(DEVICE_STORE_PATH):
-            return []
-
-        try:
-            with open(DEVICE_STORE_PATH, "r") as f:
-                data = f.read().strip()
-                if not data:
-                    return []
-                return json.loads(data)
-        except Exception as e:
-            print(f"[Storage] Error loading devices: {e}")
-            return []
+        """Get paired devices from in-memory store."""
+        return self.device_store.get_devices()
 
     def save_paired_device(self, device_info: Dict[str, Any]):
         """Save or update a paired device."""
-        devices = self.load_paired_devices()
-        
-        # Update existing device or add new one
-        address = device_info.get("address")
-        existing_idx = None
-        
-        for idx, device in enumerate(devices):
-            if device.get("address") == address:
-                existing_idx = idx
-                break
-        
-        if existing_idx is not None:
-            # Merge with existing data (preserve fields not in update)
-            devices[existing_idx].update(device_info)
-        else:
-            devices.append(device_info)
-
-        # Ensure directory exists
-        os.makedirs(os.path.dirname(DEVICE_STORE_PATH), exist_ok=True)
-        
-        # Save to file
-        try:
-            with open(DEVICE_STORE_PATH, "w") as f:
-                json.dump(devices, f, indent=2)
-        except Exception as e:
-            print(f"[Storage] Error saving device: {e}")
+        self.device_store.add_or_update_device(device_info)
 
     def remove_device(self, address: str):
         """Remove a device from storage."""
-        devices = self.load_paired_devices()
-        devices = [d for d in devices if d.get("address") != address]
-        
-        try:
-            with open(DEVICE_STORE_PATH, "w") as f:
-                json.dump(devices, f, indent=2)
-        except Exception as e:
-            print(f"[Storage] Error removing device: {e}")
+        self.device_store.remove_device(address)
