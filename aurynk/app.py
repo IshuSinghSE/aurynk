@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
-"""Main application class for Aurynk."""
-
+import os
 import socket
 import subprocess
 import sys
-import os
-import gi
+import threading
 import time
+
+import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Gtk, Adw, Gio
 
-from aurynk.windows.main_window import AurynkWindow
+from gi.repository import Adw, Gio, GLib  # noqa: E402
+
+from aurynk.windows.main_window import AurynkWindow  # noqa: E402
 
 
 def start_tray_helper():
@@ -37,8 +38,6 @@ def start_tray_helper():
         os.path.join(os.path.dirname(__file__), "..", "scripts", "aurynk_tray.py")
     )
     subprocess.Popen(["python3", script_path])
-    print("[AurynkApp] Started tray helper.")
-    return True
 
 
 class AurynkApp(Adw.Application):
@@ -50,13 +49,49 @@ class AurynkApp(Adw.Application):
             flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
         )
 
+        # Start tray command listener thread
+        self.tray_listener_thread = threading.Thread(target=self.tray_command_listener, daemon=True)
+        self.tray_listener_thread.start()
+
+    def tray_command_listener(self):
+        """Listen for commands from the tray helper (e.g., show, quit)."""
+        SOCKET_PATH = "/tmp/aurynk_app.sock"
+        # Remove stale socket if exists
+        if os.path.exists(SOCKET_PATH):
+            try:
+                os.unlink(SOCKET_PATH)
+            except Exception:
+                pass
+        server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        server.bind(SOCKET_PATH)
+        server.listen(1)
+        while True:
+            try:
+                conn, _ = server.accept()
+                data = conn.recv(1024)
+                if data:
+                    msg = data.decode()
+                    if msg == "show":
+                        # Present the main window
+                        GLib.idle_add(self.present_main_window)
+                    elif msg == "quit":
+                        print("[AurynkApp] Received quit from tray. Exiting.")
+                        GLib.idle_add(self.quit)
+                conn.close()
+            except Exception as e:
+                print(f"[AurynkApp] Tray command listener error: {e}")
+
+    def present_main_window(self):
+        win = self.props.active_window
+        if not win:
+            win = AurynkWindow(application=self)
+        win.present()
+
     def do_startup(self):
         """Called once when the application starts."""
         Adw.Application.do_startup(self)
         self._load_gresource()
-        # print("ENV for tray helper:", os.environ)
-        res = start_tray_helper()
-        print("[AurynkApp] Startup complete. Res:", res)
+        start_tray_helper()
 
     def do_activate(self):
         """Called when the application is activated (main entry point)."""
@@ -84,7 +119,7 @@ class AurynkApp(Adw.Application):
                 if path and os.path.exists(path):
                     resource = Gio.Resource.load(path)
                     Gio.Resource._register(resource)
-                    from gi.repository import Gtk, Gdk
+                    from gi.repository import Gdk, Gtk
 
                     Gtk.IconTheme.get_for_display(Gdk.Display.get_default()).add_resource_path(
                         "/com/aurynk/aurynk/icons"
@@ -114,7 +149,7 @@ class AurynkApp(Adw.Application):
             except Exception as e:
                 print(f"[AurynkApp] Could not send tray command '{command}': {e}")
                 return
-        print(f"[AurynkApp] Tray helper socket not available after retries.")
+        print("[AurynkApp] Tray helper socket not available after retries.")
 
     # Example usage:
     # self.send_tray_command("connected:Redmi Note 14 5G")
