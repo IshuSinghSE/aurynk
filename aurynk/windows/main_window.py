@@ -4,11 +4,10 @@
 import os
 
 import gi
-from gi.repository import Adw, Gdk, Gtk
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-
+from gi.repository import Adw, Gdk, Gtk
 
 from aurynk.lib.adb_controller import ADBController
 from aurynk.lib.scrcpy_manager import ScrcpyManager
@@ -20,12 +19,6 @@ from aurynk.utils.device_events import (
 
 
 class AurynkWindow(Adw.ApplicationWindow):
-    def show_pairing_dialog(self):
-        from aurynk.dialogs.pairing_dialog import PairingDialog
-
-        dialog = PairingDialog(self)
-        dialog.present()
-
     """Main application window."""
 
     __gtype_name__ = "AurynkWindow"
@@ -58,6 +51,12 @@ class AurynkWindow(Adw.ApplicationWindow):
     def do_close(self):
         unregister_device_change_callback(self._device_change_callback)
         super().do_close()
+
+    def show_pairing_dialog(self):
+        from aurynk.dialogs.pairing_dialog import PairingDialog
+
+        dialog = PairingDialog(self)
+        dialog.present()
 
     def _setup_ui_from_template(self):
         """Load UI from XML template (GResource)."""
@@ -137,7 +136,7 @@ class AurynkWindow(Adw.ApplicationWindow):
         self._refresh_device_list()
 
     def _refresh_device_list(self):
-        """Refresh the device list from storage."""
+        """Refresh the device list from storage and sync tray."""
         if not hasattr(self, "device_list_box") or self.device_list_box is None:
             # UI template not loaded yet, skip
             return
@@ -217,6 +216,11 @@ class AurynkWindow(Adw.ApplicationWindow):
             empty_box.append(empty_label)
 
             self.device_list_box.append(empty_box)
+
+        # Always sync tray after device list changes
+        app = self.get_application()
+        if hasattr(app, "send_status_to_tray"):
+            app.send_status_to_tray()
 
     def _create_device_row(self, device):
         """Create a row widget for a device."""
@@ -323,27 +327,19 @@ class AurynkWindow(Adw.ApplicationWindow):
     def _on_status_clicked(self, button, device, connected):
         address = device.get("address")
         connect_port = device.get("connect_port")
-        dev_name = device.get("name", "Unknown Device")
         if not address or not connect_port:
             return
-        app = self.get_application()
         if connected:
             # Disconnect logic
             import subprocess
 
             subprocess.run(["adb", "disconnect", f"{address}:{connect_port}"])
-            # Notify tray
-            if hasattr(app, "send_status_to_tray"):
-                app.send_status_to_tray("disconnected")
         else:
             # Connect logic
             import subprocess
 
             subprocess.run(["adb", "connect", f"{address}:{connect_port}"])
-            # Notify tray
-            if hasattr(app, "send_status_to_tray"):
-                app.send_status_to_tray(f"connected:{dev_name}")
-        # Refresh device list to update status
+        # Refresh device list to update status (will sync tray)
         self._refresh_device_list()
 
     def _on_add_device_clicked(self, button):
@@ -382,3 +378,7 @@ class AurynkWindow(Adw.ApplicationWindow):
         scrcpy = self._get_scrcpy_manager()
         if not scrcpy.is_mirroring(address, connect_port):
             scrcpy.start_mirror(address, connect_port, device_name)
+        # Sync tray after mirroring
+        app = self.get_application()
+        if hasattr(app, "send_status_to_tray"):
+            app.send_status_to_tray()
