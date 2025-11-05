@@ -65,3 +65,5 @@ data/icons/*_screenshot.png
 
 # temp --- IGNORE ---
 /temp/
+scrcpy/
+repo/
