@@ -79,41 +79,18 @@ modules:
         url: https://dl.google.com/android/repository/platform-tools_r34.0.5-linux.zip
         sha256: 362f8f6218af0f4c61e5aaafb8e255a426c7a0ee00127dfab7371775081d3124
 
-  # Use prebuilt scrcpy binaries (included in repo)
-  - name: scrcpy
-    buildsystem: simple
-    build-commands:
-      - install -Dm755 ../vendor/scrcpy/scrcpy ${FLATPAK_DEST}/bin/scrcpy
-      - install -Dm644 ../vendor/scrcpy/scrcpy-server ${FLATPAK_DEST}/share/scrcpy/scrcpy-server
+  # Use shared modules for AyatanaAppIndicator (simpler and more reliable)
+  - shared-modules/libayatana-appindicator/libayatana-appindicator-gtk3.json
 
-    # AyatanaAppIndicator dependencies (build from source for Flatpak)
-  - name: libayatana-indicator
-    buildsystem: cmake-ninja
-    config-opts:
-      - -DCMAKE_INSTALL_PREFIX=/app
-      - -DCMAKE_INSTALL_LIBDIR=lib
-      - -DENABLE_TESTS=OFF
-    sources:
-      - type: archive
-        url: https://github.com/AyatanaIndicators/libayatana-indicator/archive/0.9.4.tar.gz
-        sha256: a18d3c682e29afd77db24366f8475b26bda22b0e16ff569a2ec71cd6eb4eac95
 
-  - name: libayatana-appindicator
-    buildsystem: cmake-ninja
-    config-opts:
-      - -DCMAKE_INSTALL_PREFIX=/app
-      - -DCMAKE_INSTALL_LIBDIR=lib
-      - -DENABLE_BINDINGS_MONO=OFF
-      - -DENABLE_BINDINGS_VALA=OFF
-    sources:
-      - type: archive
-        url: https://github.com/AyatanaIndicators/libayatana-appindicator/archive/0.5.93.tar.gz
-        sha256: cbefed7a918a227bf71286246e237fcd3a9c8499b3eaac4897811a869409edf0
 
   # Main application
   - name: aurynk
     buildsystem: meson
+    post-install:
+      # Install prebuilt scrcpy binaries from source directory
+      - install -Dm755 ../vendor/scrcpy/scrcpy ${FLATPAK_DEST}/bin/scrcpy
+      - install -Dm644 ../vendor/scrcpy/scrcpy-server ${FLATPAK_DEST}/share/scrcpy/scrcpy-server
     sources:
-      - type: archive
-        url: https://github.com/IshuSinghSE/aurynk/archive/v1.0.0.tar.gz
-        sha256: f93160713ae3eeccb8eb44b97804a0bfa979f4a8fea63ee85d34cf802f0f5de7
+      - type: dir
+        path: ..
