@@ -11,7 +11,6 @@ Build-Depends: debhelper-compat (= 13),
                libgtk-4-dev,
                libadwaita-1-dev,
                python3-gi,
-               python3-pil,
                python3-qrcode,
                python3-zeroconf,
                android-tools-adb,
@@ -29,10 +28,11 @@ Depends: ${python3:Depends},
          python3-gi,
          gir1.2-gtk-4.0,
          gir1.2-adw-1,
-         python3-pil,
+         gir1.2-ayatanaappindicator3-0.1,
          python3-qrcode,
          python3-zeroconf,
-         android-tools-adb
+         android-tools-adb,
+         scrcpy
 Description: Android Device Manager for Linux
  Aurynk is a modern Android device manager for Linux that allows you to
  wirelessly pair and manage your Android devices using ADB (Android Debug Bridge).

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.IshuSinghSE.aurynk</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Aurynk</name>
+  <summary>Android Device Manager and Mirroring Tool for Linux</summary>
+  <description>
+    <p>
+      Aurynk is a modern Linux application for managing Android devices, pairing via ADB, and mirroring screens using scrcpy. It features a native GTK4/libadwaita interface, device details, wireless pairing, tray integration, and screenshot capture.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Wireless pairing via QR code</li>
+      <li>Device information and specifications</li>
+      <li>Screenshot capture</li>
+      <li>Modern GTK4/libadwaita interface</li>
+      <li>Easy device management</li>
+      <li>Screen mirroring with scrcpy</li>
+    </ul>
+  </description>
+  <developer_name>Ishu Singh</developer_name>
+  <url type="homepage">https://github.com/IshuSinghSE/aurynk</url>
+  <url type="bugtracker">https://github.com/IshuSinghSE/aurynk/issues</url>
+  <url type="donation">https://github.com/sponsors/IshuSinghSE</url>
+  <launchable type="desktop-id">io.github.IshuSinghSE.aurynk.desktop</launchable>
+  <provides>
+    <binary>aurynk</binary>
+  </provides>
+  <categories>
+    <category>Utility</category>
+    <category>System</category>
+  </categories>
+  <keywords>
+    <keyword>Android</keyword>
+    <keyword>ADB</keyword>
+    <keyword>Mirroring</keyword>
+    <keyword>Device</keyword>
+    <keyword>Linux</keyword>
+    <keyword>Wireless</keyword>
+  </keywords>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Main window showing paired devices</caption>
+      <!-- Add screenshot URL when available -->
+    </screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1"/>
+  <translation type="gettext">io.github.IshuSinghSE.aurynk</translation>
+  <releases>
+    <release version="0.1.0" date="2025-11-06">
+      <description>
+        <p>Initial Flatpak and Debian release with device management, wireless pairing, mirroring, and screenshot support.</p>
+      </description>
+    </release>
+  </releases>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  <recommends>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </recommends>
+</component>

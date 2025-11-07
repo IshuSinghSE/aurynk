@@ -17,7 +17,7 @@ build-dir/
 # Generated GResource files (should be built, not committed)
 *.gresource
 data/*.gresource
-data/com.aurynk.aurynk.gresource
+data/io.github.IshuSinghSE.aurynk.gresource
 
 # Meson
 meson-logs/
@@ -65,3 +65,5 @@ data/icons/*_screenshot.png
 
 # temp --- IGNORE ---
 /temp/
+scrcpy/
+repo/

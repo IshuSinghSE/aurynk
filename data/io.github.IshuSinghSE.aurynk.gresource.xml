@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/io/github/IshuSinghSE/aurynk">
+  <!-- Application Icon -->
+  <file>icons/io.github.IshuSinghSE.aurynk.png</file>
+
+  <!-- Additional Icons -->
+  <file>icons/io.github.IshuSinghSE.aurynk.add-device.png</file>
+  <file>icons/io.github.IshuSinghSE.aurynk.mirror.png</file>
+  <file>icons/io.github.IshuSinghSE.aurynk.device.png</file>
+  <file>icons/io.github.IshuSinghSE.aurynk.monitor.png</file>
+  <file>icons/io.github.IshuSinghSE.aurynk.tray.png</file>
+    
+    <!-- UI Templates -->
+    <file preprocess="xml-stripblanks">ui/main_window.ui</file>
+    <file preprocess="xml-stripblanks">ui/device_details_window.ui</file>
+    
+    <!-- CSS Styles -->
+    <file>styles/aurynk.css</file>
+    <file>styles/device_status.css</file>
+  </gresource>
+</gresources>

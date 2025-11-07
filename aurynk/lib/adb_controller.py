@@ -17,7 +17,7 @@ from zeroconf import Zeroconf, ServiceBrowser, ServiceStateChange, IPVersion
 DEVICE_STORE_DIR = os.path.join(os.path.expanduser("~"), ".local", "share", "aurynk")
 DEVICE_STORE_PATH = os.path.join(DEVICE_STORE_DIR, "paired_devices.json")
 
-
+# ~/.local/share/aurynk/paired_devices.json
 
 class ADBController:
     """Handles all ADB and device management operations."""

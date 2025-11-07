@@ -1,0 +1,139 @@
+app-id: io.github.IshuSinghSE.aurynk
+runtime: org.gnome.Platform
+runtime-version: '48'
+sdk: org.gnome.Sdk
+command: aurynk
+
+finish-args:
+  # Set scrcpy server path
+  - --env=SCRCPY_SERVER_PATH=/app/share/scrcpy/scrcpy-server
+  # X11 + XShm access
+  - --share=ipc
+  - --socket=fallback-x11
+  # Wayland access
+  - --socket=wayland
+  # Network access for ADB wireless
+  - --share=network
+  # Access to home directory for storing device data
+  - --filesystem=home
+  # System D-Bus (for notifications, etc.)
+  - --socket=session-bus
+  # For ADB communication
+  - --device=all
+  # Allow subprocess spawning (for adb commands)
+  - --talk-name=org.freedesktop.Flatpak
+  # Ayatana AppIndicator system permission
+  - --system-talk-name=org.kde.StatusNotifierWatcher
+
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /man
+  - /share/doc
+  - /share/gtk-doc
+  - /share/man
+  - /share/pkgconfig
+  - '*.la'
+  - '*.a'
+
+modules:
+  - name: python3-meson-python-pycairo
+    buildsystem: simple
+    build-commands:
+      - pip3 install --no-index --find-links="file://${PWD}" --prefix=${FLATPAK_DEST} meson-python pyproject-metadata
+    sources:
+      - type: file
+        url: https://files.pythonhosted.org/packages/28/58/66db620a8a7ccb32633de9f403fe49f1b63c68ca94e5c340ec5cceeb9821/meson_python-0.18.0-py3-none-any.whl
+        sha256: 3b0fe051551cc238f5febb873247c0949cd60ded556efa130aa57021804868e2
+      - type: file
+        url: https://files.pythonhosted.org/packages/7e/b1/8e63033b259e0a4e40dd1ec4a9fee17718016845048b43a36ec67d62e6fe/pyproject_metadata-0.9.1-py3-none-any.whl
+        sha256: ee5efde548c3ed9b75a354fc319d5afd25e9585fa918a34f62f904cc731973ad
+
+  - name: python3-poetry-core
+    buildsystem: simple
+    build-commands:
+      - pip3 install --no-index --find-links="file://${PWD}" --prefix=${FLATPAK_DEST} poetry-core
+    sources:
+      - type: file
+        url: https://files.pythonhosted.org/packages/c7/d8/bb2f602f5e012e177e1c8560125f9770945d36622595990cf1cb794477c2/poetry_core-2.2.1-py3-none-any.whl
+        sha256: bdfce710edc10bfcf9ab35041605c480829be4ab23f5bc01202cfe5db8f125ab
+
+  - python-dependencies.json
+
+  - name: libusb
+    buildsystem: autotools
+    config-opts:
+      - --prefix=/app
+      - --disable-static
+    sources:
+      - type: archive
+        url: https://github.com/libusb/libusb/releases/download/v1.0.26/libusb-1.0.26.tar.bz2
+        sha256: 12ce7a61fc9854d1d2a1ffe095f7b5fac19ddba095c259e6067a46500381b5a5
+
+  - name: adb
+    buildsystem: simple
+    build-commands:
+      - install -D adb /app/bin/adb
+    sources:
+      - type: archive
+        url: https://dl.google.com/android/repository/platform-tools_r32.0.0-linux.zip
+        sha256: b10f0e159f11aa08437f2e612c91e52616b8429e9d3b8c2d230456f0edd394e6
+
+  # Use the locally built scrcpy native binary
+  - name: scrcpy
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 scrcpy ${FLATPAK_DEST}/bin/scrcpy
+      - install -Dm644 scrcpy-server ${FLATPAK_DEST}/share/scrcpy/scrcpy-server
+    sources:
+      - type: file
+        path: ../scrcpy/build/app/scrcpy
+      - type: file
+        path: ../scrcpy/build/server/scrcpy-server
+
+  - name: ayatana-typelib
+    buildsystem: simple
+    build-commands:
+      - install -Dm644 AyatanaAppIndicator3-0.1.typelib ${FLATPAK_DEST}/lib/girepository-1.0/AyatanaAppIndicator3-0.1.typelib
+    sources:
+      - type: file
+        path: ayatana-typelib/AyatanaAppIndicator3-0.1.typelib
+
+  - name: ayatana-lib
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 libayatana-appindicator3.so.1 ${FLATPAK_DEST}/lib/libayatana-appindicator3.so.1
+      - install -Dm755 libayatana-indicator3.so.7 ${FLATPAK_DEST}/lib/libayatana-indicator3.so.7
+      - install -Dm755 libdbusmenu-gtk3.so.4 ${FLATPAK_DEST}/lib/libdbusmenu-gtk3.so.4
+      - install -Dm755 libdbusmenu-glib.so.4 ${FLATPAK_DEST}/lib/libdbusmenu-glib.so.4
+      - install -Dm755 libayatana-ido3-0.4.so.0 ${FLATPAK_DEST}/lib/libayatana-ido3-0.4.so.0
+    sources:
+      - type: file
+        path: ayatana-lib/libayatana-appindicator3.so.1
+      - type: file
+        path: ayatana-lib/libayatana-indicator3.so.7
+      - type: file
+        path: ayatana-lib/libdbusmenu-gtk3.so.4
+      - type: file
+        path: ayatana-lib/libdbusmenu-glib.so.4
+      - type: file
+        path: ayatana-lib/libayatana-ido3-0.4.so.0
+
+  # Main application (local dir, exclude unnecessary folders)
+  - name: aurynk
+    buildsystem: meson
+    build-packages:
+      - libayatana-appindicator3-1
+      - gir1.2-ayatanaappindicator3-0.1
+    runtime-dependencies:
+      - libayatana-appindicator3-1
+      - gir1.2-ayatanaappindicator3-0.1
+    sources:
+      - type: dir
+        path: ..
+        exclude:
+          - .venv
+          - debian
+          - temp
+          - scrcpy
+          - snap

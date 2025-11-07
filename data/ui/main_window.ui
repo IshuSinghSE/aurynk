@@ -15,7 +15,7 @@
             <property name="spacing">8</property>
             <child>
               <object class="GtkImage" id="app_logo">
-                <property name="icon-name">com.aurynk.aurynk</property>
+                <property name="icon-name">io.github.IshuSinghSE.aurynk</property>
                 <property name="pixel-size">40</property>
               </object>
             </child>

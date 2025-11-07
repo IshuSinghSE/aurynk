@@ -1,3 +1,14 @@
+aurynk (0.1.1) noble; urgency=medium
+
+  * Added AppIndicator dependency for tray support
+  * Removed unused Pillow (python3-pil) dependency
+  * Added scrcpy as runtime dependency
+  * Improved packaging for icon visibility and runtime requirements
+  * Improved UI design
+  * Various bug fixes
+
+ -- IshuSinghSE <ishu.111636@yahoo.com>  Wed, 05 Nov 2025 01:00:00 +0000
+
 aurynk (0.1.0) noble; urgency=medium
 
   * Initial release

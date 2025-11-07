@@ -1,18 +1,22 @@
-
 #!/usr/bin/env python3
 """Main window for Aurynk application."""
 
+import os
+
 import gi
-from gi.repository import Gtk, Adw, Gio, Gdk
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
+from gi.repository import Adw, Gdk, Gtk
 
-import os
 from aurynk.lib.adb_controller import ADBController
-from aurynk.utils.device_events import register_device_change_callback, unregister_device_change_callback
 from aurynk.lib.scrcpy_manager import ScrcpyManager
 from aurynk.utils.adb_pairing import is_device_connected
+from aurynk.utils.device_events import (
+    register_device_change_callback,
+    unregister_device_change_callback,
+)
+
 
 class AurynkWindow(Adw.ApplicationWindow):
     """Main application window."""
@@ -25,31 +29,49 @@ class AurynkWindow(Adw.ApplicationWindow):
         self.adb_controller = ADBController()
         # Register for device change events
         from gi.repository import GLib
+
         def safe_refresh():
             GLib.idle_add(self._refresh_device_list)
+
         self._device_change_callback = safe_refresh
         register_device_change_callback(self._device_change_callback)
         # Load custom CSS for outlined button
         self._load_custom_css()
         # Window properties
         self.set_title("Aurynk")
-        self.set_icon_name("com.aurynk.aurynk")
+        self.set_icon_name("io.github.IshuSinghSE.aurynk")
         self.set_default_size(700, 520)
+        # Store window position when hiding
+        self._stored_position = None
+        # Handle close-request to hide window instead of closing app
+        self.connect("close-request", self._on_close_request)
         # Try to load UI from GResource, fall back to programmatic UI
         try:
             self._setup_ui_from_template()
         except Exception as e:
             print(f"Could not load UI template: {e}")
             self._setup_ui_programmatically()
+
     def do_close(self):
         unregister_device_change_callback(self._device_change_callback)
         super().do_close()
 
+    def _on_close_request(self, window):
+        """Handle close request - hide window instead of destroying it."""
+        print("[MainWindow] Close requested - hiding window instead of closing app")
+        self.hide()
+        # Return True to prevent the default close behavior
+        return True
+
+    def show_pairing_dialog(self):
+        from aurynk.dialogs.pairing_dialog import PairingDialog
+
+        dialog = PairingDialog(self)
+        dialog.present()
+
     def _setup_ui_from_template(self):
         """Load UI from XML template (GResource)."""
-        builder = Gtk.Builder.new_from_resource(
-            "/com/aurynk/aurynk/ui/main_window.ui"
-        )
+        builder = Gtk.Builder.new_from_resource("/io/github/IshuSinghSE/aurynk/ui/main_window.ui")
         main_content = builder.get_object("main_content")
         if main_content:
             self.set_content(main_content)
@@ -61,16 +83,14 @@ class AurynkWindow(Adw.ApplicationWindow):
             self._refresh_device_list()
         else:
             raise Exception("Could not find main_content in UI template")
-        
+
     def _load_custom_css(self):
         css_provider = Gtk.CssProvider()
-        css_path = "/com/aurynk/aurynk/styles/aurynk.css"
+        css_path = "/io/github/IshuSinghSE/aurynk/styles/aurynk.css"
         try:
             css_provider.load_from_resource(css_path)
             Gtk.StyleContext.add_provider_for_display(
-                Gdk.Display.get_default(),
-                css_provider,
-                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+                Gdk.Display.get_default(), css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
             )
         except Exception as e:
             print(f"Warning: Could not load CSS from {css_path}: {e}")
@@ -122,13 +142,13 @@ class AurynkWindow(Adw.ApplicationWindow):
         main_box.append(scrolled)
 
         self.set_content(main_box)
-        
+
         # Load initial device list
         self._refresh_device_list()
 
     def _refresh_device_list(self):
-        """Refresh the device list from storage."""
-        if not hasattr(self, 'device_list_box') or self.device_list_box is None:
+        """Refresh the device list from storage and sync tray."""
+        if not hasattr(self, "device_list_box") or self.device_list_box is None:
             # UI template not loaded yet, skip
             return
 
@@ -156,7 +176,9 @@ class AurynkWindow(Adw.ApplicationWindow):
             empty_box.set_hexpand(True)
             empty_box.set_vexpand(True)
             # Use Gtk.Image with EventControllerMotion for pointer cursor and scaling
-            empty_image = Gtk.Image.new_from_resource("/com/aurynk/aurynk/icons/org.aurynk.aurynk.add-device.png")
+            empty_image = Gtk.Image.new_from_resource(
+                "/io/github/IshuSinghSE/aurynk/icons/io.github.IshuSinghSE.aurynk.add-device.png"
+            )
             empty_image.set_pixel_size(120)
             empty_image.set_halign(Gtk.Align.CENTER)
             empty_image.set_valign(Gtk.Align.CENTER)
@@ -167,9 +189,11 @@ class AurynkWindow(Adw.ApplicationWindow):
             def on_enter(controller, x, y, image):
                 image.add_css_class("hovered-image")
                 image.set_cursor_from_name("pointer")
+
             def on_leave(controller, image):
                 image.remove_css_class("hovered-image")
                 image.set_cursor_from_name(None)
+
             motion_controller = Gtk.EventControllerMotion.new()
             motion_controller.connect("enter", on_enter, empty_image)
             motion_controller.connect("leave", on_leave, empty_image)
@@ -177,18 +201,18 @@ class AurynkWindow(Adw.ApplicationWindow):
 
             # Click gesture
             gesture = Gtk.GestureClick.new()
-            gesture.connect("released", lambda gesture, n, x, y: self._on_add_device_clicked(empty_image))
+            gesture.connect(
+                "released", lambda gesture, n, x, y: self._on_add_device_clicked(empty_image)
+            )
             empty_image.add_controller(gesture)
 
             # Load CSS for scaling effect from external file if not already loaded
             css_provider = Gtk.CssProvider()
-            css_path = "/com/aurynk/aurynk/styles/aurynk.css"
+            css_path = "/io/github/IshuSinghSE/aurynk/styles/aurynk.css"
             try:
                 css_provider.load_from_resource(css_path)
                 Gtk.StyleContext.add_provider_for_display(
-                    Gdk.Display.get_default(),
-                    css_provider,
-                    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+                    Gdk.Display.get_default(), css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
                 )
             except Exception as e:
                 print(f"Warning: Could not load CSS from {css_path}: {e}")
@@ -196,9 +220,7 @@ class AurynkWindow(Adw.ApplicationWindow):
             empty_box.append(empty_image)
 
             empty_label = Gtk.Label()
-            empty_label.set_markup(
-                '<span alpha="50%" >Click "Add Device" to get started</span>'
-            )
+            empty_label.set_markup('<span alpha="50%" >Click "Add Device" to get started</span>')
             empty_label.set_justify(Gtk.Justification.CENTER)
             empty_label.set_margin_bottom(64)
             empty_label.set_halign(Gtk.Align.CENTER)
@@ -206,23 +228,32 @@ class AurynkWindow(Adw.ApplicationWindow):
 
             self.device_list_box.append(empty_box)
 
+        # Always sync tray after device list changes
+        app = self.get_application()
+        if hasattr(app, "send_status_to_tray"):
+            app.send_status_to_tray()
+
     def _create_device_row(self, device):
         """Create a row widget for a device."""
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         row.set_margin_start(24)
         row.set_margin_end(24)
-        
+
         # Add CSS classes for styling
         row.add_css_class("card")
-        
+
         # Device icon
         # Use permanent location for screenshots
-        screenshot_path = device.get('thumbnail')
+        screenshot_path = device.get("thumbnail")
         if screenshot_path and not os.path.isabs(screenshot_path):
-            screenshot_path = os.path.expanduser(os.path.join('~/.local/share/aurynk/screenshots', screenshot_path))
+            screenshot_path = os.path.expanduser(
+                os.path.join("~/.local/share/aurynk/screenshots", screenshot_path)
+            )
         if not screenshot_path or not os.path.exists(screenshot_path):
             # Use Flatpak-compliant GResource path for fallback icon
-            icon = Gtk.Image.new_from_resource("/com/aurynk/aurynk/icons/org.aurynk.aurynk.device.png")
+            icon = Gtk.Image.new_from_resource(
+                "/io/github/IshuSinghSE/aurynk/icons/io.github.IshuSinghSE.aurynk.device.png"
+            )
         else:
             icon = Gtk.Image.new_from_file(screenshot_path)
         icon.set_margin_top(4)
@@ -230,20 +261,20 @@ class AurynkWindow(Adw.ApplicationWindow):
 
         icon.set_pixel_size(56)
         row.append(icon)
-        
+
         # Device info
         info_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         info_box.set_margin_top(12)
         info_box.set_margin_bottom(8)
         info_box.set_hexpand(True)
-        
+
         # Device name
         name_label = Gtk.Label()
         dev_name = device.get("name", "Unknown Device")
         name_label.set_markup(f'<span size="large" weight="bold">{dev_name}</span>')
         name_label.set_halign(Gtk.Align.START)
         info_box.append(name_label)
-        
+
         # Device details
         details = []
         if device.get("manufacturer"):
@@ -252,15 +283,15 @@ class AurynkWindow(Adw.ApplicationWindow):
             details.append(device["model"])
         if device.get("android_version"):
             details.append(f"Android {device['android_version']}")
-            
+
         if details:
             details_label = Gtk.Label(label=" • ".join(details))
             details_label.set_halign(Gtk.Align.START)
             details_label.add_css_class("dim-label")
             info_box.append(details_label)
-        
+
         row.append(info_box)
-        
+
         # Status and actions
         status_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         status_box.set_margin_end(12)
@@ -303,7 +334,7 @@ class AurynkWindow(Adw.ApplicationWindow):
 
         row.append(status_box)
         return row
-    
+
     def _on_status_clicked(self, button, device, connected):
         address = device.get("address")
         connect_port = device.get("connect_port")
@@ -312,40 +343,40 @@ class AurynkWindow(Adw.ApplicationWindow):
         if connected:
             # Disconnect logic
             import subprocess
+
             subprocess.run(["adb", "disconnect", f"{address}:{connect_port}"])
         else:
             # Connect logic
             import subprocess
-            subprocess.run(["adb", "connect", f"{address}:{connect_port}"])
-        # Refresh device list to update status
-        self._refresh_device_list()
 
-        
+            subprocess.run(["adb", "connect", f"{address}:{connect_port}"])
+        # Refresh device list to update status (will sync tray)
+        self._refresh_device_list()
 
     def _on_add_device_clicked(self, button):
         """Handle Add Device button click."""
         from aurynk.dialogs.pairing_dialog import PairingDialog
-        
+
         dialog = PairingDialog(self)
         dialog.present()
 
     def _on_device_details_clicked(self, button, device):
         """Handle device details button click."""
         from aurynk.windows.device_details_window import DeviceDetailsWindow
-        
+
         details_window = DeviceDetailsWindow(device, self)
         details_window.present()
 
     def _on_search_changed(self, search_entry):
         """Handle search entry text change."""
         search_text = search_entry.get_text().lower()
-        
+
         # Filter device list based on search text
         # TODO: Implement filtering logic
         print(f"Search: {search_text}")
 
     def _get_scrcpy_manager(self):
-        if not hasattr(self, '_scrcpy_manager'):
+        if not hasattr(self, "_scrcpy_manager"):
             self._scrcpy_manager = ScrcpyManager()
         return self._scrcpy_manager
 
@@ -358,3 +389,7 @@ class AurynkWindow(Adw.ApplicationWindow):
         scrcpy = self._get_scrcpy_manager()
         if not scrcpy.is_mirroring(address, connect_port):
             scrcpy.start_mirror(address, connect_port, device_name)
+        # Sync tray after mirroring
+        app = self.get_application()
+        if hasattr(app, "send_status_to_tray"):
+            app.send_status_to_tray()

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Aurynk
+Comment=Android device manager and mirroring tool for Linux
+Exec=aurynk
+Icon=io.github.IshuSinghSE.aurynk
+Terminal=false
+Type=Application
+Categories=Utility;System;
+StartupNotify=true
+X-GNOME-UsesNotifications=true
+Keywords=Android;ADB;Mirroring;Device;Linux;Wireless;

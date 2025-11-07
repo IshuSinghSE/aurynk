@@ -1,7 +1,7 @@
 # Aurynk - Android Device Manager for Linux
 
 <p align="center">
-  <img src="data/icons/com.aurynk.aurynk.png" alt="Aurynk Logo" width="128"/>
+  <img src="data/icons/io.github.IshuSinghSE.aurynk.png" alt="Aurynk Logo" width="128"/>
 </p>
 
 A modern Android device manager for Linux that allows you to wirelessly pair and manage your Android devices using ADB (Android Debug Bridge).
@@ -47,8 +47,8 @@ A modern Android device manager for Linux that allows you to wirelessly pair and
 
 3. **Compile GResources:**
    ```bash
-   glib-compile-resources --sourcedir=data data/com.aurynk.aurynk.gresource.xml \
-       --target=data/com.aurynk.aurynk.gresource
+   glib-compile-resources --sourcedir=data data/io.github.IshuSinghSE.aurynk.gresource.xml \
+       --target=data/io.github.IshuSinghSE.aurynk.gresource
    ```
 
 4. **Run directly:**
@@ -74,8 +74,8 @@ sudo dpkg -i ../aurynk_0.1.0-1_all.deb
 ### Building a Flatpak
 
 ```bash
-flatpak-builder --force-clean build-dir flatpak/com.aurynk.aurynk.yml
-flatpak-builder --user --install --force-clean build-dir flatpak/com.aurynk.aurynk.yml
+flatpak-builder --force-clean build-dir flatpak/io.github.IshuSinghSE.aurynk.yml
+flatpak-builder --user --install --force-clean build-dir flatpak/io.github.IshuSinghSE.aurynk.yml
 ```
 
 ## Usage
@@ -120,17 +120,17 @@ aurynk/                             # Project root (Git repository)
 │   └── qr_widget.py                # QR code widget
 │
 ├── data/                           # Application data
-│   ├── com.aurynk.aurynk.gresource.xml
-│   ├── com.aurynk.aurynk.desktop.in
-│   ├── com.aurynk.aurynk.appdata.xml
+│   ├── io.github.IshuSinghSE.aurynk.gresource.xml
+│   ├── io.github.IshuSinghSE.aurynk.desktop.in
+│   ├── io.github.IshuSinghSE.aurynk.appdata.xml
 │   ├── icons/
-│   │   └── com.aurynk.aurynk.png
+│   │   └── io.github.IshuSinghSE.aurynk.png
 │   └── ui/
 │       ├── main_window.ui
 │       └── device_details_window.ui
 │
 ├── flatpak/                        # Flatpak manifest
-│   └── com.aurynk.aurynk.yml
+│   └── io.github.IshuSinghSE.aurynk.yml
 │
 ├── debian/                         # Debian packaging
 │   ├── control
