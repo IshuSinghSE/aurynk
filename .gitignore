@@ -65,5 +65,6 @@ data/icons/*_screenshot.png
 
 # temp --- IGNORE ---
 /temp/
-scrcpy/
+scrcpy-repo/
 repo/
+flathub/
