@@ -92,5 +92,6 @@ modules:
       - install -Dm755 ../vendor/scrcpy/scrcpy ${FLATPAK_DEST}/bin/scrcpy
       - install -Dm644 ../vendor/scrcpy/scrcpy-server ${FLATPAK_DEST}/share/scrcpy/scrcpy-server
     sources:
-      - type: dir
-        path: ..
+      - type: archive
+        url: https://github.com/IshuSinghSE/aurynk/archive/028102154907ef7c12f3c069cb1ce29f202c278d.tar.gz
+        sha256: e98e549b168e9589eca95ef04d90ede8ddc9145eda906271cccb888eff3fba83
