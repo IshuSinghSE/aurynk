@@ -45,7 +45,7 @@ class AurynkApp(Adw.Application):
 
     def __init__(self):
         super().__init__(
-            application_id="com.aurynk.aurynk",
+            application_id="io.github.IshuSinghSE.aurynk",
             flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
         )
 
@@ -54,24 +54,36 @@ class AurynkApp(Adw.Application):
             target=tray_command_listener, args=(self,), daemon=True
         )
         self.tray_listener_thread.start()
+        # Give the listener thread time to bind the socket
+        import time
+
+        time.sleep(0.1)
 
     def show_pair_dialog(self):
-        # Show main window and open pairing dialog
+        """Show main window and open pairing dialog - called from tray icon."""
+        # First, activate the app to show the window
+        self.activate()
+        # Then show the pairing dialog
         win = self.props.active_window
-        if not win:
-            win = AurynkWindow(application=self)
-        win.present()
-        # Try to call a method to show the pairing dialog if it exists
-        if hasattr(win, "show_pairing_dialog"):
+        if win and hasattr(win, "show_pairing_dialog"):
             win.show_pairing_dialog()
         else:
             print("[AurynkApp] Pairing dialog method not implemented in AurynkWindow.")
 
     def present_main_window(self):
-        win = self.props.active_window
-        if not win:
-            win = AurynkWindow(application=self)
-        win.present()
+        """Present the main window - called from tray icon."""
+        print("[AurynkApp] Activating application to show window")
+        # Simply activate the application - do_activate will handle the window
+        self.activate()
+
+    def quit(self):
+        """Quit the application properly, closing all windows."""
+        print("[AurynkApp] Quitting application...")
+        # Close all windows
+        for window in self.get_windows():
+            window.destroy()
+        # Quit the application
+        super().quit()
 
     def do_startup(self):
         """Called once when the application starts."""
@@ -84,11 +96,19 @@ class AurynkApp(Adw.Application):
         send_status_to_tray(self)
 
     def do_activate(self):
-        """Called when the application is activated (main entry point)."""
+        """Called when the application is activated (main entry point or from tray)."""
         # Get or create the main window
         win = self.props.active_window
         if not win:
+            print("[AurynkApp] Creating new window")
             win = AurynkWindow(application=self)
+        else:
+            print(f"[AurynkApp] Window exists, visible: {win.get_visible()}")
+
+        # present() will:
+        # 1. Show the window if hidden (un-hide)
+        # 2. Center it if first time shown
+        # 3. Bring to front and give focus
         win.present()
 
     def _load_gresource(self):
@@ -96,12 +116,14 @@ class AurynkApp(Adw.Application):
         resource = None
         candidates = [
             # Running from source (development)
-            os.path.join(os.getcwd(), "data", "com.aurynk.aurynk.gresource"),
-            os.path.join(os.path.dirname(__file__), "..", "data", "com.aurynk.aurynk.gresource"),
+            os.path.join(os.getcwd(), "data", "io.github.IshuSinghSE.aurynk.gresource"),
+            os.path.join(
+                os.path.dirname(__file__), "..", "data", "io.github.IshuSinghSE.aurynk.gresource"
+            ),
             # Installed system-wide
-            "/usr/share/aurynk/com.aurynk.aurynk.gresource",
+            "/usr/share/aurynk/io.github.IshuSinghSE.aurynk.gresource",
             # Flatpak installation
-            "/app/share/aurynk/com.aurynk.aurynk.gresource",
+            "/app/share/aurynk/io.github.IshuSinghSE.aurynk.gresource",
         ]
 
         for path in candidates:
@@ -112,7 +134,7 @@ class AurynkApp(Adw.Application):
                     from gi.repository import Gdk, Gtk
 
                     Gtk.IconTheme.get_for_display(Gdk.Display.get_default()).add_resource_path(
-                        "/com/aurynk/aurynk/icons"
+                        "/io/github/IshuSinghSE/aurynk/icons"
                     )
                     print(f"✓ Loaded GResource from: {path}")
                     break

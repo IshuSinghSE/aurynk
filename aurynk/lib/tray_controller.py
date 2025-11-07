@@ -66,12 +66,14 @@ def tray_command_listener(app):
     server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     server.bind(APP_SOCKET)
     server.listen(1)
+    print(f"[TrayController] Command listener ready on {APP_SOCKET}")
     while True:
         try:
             conn, _ = server.accept()
             data = conn.recv(1024)
             if data:
                 msg = data.decode()
+                print(f"[TrayController] Received command: {msg}")
                 if msg == "show":
                     GLib.idle_add(app.present_main_window)
                 elif msg == "pair_new":

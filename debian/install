@@ -1,2 +1,38 @@
-data/icons/org.aurynk.aurynk.tray.png usr/share/icons/hicolor/24x24/apps/
+
+# Main Python package
+aurynk/* usr/lib/python3/dist-packages/aurynk/
+
+# Desktop entry
+data/io.github.IshuSinghSE.aurynk.desktop.in usr/share/applications/
+
+# Metainfo
+data/io.github.IshuSinghSE.aurynk.metainfo.xml usr/share/metainfo/
+
+# App and tray icons (all sizes)
+data/icons/hicolor/*/apps/io.github.IshuSinghSE.aurynk.png usr/share/icons/hicolor/
+data/icons/hicolor/*/apps/io.github.IshuSinghSE.aurynk.tray.png usr/share/icons/hicolor/
+
+# Styles
+data/styles/aurynk.css usr/share/aurynk/
+data/styles/device_status.css usr/share/aurynk/
+
+# UI templates
+data/ui/main_window.ui usr/share/aurynk/
+data/ui/device_details_window.ui usr/share/aurynk/
+
+# GResource
+data/io.github.IshuSinghSE.aurynk.gresource usr/share/aurynk/
+
+# Scripts
 scripts/aurynk_tray.py usr/lib/python3/dist-packages/scripts/
+
+# Do NOT include unwanted folders
+# .venv
+# .flatpak-builder
+# build-dir
+# builddir
+# flatpak
+# repo
+# scrcpy
+# snap
+# temp

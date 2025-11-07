@@ -1,22 +1,42 @@
 # Data directory build file
 
 # Install icon
+
+icon_sizes = ['16x16', '24x24', '32x32', '48x48', '64x64', '128x128', '256x256', '512x512']
+icon_names = [
+  'io.github.IshuSinghSE.aurynk.png',
+  'io.github.IshuSinghSE.aurynk.tray.png',
+  'io.github.IshuSinghSE.aurynk.device.png',
+  'io.github.IshuSinghSE.aurynk.monitor.png',
+  'io.github.IshuSinghSE.aurynk.add-device.png',
+  'io.github.IshuSinghSE.aurynk.mirror.png'
+]
+
+
+foreach size : icon_sizes
+  foreach name : icon_names
+    # Only install tray icon for 16x16, 24x24, 32x32
+    if name == 'io.github.IshuSinghSE.aurynk.tray.png' and not (size == '16x16' or size == '24x24' or size == '32x32')
+      continue
+    endif
+    install_data(
+      'icons/hicolor/' + size + '/apps/' + name,
+      install_dir: datadir / 'icons' / 'hicolor' / size / 'apps'
+    )
+  endforeach
+endforeach
+
+# Install SVG icon if present
 install_data(
-  'icons' / 'com.aurynk.aurynk.png',
+  'icons/hicolor/scalable/apps/io.github.IshuSinghSE.aurynk.svg',
   install_dir: datadir / 'icons' / 'hicolor' / 'scalable' / 'apps'
 )
-
-# If you have an SVG icon, also install it
-# install_data(
-#   'icons' / 'com.aurynk.aurynk.svg',
-#   install_dir: datadir / 'icons' / 'hicolor' / 'scalable' / 'apps'
-# )
 
 # Compile GResource
 gnome = import('gnome')
 gresource = gnome.compile_resources(
-  'com.aurynk.aurynk',
-  'com.aurynk.aurynk.gresource.xml',
+  'io.github.IshuSinghSE.aurynk',
+  'io.github.IshuSinghSE.aurynk.gresource.xml',
   gresource_bundle: true,
   install: true,
   install_dir: pkgdatadir,
@@ -25,8 +45,8 @@ gresource = gnome.compile_resources(
 # Install desktop file
 i18n = import('i18n')
 desktop_file = i18n.merge_file(
-  input: 'com.aurynk.aurynk.desktop.in',
-  output: 'com.aurynk.aurynk.desktop',
+  input: 'io.github.IshuSinghSE.aurynk.desktop.in',
+  output: 'io.github.IshuSinghSE.aurynk.desktop',
   type: 'desktop',
   po_dir: '../po',  # If you add translations
   install: true,
@@ -41,8 +61,8 @@ endif
 
 # Install appdata file
 appdata_file = i18n.merge_file(
-  input: 'com.aurynk.aurynk.appdata.xml',
-  output: 'com.aurynk.aurynk.appdata.xml',
+  input: 'io.github.IshuSinghSE.aurynk.metainfo.xml',
+  output: 'io.github.IshuSinghSE.aurynk.metainfo.xml',
   po_dir: '../po',  # If you add translations
   install: true,
   install_dir: datadir / 'metainfo'

@@ -12,7 +12,7 @@ from gi.repository import AyatanaAppIndicator3 as AppIndicator
 from gi.repository import Gtk
 
 APP_ID = "aurynk-indicator"
-ICON_NAME = "org.aurynk.aurynk.tray"  # Icon theme name for tray icon
+ICON_NAME = "io.github.IshuSinghSE.aurynk.tray"  # Icon theme name for tray icon
 TRAY_SOCKET = "/tmp/aurynk_tray.sock"
 APP_SOCKET = "/tmp/aurynk_app.sock"
 
