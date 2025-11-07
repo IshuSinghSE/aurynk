@@ -1,214 +1,153 @@
-# Aurynk - Android Device Manager for Linux
+# 🚀 Aurynk - Your Android Device Manager for Linux
 
 <p align="center">
   <img src="data/icons/io.github.IshuSinghSE.aurynk.png" alt="Aurynk Logo" width="128"/>
 </p>
 
-A modern Android device manager for Linux that allows you to wirelessly pair and manage your Android devices using ADB (Android Debug Bridge).
+<p align="center">
+  <strong>Wirelessly connect, manage and control your Android devices from Linux</strong>
+</p>
 
-## Features
+<p align="center">
+  <a href="#-installation">📦 Install</a> •
+  <a href="#-quick-start">🚀 Quick Start</a> •
+  <a href="#-features">✨ Features</a> •
+  <a href="#-troubleshooting">🔧 Help</a>
+</p>
 
-- 🔗 **Wireless Pairing** - Pair devices via QR code using Android's Wireless Debugging feature
-- 📱 **Device Management** - View detailed device information and specifications
-- 📸 **Screenshot Capture** - Take and view device screenshots
-- 🎨 **Modern UI** - Built with GTK4 and libadwaita for a beautiful, native GNOME experience
-- 📦 **Multi-format Packaging** - Available as .deb, Flatpak, or run directly from source
+---
 
-## Requirements
+## 🎯 What is Aurynk?
 
-### Runtime Dependencies
-- Python 3.11 or newer
-- GTK 4
-- libadwaita 1.0 or newer
-- PyGObject
-- Android Debug Bridge (adb)
-- Python packages: pillow, qrcode, zeroconf
+Aurynk makes managing your Android devices from Linux **simple and wireless**. No more cables, no more complicated setup - just scan a QR code and you're connected!
 
-### Build Dependencies (for building from source)
-- Meson (>= 0.59.0)
-- Ninja
-- GLib development files
-- GTK4 development files
+Perfect for:
+- 📱 **Developers** testing apps on multiple devices
+- 🎮 **Gamers** managing Android gaming setups  
+- 👨‍💻 **Power users** who want full device control
+- 📸 **Content creators** capturing device screenshots
 
-## Installation
+## ✨ Features
 
-### From Source (Development)
+| Feature | Description |
+|---------|-------------|
+| 🔗 **Wireless Pairing** | Connect via QR code - no cables needed! |
+| 📱 **Device Management** | View detailed specs, battery, storage info |
+| 📸 **Screenshot Capture** | Instantly capture and save device screenshots |
+| 🖥️ **Screen Mirroring** | View and control your device screen (via scrcpy) |
+| 🎨 **Modern Interface** | Beautiful GTK4 design that fits your Linux desktop |
+| � **Multiple Devices** | Manage several Android devices simultaneously |
 
-1. **Clone the repository:**
+## 📦 Installation
+
+### Option 1: Flatpak (Recommended) 🌟
+
+**Coming Soon!** Aurynk will be available on Flathub for easy installation:
+
+```bash
+# Once published on Flathub:
+flatpak install flathub io.github.IshuSinghSE.aurynk
+```
+
+### Option 2: From GitHub Release
+
+1. **Download** the latest release from [GitHub Releases](https://github.com/IshuSinghSE/aurynk/releases)
+2. **Install** using your package manager:
    ```bash
-   git clone https://github.com/IshuSinghSE/aurynk.git
-   cd aurynk
+   # For .deb files (Debian/Ubuntu):
+   sudo dpkg -i aurynk_*.deb
+   
+   # For .flatpak files:
+   flatpak install aurynk_*.flatpak
    ```
 
-2. **Install Python dependencies:**
-   ```bash
-   pip install -e .
-   ```
+### Option 3: Build from Source
 
-3. **Compile GResources:**
-   ```bash
-   glib-compile-resources --sourcedir=data data/io.github.IshuSinghSE.aurynk.gresource.xml \
-       --target=data/io.github.IshuSinghSE.aurynk.gresource
-   ```
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup instructions.
 
-4. **Run directly:**
-   ```bash
-   python -m aurynk
-   ```
+## 🚀 Quick Start
 
-### Building with Meson (System Installation)
+### Step 1: Prepare Your Android Device 📱
 
+1. **Enable Developer Options:**
+   - Go to **Settings** → **About Phone**
+   - Tap **Build Number** 7 times
+   - Developer Options will appear in Settings
+
+2. **Enable Wireless Debugging:**
+   - Go to **Settings** → **Developer Options**
+   - Turn on **Wireless Debugging**
+
+### Step 2: Pair Your Device 🤝
+
+1. **Launch Aurynk** from your applications menu
+2. **Click "Add Device"** (the + button)
+3. **On your Android device:**
+   - Tap **"Pair device with QR code"** in Wireless Debugging
+4. **Scan the QR code** shown in Aurynk
+5. **Done!** Your device is now connected wirelessly
+
+### Step 3: Manage Your Device 🎛️
+
+- **Click on your device** to view detailed information
+- **Take screenshots** with the camera button
+- **Mirror your screen** with the monitor button
+- **Refresh data** anytime with the refresh button
+
+## 🔧 Troubleshooting
+
+### Can't find Developer Options?
+- Make sure you tapped "Build Number" exactly 7 times
+- Look for "Developer Options" in your main Settings menu
+
+### Device won't pair?
+- ✅ Both devices are on the **same WiFi network**
+- ✅ **Wireless Debugging is enabled** on Android
+- ✅ Try **restarting Aurynk** and trying again
+
+### ADB not working?
 ```bash
-meson setup build --prefix=/usr
-meson compile -C build
-sudo meson install -C build
+# Install ADB on your Linux system:
+# Ubuntu/Debian:
+sudo apt install android-tools-adb
+
+# Fedora:
+sudo dnf install android-tools
+
+# Arch:
+sudo pacman -S android-tools
 ```
 
-### Building a Debian Package
+### Still having issues?
+- 🐛 [Report a bug](https://github.com/IshuSinghSE/aurynk/issues)
+- 💬 [Ask for help](https://github.com/IshuSinghSE/aurynk/discussions)
 
-```bash
-dpkg-buildpackage -us -uc -b
-sudo dpkg -i ../aurynk_0.1.0-1_all.deb
-```
+## 🎨 Screenshots
 
-### Building a Flatpak
+*Screenshots coming soon!*
 
-```bash
-flatpak-builder --force-clean build-dir flatpak/io.github.IshuSinghSE.aurynk.yml
-flatpak-builder --user --install --force-clean build-dir flatpak/io.github.IshuSinghSE.aurynk.yml
-```
+## 🤝 Contributing
 
-## Usage
+Want to help make Aurynk better? Check out [CONTRIBUTING.md](CONTRIBUTING.md) for:
+- 🔨 Development setup
+- 🏗️ Building from source  
+- 📝 Code style guidelines
+- 🚀 How to submit changes
 
-### Pairing a Device
+## 📄 License
 
-1. Launch Aurynk
-2. Click the "Add Device" button
-3. On your Android device:
-   - Go to **Settings** → **Developer Options** → **Wireless Debugging**
-   - Enable **Wireless Debugging**
-   - Tap **Pair device with QR code**
-4. Scan the QR code displayed in Aurynk
-5. Your device will be automatically paired and connected
+Aurynk is free and open source software licensed under GPL-3.0-or-later.
 
-### Viewing Device Details
+## ❤️ Credits
 
-1. Click on a paired device in the main window
-2. View comprehensive device information including:
-   - Device name, manufacturer, and model
-   - Android version
-   - RAM, storage, and battery status
-   - Current screenshot
+- **Developer:** [IshuSinghSE](https://github.com/IshuSinghSE)
+- **Screen Mirroring:** Powered by [scrcpy](https://github.com/Genymobile/scrcpy)
+- **UI Framework:** Built with GTK4 and libadwaita
+- **ADB Integration:** Uses Android Debug Bridge
 
-### Refreshing Device Data
+---
 
-- Click the **Refresh Screenshot** button to capture a new screenshot
-- Click **Refresh All Data** to update all device information
-
-## Project Structure
-
-```
-aurynk/                             # Project root (Git repository)
-├── aurynk/                         # Python package (importable code)
-│   ├── __init__.py
-│   ├── __main__.py                 # Module entry point
-│   ├── app.py                      # AurynkApp(Adw.Application)
-│   ├── main_window.py              # AurynkWindow(Adw.ApplicationWindow)
-│   ├── adb_controller.py           # All ADB/device management logic
-│   ├── pairing_dialog.py           # Pairing dialog
-│   ├── device_details_window.py    # Device details window
-│   └── qr_widget.py                # QR code widget
-│
-├── data/                           # Application data
-│   ├── io.github.IshuSinghSE.aurynk.gresource.xml
-│   ├── io.github.IshuSinghSE.aurynk.desktop.in
-│   ├── io.github.IshuSinghSE.aurynk.appdata.xml
-│   ├── icons/
-│   │   └── io.github.IshuSinghSE.aurynk.png
-│   └── ui/
-│       ├── main_window.ui
-│       └── device_details_window.ui
-│
-├── flatpak/                        # Flatpak manifest
-│   └── io.github.IshuSinghSE.aurynk.yml
-│
-├── debian/                         # Debian packaging
-│   ├── control
-│   ├── rules
-│   └── ...
-│
-├── meson.build                     # Build configuration
-├── pyproject.toml                  # Python project config
-└── README.md
-```
-
-## Development
-
-### Running from Source
-
-For development, you can run the app directly without installation:
-
-```bash
-# From the project root
-python -m aurynk
-```
-
-### Code Style
-
-This project uses `ruff` for linting and formatting:
-
-```bash
-# Install dev dependencies
-pip install -e ".[dev]"
-
-# Lint
-ruff check .
-
-# Format
-ruff format .
-```
-
-## Troubleshooting
-
-### ADB Connection Issues
-
-If you're having trouble connecting to devices:
-
-1. Ensure `adb` is installed and in your PATH
-2. Check that Wireless Debugging is enabled on your Android device
-3. Make sure both devices are on the same network
-4. Try restarting the ADB server: `adb kill-server && adb start-server`
-
-### Missing Dependencies
-
-If you encounter import errors, ensure all dependencies are installed:
-
-```bash
-pip install pillow pygobject qrcode zeroconf
-```
-
-For system packages (Debian/Ubuntu):
-
-```bash
-sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 android-tools-adb
-```
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the GNU General Public License v3.0 or later - see the LICENSE file for details.
-
-## Credits
-
-- Developed by [IshuSinghSE](https://github.com/IshuSinghSE)
-- Thanks to [Genymobile/scrcpy](https://github.com/Genymobile/scrcpy) for the scrcpy.
-- Built with GTK4 and libadwaita
-- Uses Android Debug Bridge (ADB)
-
-## Links
-
-- **GitHub**: https://github.com/IshuSinghSE/aurynk
-- **Issues**: https://github.com/IshuSinghSE/aurynk/issues
+<p align="center">
+  <strong>⭐ Star us on GitHub if you find Aurynk useful!</strong><br>
+  <a href="https://github.com/IshuSinghSE/aurynk">🔗 GitHub Repository</a>
+</p>
