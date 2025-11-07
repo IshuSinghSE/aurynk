@@ -34,11 +34,17 @@ def start_tray_helper():
                 print("[AurynkApp] Removed stale tray socket.")
             except Exception as e:
                 print(f"[AurynkApp] Could not remove stale tray socket: {e}")
-    # Start new tray helper
+    # Start new tray helper. Pass our PID so the helper can signal us as a
+    # fallback if socket-based IPC fails to deliver a quit request.
     script_path = os.path.abspath(
         os.path.join(os.path.dirname(__file__), "..", "scripts", "aurynk_tray.py")
     )
-    subprocess.Popen(["python3", script_path])
+    env = os.environ.copy()
+    try:
+        env["AURYNK_APP_PID"] = str(os.getpid())
+    except Exception:
+        pass
+    subprocess.Popen(["python3", script_path], env=env)
 
 
 class AurynkApp(Adw.Application):

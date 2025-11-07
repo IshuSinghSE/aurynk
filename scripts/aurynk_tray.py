@@ -57,7 +57,21 @@ class TrayHelper:
         self.send_command_to_app("show")
 
     def on_quit(self, _):
+        # Best-effort: notify the app via socket, then quit our own loop.
         self.send_command_to_app("quit")
+        # If IPC fails for any reason, try to signal the parent app process
+        # (pid passed via environment variable) as a fallback.
+        try:
+            pid_str = os.environ.get("AURYNK_APP_PID")
+            if pid_str:
+                pid = int(pid_str)
+                try:
+                    # Send SIGTERM to the app process as a fallback to request shutdown
+                    os.kill(pid, signal.SIGTERM)
+                except Exception:
+                    pass
+        except Exception:
+            pass
         Gtk.main_quit()
 
     def send_command_to_app(self, command):
