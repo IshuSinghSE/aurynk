@@ -95,12 +95,12 @@ modules:
         else
           mkdir -p "${FLATPAK_DEST}/bin" "${FLATPAK_DEST}/share/scrcpy"
           # Create stub scrcpy script with embedded architecture string
-          cat > "${FLATPAK_DEST}/bin/scrcpy" <<EOF
-#!/usr/bin/env bash
-echo "scrcpy is not available for architecture $TARGET_ARCH in this build."
-echo "Feature disabled; waiting for future multi-arch scrcpy source build integration."
-exit 1
-EOF
+          cat > "${FLATPAK_DEST}/bin/scrcpy" <<'SCRCPY_STUB'
+        #!/usr/bin/env bash
+        echo "scrcpy is not available for architecture ${TARGET_ARCH} in this build."
+        echo "Feature disabled; waiting for future multi-arch scrcpy source build integration."
+        exit 1
+        SCRCPY_STUB
           # Provide an empty placeholder scrcpy-server file so env var path resolves
           : > "${FLATPAK_DEST}/share/scrcpy/scrcpy-server"
           chmod +x "${FLATPAK_DEST}/bin/scrcpy"
