@@ -26,6 +26,7 @@ class DeviceStore:
 
     def add_or_update_device(self, device_info: Dict[str, Any]):
         from aurynk.utils.device_events import notify_device_changed
+        from aurynk.utils.notify import show_notification
         address = device_info.get("address")
         existing_idx = None
         for idx, device in enumerate(self._devices):
@@ -34,13 +35,21 @@ class DeviceStore:
                 break
         if existing_idx is not None:
             self._devices[existing_idx].update(device_info)
+            title = "Device updated"
         else:
             self._devices.append(device_info)
+            title = "Device added"
         self._save_to_file()
         notify_device_changed()
+        try:
+            name = device_info.get("name") or address or "Device"
+            show_notification(title, str(name))
+        except Exception:
+            pass
 
     def remove_device(self, address: str):
         from aurynk.utils.device_events import notify_device_changed
+        from aurynk.utils.notify import show_notification
         import subprocess
         # Find the device to get its connect_port
         device = next((d for d in self._devices if d.get("address") == address), None)
@@ -65,6 +74,10 @@ class DeviceStore:
         self._devices = [d for d in self._devices if d.get("address") != address]
         self._save_to_file()
         notify_device_changed()
+        try:
+            show_notification("Device removed", address)
+        except Exception:
+            pass
 
     def _save_to_file(self):
         os.makedirs(os.path.dirname(self.path), exist_ok=True)
