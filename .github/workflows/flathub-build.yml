@@ -63,7 +63,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.git_ref }}
-          submodules: true
       - name: Install Flatpak tooling
         run: |
           sudo apt-get update
