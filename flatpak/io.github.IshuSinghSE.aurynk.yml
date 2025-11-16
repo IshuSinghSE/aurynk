@@ -17,7 +17,6 @@ finish-args:
   # Network access for ADB wireless
   - --share=network
   # D-Bus access for notifications and system tray
-  - --talk-name=org.freedesktop.Notifications
   - --talk-name=org.kde.StatusNotifierWatcher
   - --talk-name=org.ayatana.indicator.service
   # USB device access for ADB
@@ -81,7 +80,6 @@ modules:
 
   # Use local fixed AppIndicator module (ayatana-ido without pkgconfig cleanup)
   - shared-modules/libayatana-appindicator/libayatana-appindicator-gtk3.json
-
 
   # Main application
   - name: aurynk
