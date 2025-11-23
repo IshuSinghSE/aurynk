@@ -1,6 +1,5 @@
 app-id: io.github.IshuSinghSE.aurynk
 runtime: org.gnome.Platform
-# Target GNOME 49 runtime to align with Pillow 12 wheels
 runtime-version: '49'
 sdk: org.gnome.Sdk
 command: aurynk
@@ -73,7 +72,6 @@ modules:
 
   - name: adb
     buildsystem: simple
-    only-arches: [x86_64]
     build-commands:
       - install -D adb /app/bin/adb
     sources:

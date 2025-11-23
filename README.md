@@ -118,13 +118,33 @@ sudo dnf install android-tools
 sudo pacman -S android-tools
 ```
 
+## 🎨 Screenshots
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="data/screenshots/screenshot-1-main.png" alt="Main Dashboard showing connected devices list" width="250"/>
+        <br />
+        <strong>Main Dashboard</strong>
+      </td>
+      <td align="center">
+        <img src="data/screenshots/screenshot-2-pairing.png" alt="Pairing Dialog with QR Code scanner" width="250"/>
+        <br />
+        <strong>Wireless Pairing</strong>
+      </td>
+      <td align="center">
+        <img src="data/screenshots/screenshot-3-menu.png" alt="Device Context Menu with actions" width="250"/>
+        <br />
+        <strong>Device Controls</strong>
+      </td>
+    </tr>
+  </table>
+</div>
+
 ### Still having issues?
 - 🐛 [Report a bug](https://github.com/IshuSinghSE/aurynk/issues)
 - 💬 [Ask for help](https://github.com/IshuSinghSE/aurynk/discussions)
-
-## 🎨 Screenshots
-
-*Screenshots coming soon!*
 
 ## 🤝 Contributing
 

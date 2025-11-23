@@ -187,8 +187,10 @@ class AurynkApp(Adw.Application):
     # Tray communication is now handled by tray_controller. Remove local send_tray_command.
 
 
-def main(argv):
+def main(argv=None):
     """Main entry point for the application."""
+    if argv is None:
+        argv = sys.argv
     app = AurynkApp()
     return app.run(argv)
 

@@ -42,12 +42,42 @@
   <screenshots>
     <screenshot type="default">
       <caption>Main window showing paired devices</caption>
-      <!-- Add screenshot URL when available -->
+      <image type="source">https://raw.githubusercontent.com/IshuSinghSE/aurynk/main/data/screenshots/screenshot-1-main.png</image>
+    </screenshot>
+
+    <screenshot>
+      <caption>Scanning the QR code to pair</caption>
+      <image type="source">https://raw.githubusercontent.com/IshuSinghSE/aurynk/main/data/screenshots/screenshot-2-pairing.png</image>
+    </screenshot>
+
+    <screenshot>
+      <caption>Screen mirroring active</caption>
+      <image type="source">https://raw.githubusercontent.com/IshuSinghSE/aurynk/main/data/screenshots/screenshot-3-menu.png</image>
     </screenshot>
   </screenshots>
   <content_rating type="oars-1.1"/>
   <translation type="gettext">io.github.IshuSinghSE.aurynk</translation>
   <releases>
+    <release version="1.0.4" date="2025-11-23">
+      <description>
+        <p>Maintenance release with documentation updates.</p>
+        <ul>
+          <li>Added screenshots to README</li>
+          <li>Updated documentation</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.0.2" date="2025-11-20">
+      <description>
+        <p>Fixes and improvements.</p>
+        <ul>
+          <li>Fix UnboundLocalError in actions.mirror_device</li>
+          <li>Ensure main-window to tray synchronization</li>
+          <li>Make tray command listener stoppable</li>
+          <li>Add PID fallback in tray helper</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.0" date="2025-11-06">
       <description>
         <p>Initial Flatpak and Debian release with device management, wireless pairing, mirroring, and screenshot support.</p>

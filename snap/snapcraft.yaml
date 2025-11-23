@@ -1,40 +1,148 @@
 name: aurynk
 base: core24
-version: '0.1.0' 
-summary: A modern GTK4/Libadwaita GUI for scrcpy and ADB.
+version: '1.0.4'
+summary: Android Device Manager and Mirroring Tool for Linux
 description: |
-  A modern Android device manager for Linux that allows you to
-  wirelessly pair and manage your Android devices using ADB
-  and scrcpy, with a clean Libadwaita interface.
+  Aurynk is a modern Linux application for managing Android devices, pairing via ADB, and mirroring screens using scrcpy. It features a native GTK4/libadwaita interface, device details, wireless pairing, tray integration, and screenshot capture.
+
+license: GPL-3.0-or-later
+website: https://github.com/IshuSinghSE/aurynk
+source-code: https://github.com/IshuSinghSE/aurynk
+issues: https://github.com/IshuSinghSE/aurynk/issues
+donation: https://github.com/sponsors/IshuSinghSE
+
 grade: stable
 confinement: strict
-parts:
-  aurynk:
-    plugin: meson
-    source: .
-    build-packages:
-      - meson
-      - build-essential
-      - python3-gi
-      - libadwaita-1-dev
-      - gir1.2-adw-1
-      - gir1.2-gtk-4.0
-    stage-packages:
-      - python3-pil
-      - python3-qrcode
-      - python3-zeroconf
-      - adb        
-      - scrcpy     
+
+slots:
+  dbus-aurynk:
+    interface: dbus
+    bus: session
+    name: io.github.IshuSinghSE.aurynk
+
+# This enables the GNOME 46+ runtime (GTK4/Libadwaita) automatically
 apps:
   aurynk:
     command: bin/aurynk
-    desktop: data/desktop/io.github.IshuSinghSE.aurynk.desktop.in
+    extensions: [gnome]
+    common-id: io.github.IshuSinghSE.aurynk
+    slots:
+      - dbus-aurynk
+    desktop: usr/share/applications/io.github.IshuSinghSE.aurynk.desktop
+    environment:
+      # Point to our bundled scrcpy server
+      SCRCPY_SERVER_PATH: $SNAP/usr/share/scrcpy/scrcpy-server
+      # Add bundled adb to path
+      PATH: $SNAP/usr/bin:$PATH
     plugs:
-      - gnome          # Connects to the GNOME extension (themes, icons)
-      - desktop        # Basic desktop access (D-Bus)
-      - desktop-legacy # Legacy tray icon support
-      - wayland        # For Wayland
-      - x11            # For X11
-      - network        # For wireless ADB
-      - home           # Access to /home/<user>/ (your --filesystem=home)
-      - adb-support    # Custom plug for ADB device access
+      - network
+      - network-bind
+      - home
+      - opengl
+      - audio-playback
+      # CRITICAL: This allows access to the ADB daemon and USB devices
+      - adb-support
+
+parts:
+  # ---------------------------------------------------------
+  # PART 1: The Main Python Application
+  # ---------------------------------------------------------
+  aurynk:
+    plugin: python
+    source: .
+    build-packages:
+      - python3-setuptools
+      - python3-wheel
+      - python3-venv
+      - python3-pip
+      # Dev headers belong ONLY in build-packages
+      - libgirepository1.0-dev
+      - libcairo2-dev
+    python-packages:
+      - zeroconf
+      - qrcode
+      - ifaddr
+      - pillow
+      - pygobject
+    stage-packages:
+      # Runtime ONLY. Removed libgirepository1.0-dev
+      - libgirepository-1.0-1
+      - libayatana-appindicator3-1
+      # Explicitly include GTK4 and Adwaita typelibs
+      - libgtk-4-1
+      - libadwaita-1-0
+      - gir1.2-gtk-4.0
+      - gir1.2-adw-1
+      # Fix for missing SVG loader and GStreamer symbols
+      - libgstreamer1.0-0
+      - libgstreamer-plugins-base1.0-0
+      # Fix for libproxy and networking
+      - libproxy1v5
+
+    override-build: |
+      craftctl default
+      # Install metadata manually to /usr/share
+      install -D -m644 data/io.github.IshuSinghSE.aurynk.desktop $SNAPCRAFT_PART_INSTALL/usr/share/applications/io.github.IshuSinghSE.aurynk.desktop
+      install -D -m644 data/io.github.IshuSinghSE.aurynk.metainfo.xml $SNAPCRAFT_PART_INSTALL/usr/share/metainfo/io.github.IshuSinghSE.aurynk.metainfo.xml
+      install -D -m644 data/icons/io.github.IshuSinghSE.aurynk.png $SNAPCRAFT_PART_INSTALL/usr/share/icons/hicolor/256x256/apps/io.github.IshuSinghSE.aurynk.png
+      # Install tray helper script
+      install -D -m755 scripts/aurynk_tray.py $SNAPCRAFT_PART_INSTALL/lib/python3.12/site-packages/scripts/aurynk_tray.py
+    
+    # THE OPTIMIZER: This strips junk from the final package
+    prime:
+      - -usr/share/doc
+      - -usr/share/man
+      - -usr/include
+      - -usr/lib/pkgconfig
+      - -usr/lib/*/pkgconfig
+      - -lib/python*/site-packages/pip
+      - -lib/python*/site-packages/setuptools
+      - -lib/python*/site-packages/pkg_resources
+      - -**/__pycache__
+
+  # ---------------------------------------------------------
+  # PART 2: Scrcpy (Build from Source with Vendor Server)
+  # ---------------------------------------------------------
+  scrcpy:
+    plugin: meson
+    source: https://github.com/Genymobile/scrcpy/archive/refs/tags/v3.3.3.tar.gz
+    source-type: tar
+    meson-parameters:
+      - -Dcompile_server=false
+      - -Dprebuilt_server=scrcpy-server
+      - -Dbuildtype=release
+    build-packages:
+      - libsdl2-dev
+      - libavcodec-dev
+      - libavformat-dev
+      - libavutil-dev
+      - libavdevice-dev
+      - libswresample-dev
+      - libusb-1.0-0-dev
+      - pkg-config
+    stage-packages:
+      - libsdl2-2.0-0
+      - libusb-1.0-0
+      - libavcodec60
+      - libavformat60
+      - libavutil58
+      - libavdevice60
+      - libswresample4
+    override-build: |
+      # Copy the prebuilt server from vendor to the build directory
+      cp $SNAPCRAFT_PROJECT_DIR/vendor/scrcpy/scrcpy-server .
+      
+      # Run the build
+      craftctl default
+
+  # ---------------------------------------------------------
+  # PART 3: ADB (Bundled)
+  # ---------------------------------------------------------
+  adb:
+    plugin: dump
+    source: https://dl.google.com/android/repository/platform-tools_r34.0.5-linux.zip
+    source-type: zip
+    organize:
+      platform-tools/adb: usr/bin/adb
+    stage:
+      - usr/bin/adb

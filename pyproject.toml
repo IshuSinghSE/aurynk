@@ -1,6 +1,6 @@
 [project]
 name = "aurynk"
-version = "1.0.3"
+version = "1.0.4"
 description = "Android Device Manager for Linux with wireless pairing and device management"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -45,8 +45,9 @@ aurynk = "aurynk.app:main"
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-packages = ["aurynk"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["aurynk*"]
 
 [tool.setuptools.package-data]
 aurynk = ["*.py"]
