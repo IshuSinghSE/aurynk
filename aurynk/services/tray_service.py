@@ -7,6 +7,7 @@ from gi.repository import GLib
 from aurynk.core.scrcpy_runner import ScrcpyManager
 from aurynk.ui.windows.main_window import AurynkWindow
 from aurynk.utils.logger import get_logger
+from aurynk.windows.main_window import AurynkWindow
 
 logger = get_logger("TrayController")
 
