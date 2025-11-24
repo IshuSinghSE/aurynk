@@ -4,7 +4,7 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <name>Aurynk</name>
-  <summary>Android Device Manager and Mirroring Tool for Linux</summary>
+  <summary>Android Mirroring Tool for Linux</summary>
   <description>
     <p>
       Aurynk is a modern Linux application for managing Android devices, pairing via ADB, and mirroring screens using scrcpy. It features a native GTK4/libadwaita interface, device details, wireless pairing, tray integration, and screenshot capture.
@@ -39,6 +39,10 @@
     <keyword>Linux</keyword>
     <keyword>Wireless</keyword>
   </keywords>
+  <branding>
+    <color type="primary" scheme_preference="light">#f0f0f0</color>
+    <color type="primary" scheme_preference="dark">#212121</color>
+  </branding>
   <screenshots>
     <screenshot type="default">
       <caption>Main window showing paired devices</caption>
@@ -64,6 +68,16 @@
         <ul>
           <li>Added screenshots to README</li>
           <li>Updated documentation</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.0.3" date="2025-11-16">
+      <description>
+        <p>Multi-arch scrcpy support &amp; Portal notifications.</p>
+        <ul>
+          <li>GNOME 49 runtime</li>
+          <li>Inline Ayatana stack</li>
+          <li>Refreshed Flatpak/Debian artifacts</li>
         </ul>
       </description>
     </release>
