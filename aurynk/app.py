@@ -55,6 +55,9 @@ class AurynkApp(Adw.Application):
             application_id="io.github.IshuSinghSE.aurynk",
             flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
         )
+        
+        # Keep the application running even if no windows are visible (for tray)
+        self.hold()
 
         # Start tray command listener thread from tray_controller
         self.tray_listener_thread = threading.Thread(
