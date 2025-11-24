@@ -3,14 +3,14 @@
 
 import subprocess
 import threading
-from typing import Optional
+
 from aurynk.utils.logger import get_logger
 
 logger = get_logger("ScrcpyManager")
 
 class ScrcpyManager:
     """Handles scrcpy process management for device mirroring."""
-    
+
     _instance = None
 
     def __new__(cls):
@@ -32,7 +32,7 @@ class ScrcpyManager:
     def start_mirror(self, address: str, port: int, device_name: str = None) -> bool:
         """Start scrcpy for the given device address and port. Returns True if started. Optionally set window title to device name."""
         serial = f"{address}:{port}"
-        
+
         # Check if already running and clean up dead processes
         if serial in self.processes:
             proc = self.processes[serial]
@@ -53,7 +53,7 @@ class ScrcpyManager:
                 "--no-audio",
             ])
             self.processes[serial] = proc
-            
+
             # Start monitoring thread to handle window close events
             monitor_thread = threading.Thread(
                 target=self._monitor_process,
@@ -61,7 +61,7 @@ class ScrcpyManager:
                 daemon=True
             )
             monitor_thread.start()
-            
+
             return True
         except Exception as e:
             logger.error(f"Error starting mirror: {e}")

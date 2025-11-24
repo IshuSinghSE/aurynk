@@ -106,7 +106,8 @@ aurynk_block = [
     '    sources:\n',
     '      - type: archive\n',
     f'        url: {tarball_url}\n',
-    f'        sha256: {sha256}\n'
+    f'        sha256: {sha256}\n',
+    f'        strip-components: 0\n'
 ]
 
 ayatana_replaced = False

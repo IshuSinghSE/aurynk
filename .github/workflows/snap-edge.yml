@@ -1,0 +1,31 @@
+name: Publish Snap (Edge)
+
+on:
+  push:
+    branches: [ "develop" ] # Only runs when code hits develop
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Login to Snapcraft (You need to add SNAP_STORE_LOGIN to Repo Secrets)
+    - name: Snapcraft Login
+      env:
+        SNAP_STORE_LOGIN: ${{ secrets.SNAP_STORE_LOGIN }}
+      run: |
+        snapcraft login --with "$SNAP_STORE_LOGIN"
+
+    - name: Build Snap
+      uses: snapcore/action-build@v1
+      with:
+        snapcraft-args: --use-lxd
+
+    - name: Publish to Edge
+      uses: snapcore/action-publish@v1
+      env:
+        SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_STORE_LOGIN }}
+      with:
+        snap: ${{ steps.build.outputs.snap }}
+        release: edge

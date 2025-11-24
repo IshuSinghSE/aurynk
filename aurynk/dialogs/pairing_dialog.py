@@ -5,10 +5,9 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Gtk, Adw, GLib
 import threading
-import socket
-import time
+
+from gi.repository import GLib, Gtk
 
 from aurynk.lib.adb_controller import ADBController
 from aurynk.widgets.qr_widget import create_qr_widget
@@ -19,17 +18,17 @@ class PairingDialog(Gtk.Dialog):
 
     def __init__(self, parent):
         super().__init__(title="Pair New Device", transient_for=parent, modal=True)
-        
+
         self.adb_controller = ADBController()
         self.zeroconf = None
         self.browser = None
         self.qr_timeout_id = None
-        
+
         self.set_default_size(420, 500)
-        
+
         # Setup UI
         self._setup_ui()
-        
+
         # Start pairing process
         self._start_pairing()
 
@@ -140,7 +139,7 @@ class PairingDialog(Gtk.Dialog):
     def _on_device_found(self, address, pair_port, connect_port, password):
         """Handle device discovery."""
         self._update_status(f"Device found: {address}")
-        
+
         # Start pairing in background thread
         def pair():
             success = self.adb_controller.pair_device(
@@ -185,7 +184,7 @@ class PairingDialog(Gtk.Dialog):
         if self.zeroconf:
             try:
                 self.zeroconf.close()
-            except:
+            except Exception:
                 pass
         return False  # Don't repeat timeout
 
@@ -208,6 +207,6 @@ class PairingDialog(Gtk.Dialog):
         if self.zeroconf:
             try:
                 self.zeroconf.close()
-            except:
+            except Exception:
                 pass
         self.close()

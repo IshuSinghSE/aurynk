@@ -2,6 +2,7 @@
 """QR code widget for displaying QR codes in the UI."""
 
 import io
+
 import gi
 
 from aurynk.utils.logger import get_logger
@@ -9,7 +10,7 @@ from aurynk.utils.logger import get_logger
 logger = get_logger("QRWidget")
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk, GdkPixbuf
+from gi.repository import GdkPixbuf, Gtk
 
 try:
     import qrcode
@@ -22,11 +23,11 @@ except ImportError:
 def create_qr_widget(data: str, size: int = 200) -> Gtk.Box:
     """
     Create a GTK widget containing a QR code.
-    
+
     Args:
         data: The data to encode in the QR code
         size: The size of the QR code in pixels
-        
+
     Returns:
         A Gtk.Box containing the QR code image
     """
@@ -65,7 +66,7 @@ def create_qr_widget(data: str, size: int = 200) -> Gtk.Box:
 
         if hasattr(image, 'set_pixel_size'):
             image.set_pixel_size(size)
-            
+
         # Wrap in a frame for rounded corners
         frame = Gtk.Frame()
         frame.set_child(image)

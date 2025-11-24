@@ -4,9 +4,9 @@ import time
 
 from gi.repository import GLib
 
-from aurynk.windows.main_window import AurynkWindow
 from aurynk.lib.scrcpy_manager import ScrcpyManager
 from aurynk.utils.logger import get_logger
+from aurynk.windows.main_window import AurynkWindow
 
 logger = get_logger("TrayController")
 
@@ -25,7 +25,7 @@ def send_status_to_tray(app, status: str = None):
         devices = win.adb_controller.load_paired_devices()
         device_status = []
         from aurynk.utils.adb_pairing import is_device_connected
-        
+
         scrcpy = ScrcpyManager()
 
         for d in devices:
@@ -81,7 +81,7 @@ def send_devices_to_tray(devices):
         # If import fails, fallback to assuming devices are disconnected
         def is_device_connected(a, p):
             return False
-            
+
     from aurynk.lib.scrcpy_manager import ScrcpyManager
     scrcpy = ScrcpyManager()
 

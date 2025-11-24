@@ -25,11 +25,11 @@ except Exception:
 def get_logger(name):
     """Get a configured logger instance."""
     logger = logging.getLogger(name)
-    
+
     # Only configure if handlers haven't been added yet
     if not logger.handlers:
         logger.setLevel(logging.DEBUG)
-        
+
         # Formatter
         formatter = logging.Formatter(
             '[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s',
@@ -54,5 +54,5 @@ def get_logger(name):
         except Exception as e:
             # Fallback if we can't write to file
             print(f"Failed to setup file logging: {e}", file=sys.stderr)
-        
+
     return logger

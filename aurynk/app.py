@@ -11,12 +11,13 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
 
-from gi.repository import Adw, Gio, GLib
 import signal
 
+from gi.repository import Adw, Gio, GLib
+
 from aurynk.lib.tray_controller import tray_command_listener
-from aurynk.windows.main_window import AurynkWindow
 from aurynk.utils.logger import get_logger
+from aurynk.windows.main_window import AurynkWindow
 
 logger = get_logger("AurynkApp")
 
@@ -58,7 +59,7 @@ class AurynkApp(Adw.Application):
             application_id="io.github.IshuSinghSE.aurynk",
             flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
         )
-        
+
         # Keep the application running even if no windows are visible (for tray)
         self.hold()
 

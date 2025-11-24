@@ -1,6 +1,6 @@
 import json
 import os
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List
 
 from aurynk.utils.logger import get_logger
 
@@ -52,9 +52,10 @@ class DeviceStore:
             pass
 
     def remove_device(self, address: str):
+        import subprocess
+
         from aurynk.utils.device_events import notify_device_changed
         from aurynk.utils.notify import show_notification
-        import subprocess
         # Find the device to get its connect_port
         device = next((d for d in self._devices if d.get("address") == address), None)
         should_disconnect = False
