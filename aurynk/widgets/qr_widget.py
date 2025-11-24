@@ -4,6 +4,10 @@
 import io
 import gi
 
+from aurynk.utils.logger import get_logger
+
+logger = get_logger("QRWidget")
+
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GdkPixbuf
 
@@ -71,7 +75,7 @@ def create_qr_widget(data: str, size: int = 200) -> Gtk.Box:
         qr_box.append(frame)
 
     except Exception as e:
-        print(f"Error generating QR code: {e}")
+        logger.error(f"Error generating QR code: {e}")
         error_label = Gtk.Label(label=f"Error: {e}")
         error_label.add_css_class("dim-label")
         qr_box.append(error_label)

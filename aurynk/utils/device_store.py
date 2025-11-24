@@ -2,6 +2,10 @@ import json
 import os
 from typing import List, Dict, Any, Optional
 
+from aurynk.utils.logger import get_logger
+
+logger = get_logger("DeviceStore")
+
 class DeviceStore:
     """Manages in-memory device list and syncs with JSON file."""
     def __init__(self, path: str):
@@ -18,7 +22,7 @@ class DeviceStore:
                 data = f.read().strip()
                 self._devices = json.loads(data) if data else []
         except Exception as e:
-            print(f"[DeviceStore] Error loading devices: {e}")
+            logger.error(f"Error loading devices: {e}")
             self._devices = []
 
     def get_devices(self) -> List[Dict[str, Any]]:
@@ -64,13 +68,13 @@ class DeviceStore:
                     if serial in result.stdout:
                         should_disconnect = True
                 except Exception as e:
-                    print(f"[DeviceStore] Error checking device connection: {e}")
+                    logger.error(f"Error checking device connection: {e}")
             # Disconnect using adb if connected
             if should_disconnect:
                 try:
                     subprocess.run(["adb", "disconnect", f"{address}:{connect_port}"], check=False)
                 except Exception as e:
-                    print(f"[DeviceStore] Error disconnecting device: {e}")
+                    logger.error(f"Error disconnecting device: {e}")
         self._devices = [d for d in self._devices if d.get("address") != address]
         self._save_to_file()
         notify_device_changed()
@@ -85,7 +89,7 @@ class DeviceStore:
             with open(self.path, "w") as f:
                 json.dump(self._devices, f, indent=2)
         except Exception as e:
-            print(f"[DeviceStore] Error saving devices: {e}")
+            logger.error(f"Error saving devices: {e}")
         else:
             # After a successful save, notify the tray helper via a central
             # helper so the tray menu is kept in sync. Run in a daemon thread
@@ -101,7 +105,7 @@ class DeviceStore:
                         send_devices_to_tray(self._devices)
                     except Exception as e:
                         # Do not escalate errors from tray notification.
-                        print(f"[DeviceStore] Tray notify failed: {e}")
+                        logger.warning(f"Tray notify failed: {e}")
 
                 threading.Thread(target=_notify, daemon=True).start()
             except Exception:

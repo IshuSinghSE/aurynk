@@ -3,13 +3,16 @@
 
 import sys
 from aurynk.app import main
+from aurynk.utils.logger import get_logger
+
+logger = get_logger("Main")
 
 if __name__ == "__main__":
     try:
         sys.exit(main(sys.argv))
     except KeyboardInterrupt:
         # Graceful shutdown on Ctrl-C from terminal
-        print("[AurynkApp] Interrupted by user (KeyboardInterrupt). Exiting.")
+        logger.info("Interrupted by user (KeyboardInterrupt). Exiting.")
         # Best-effort cleanup of sockets
         try:
             import os

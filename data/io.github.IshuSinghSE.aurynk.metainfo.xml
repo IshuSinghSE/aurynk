@@ -4,10 +4,13 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <name>Aurynk</name>
-  <summary>Android Device Manager and Mirroring Tool for Linux</summary>
+  <summary>Android Mirroring Tool for Linux</summary>
   <description>
     <p>
       Aurynk is a modern Linux application for managing Android devices, pairing via ADB, and mirroring screens using scrcpy. It features a native GTK4/libadwaita interface, device details, wireless pairing, tray integration, and screenshot capture.
+    </p>
+    <p>
+      With Aurynk, you can easily connect to your Android devices wirelessly by scanning a QR code, view detailed device specifications, and mirror your screen with low latency.
     </p>
     <p>Features:</p>
     <ul>
@@ -19,7 +22,9 @@
       <li>Screen mirroring with scrcpy</li>
     </ul>
   </description>
-  <developer_name>Ishu Singh</developer_name>
+  <developer>
+    <name>Ishu Singh</name>
+  </developer>
   <url type="homepage">https://github.com/IshuSinghSE/aurynk</url>
   <url type="bugtracker">https://github.com/IshuSinghSE/aurynk/issues</url>
   <url type="donation">https://github.com/sponsors/IshuSinghSE</url>
@@ -38,32 +43,61 @@
     <keyword>Device</keyword>
     <keyword>Linux</keyword>
     <keyword>Wireless</keyword>
+    <keyword>Scrcpy</keyword>
+    <keyword>Screen</keyword>
+    <keyword>Manager</keyword>
   </keywords>
+  <branding>
+    <color type="primary" scheme_preference="light">#f0f0f0</color>
+    <color type="primary" scheme_preference="dark">#212121</color>
+  </branding>
   <screenshots>
     <screenshot type="default">
-      <caption>Main window showing paired devices</caption>
+      <caption xml:lang="en">Main window showing paired devices</caption>
       <image type="source">https://raw.githubusercontent.com/IshuSinghSE/aurynk/main/data/screenshots/screenshot-1-main.png</image>
     </screenshot>
 
     <screenshot>
-      <caption>Scanning the QR code to pair</caption>
+      <caption xml:lang="en">Scanning the QR code to pair</caption>
       <image type="source">https://raw.githubusercontent.com/IshuSinghSE/aurynk/main/data/screenshots/screenshot-2-pairing.png</image>
     </screenshot>
 
     <screenshot>
-      <caption>Screen mirroring active</caption>
+      <caption xml:lang="en">Screen mirroring active</caption>
       <image type="source">https://raw.githubusercontent.com/IshuSinghSE/aurynk/main/data/screenshots/screenshot-3-menu.png</image>
     </screenshot>
   </screenshots>
   <content_rating type="oars-1.1"/>
   <translation type="gettext">io.github.IshuSinghSE.aurynk</translation>
   <releases>
+    <release version="1.0.5" date="2025-11-24">
+      <description>
+        <p>Critical bug fixes and logging improvements.</p>
+        <ul>
+          <li>Fixed mirroring synchronization issues</li>
+          <li>Added centralized logging system</li>
+          <li>Fixed application lifecycle and premature quitting</li>
+          <li>Improved tray menu synchronization</li>
+          <li>Fixed GPU permissions for Flatpak</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.4" date="2025-11-23">
       <description>
         <p>Maintenance release with documentation updates.</p>
         <ul>
           <li>Added screenshots to README</li>
           <li>Updated documentation</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.0.3" date="2025-11-16">
+      <description>
+        <p>Multi-arch scrcpy support &amp; Portal notifications.</p>
+        <ul>
+          <li>GNOME 49 runtime</li>
+          <li>Inline Ayatana stack</li>
+          <li>Refreshed Flatpak/Debian artifacts</li>
         </ul>
       </description>
     </release>

@@ -16,6 +16,9 @@ import signal
 
 from aurynk.lib.tray_controller import tray_command_listener
 from aurynk.windows.main_window import AurynkWindow
+from aurynk.utils.logger import get_logger
+
+logger = get_logger("AurynkApp")
 
 
 def start_tray_helper():
@@ -26,14 +29,14 @@ def start_tray_helper():
         try:
             with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
                 s.connect(tray_socket)
-            print("[AurynkApp] Tray helper already running. Reusing existing instance.")
+            logger.info("Tray helper already running. Reusing existing instance.")
             return True
         except Exception:
             try:
                 os.unlink(tray_socket)
-                print("[AurynkApp] Removed stale tray socket.")
+                logger.info("Removed stale tray socket.")
             except Exception as e:
-                print(f"[AurynkApp] Could not remove stale tray socket: {e}")
+                logger.error(f"Could not remove stale tray socket: {e}")
     # Start new tray helper. Pass our PID so the helper can signal us as a
     # fallback if socket-based IPC fails to deliver a quit request.
     script_path = os.path.abspath(
@@ -55,6 +58,9 @@ class AurynkApp(Adw.Application):
             application_id="io.github.IshuSinghSE.aurynk",
             flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
         )
+        
+        # Keep the application running even if no windows are visible (for tray)
+        self.hold()
 
         # Start tray command listener thread from tray_controller
         self.tray_listener_thread = threading.Thread(
@@ -81,17 +87,17 @@ class AurynkApp(Adw.Application):
         if win and hasattr(win, "show_pairing_dialog"):
             win.show_pairing_dialog()
         else:
-            print("[AurynkApp] Pairing dialog method not implemented in AurynkWindow.")
+            logger.warning("Pairing dialog method not implemented in AurynkWindow.")
 
     def present_main_window(self):
         """Present the main window - called from tray icon."""
-        print("[AurynkApp] Activating application to show window")
+        logger.info("Activating application to show window")
         # Simply activate the application - do_activate will handle the window
         self.activate()
 
     def quit(self):
         """Quit the application properly, closing all windows."""
-        print("[AurynkApp] Quitting application...")
+        logger.info("Quitting application...")
         # Signal the tray command listener thread (if running) to stop.
         try:
             self._stop_tray_listener = True
@@ -139,10 +145,10 @@ class AurynkApp(Adw.Application):
         # Get or create the main window
         win = self.props.active_window
         if not win:
-            print("[AurynkApp] Creating new window")
+            logger.info("Creating new window")
             win = AurynkWindow(application=self)
         else:
-            print(f"[AurynkApp] Window exists, visible: {win.get_visible()}")
+            logger.debug(f"Window exists, visible: {win.get_visible()}")
 
         # present() will:
         # 1. Show the window if hidden (un-hide)
@@ -175,14 +181,14 @@ class AurynkApp(Adw.Application):
                     Gtk.IconTheme.get_for_display(Gdk.Display.get_default()).add_resource_path(
                         "/io/github/IshuSinghSE/aurynk/icons"
                     )
-                    print(f"✓ Loaded GResource from: {path}")
+                    logger.info(f"Loaded GResource from: {path}")
                     break
 
             except Exception as e:
-                print(f"✗ Failed to load GResource from {path}: {e}")
+                logger.warning(f"Failed to load GResource from {path}: {e}")
 
         if resource is None:
-            print("⚠ Warning: Could not load GResource file. Some assets may be missing.")
+            logger.warning("Could not load GResource file. Some assets may be missing.")
 
     # Tray communication is now handled by tray_controller. Remove local send_tray_command.
 

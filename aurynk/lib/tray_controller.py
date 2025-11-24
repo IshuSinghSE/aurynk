@@ -5,6 +5,10 @@ import time
 from gi.repository import GLib
 
 from aurynk.windows.main_window import AurynkWindow
+from aurynk.lib.scrcpy_manager import ScrcpyManager
+from aurynk.utils.logger import get_logger
+
+logger = get_logger("TrayController")
 
 TRAY_SOCKET = "/tmp/aurynk_tray.sock"
 APP_SOCKET = "/tmp/aurynk_app.sock"
@@ -21,18 +25,23 @@ def send_status_to_tray(app, status: str = None):
         devices = win.adb_controller.load_paired_devices()
         device_status = []
         from aurynk.utils.adb_pairing import is_device_connected
+        
+        scrcpy = ScrcpyManager()
 
         for d in devices:
             address = d.get("address")
             connect_port = d.get("connect_port")
             connected = False
+            mirroring = False
             if address and connect_port:
                 connected = is_device_connected(address, connect_port)
+                mirroring = scrcpy.is_mirroring(address, connect_port)
             device_status.append(
                 {
                     "name": d.get("name", "Unknown Device"),
                     "address": address,
                     "connected": connected,
+                    "mirroring": mirroring,
                     "model": d.get("model"),
                     "manufacturer": d.get("manufacturer"),
                     "android_version": d.get("android_version"),
@@ -40,7 +49,7 @@ def send_status_to_tray(app, status: str = None):
             )
         msg = json.dumps({"devices": device_status})
     except Exception as e:
-        print(f"[TrayController] Error building device status for tray: {e}")
+        logger.error(f"Error building device status for tray: {e}")
         msg = status if status else ""
     for attempt in range(5):
         try:
@@ -51,9 +60,9 @@ def send_status_to_tray(app, status: str = None):
         except FileNotFoundError:
             time.sleep(0.5)
         except Exception as e:
-            print(f"[TrayController] Could not send tray status '{msg}': {e}")
+            logger.warning(f"Could not send tray status '{msg}': {e}")
             return
-    print("[TrayController] Tray helper socket not available after retries.")
+    logger.warning("Tray helper socket not available after retries.")
 
 
 def send_devices_to_tray(devices):
@@ -72,15 +81,20 @@ def send_devices_to_tray(devices):
         # If import fails, fallback to assuming devices are disconnected
         def is_device_connected(a, p):
             return False
+            
+    from aurynk.lib.scrcpy_manager import ScrcpyManager
+    scrcpy = ScrcpyManager()
 
     device_status = []
     for d in devices:
         address = d.get("address")
         connect_port = d.get("connect_port")
         connected = False
+        mirroring = False
         if address and connect_port:
             try:
                 connected = is_device_connected(address, connect_port)
+                mirroring = scrcpy.is_mirroring(address, connect_port)
             except Exception:
                 connected = False
         device_status.append(
@@ -88,6 +102,7 @@ def send_devices_to_tray(devices):
                 "name": d.get("name", "Unknown Device"),
                 "address": address,
                 "connected": connected,
+                "mirroring": mirroring,
                 "model": d.get("model"),
                 "manufacturer": d.get("manufacturer"),
                 "android_version": d.get("android_version"),
@@ -105,9 +120,9 @@ def send_devices_to_tray(devices):
         except FileNotFoundError:
             time.sleep(0.25)
         except Exception as e:
-            print(f"[TrayController] Could not send devices to tray (attempt {attempt}): {e}")
+            logger.warning(f"Could not send devices to tray (attempt {attempt}): {e}")
             return
-    print("[TrayController] Tray helper socket not available after retries.")
+    logger.warning("Tray helper socket not available after retries.")
 
 
 def tray_command_listener(app):
@@ -123,7 +138,7 @@ def tray_command_listener(app):
         server.listen(1)
         # Allow accept to timeout periodically so we can check app state and exit cleanly
         server.settimeout(1.0)
-        print(f"[TrayController] Command listener ready on {APP_SOCKET}")
+        logger.info(f"Command listener ready on {APP_SOCKET}")
         # The app can set `app._stop_tray_listener = True` to request shutdown
         while not getattr(app, "_stop_tray_listener", False):
             try:
@@ -132,20 +147,20 @@ def tray_command_listener(app):
                 continue
             except Exception as e:
                 # If accept fails (socket closed/unlinked), break out
-                print(f"[TrayController] Tray command listener accept error: {e}")
+                logger.error(f"Tray command listener accept error: {e}")
                 break
 
             try:
                 data = conn.recv(1024)
                 if data:
                     msg = data.decode()
-                    print(f"[TrayController] Received command: {msg}")
+                    logger.debug(f"Received command: {msg}")
                     if msg == "show":
                         GLib.idle_add(app.present_main_window)
                     elif msg == "pair_new":
                         GLib.idle_add(app.show_pair_dialog)
                     elif msg == "quit":
-                        print("[TrayController] Received quit from tray. Exiting.")
+                        logger.info("Received quit from tray. Exiting.")
                         GLib.idle_add(app.quit)
                     elif msg.startswith("connect:"):
                         address = msg.split(":", 1)[1]
@@ -160,7 +175,7 @@ def tray_command_listener(app):
                         address = msg.split(":", 1)[1]
                         GLib.idle_add(tray_unpair_device, app, address)
             except Exception as e:
-                print(f"[TrayController] Error reading tray command: {e}")
+                logger.error(f"Error reading tray command: {e}")
             finally:
                 try:
                     conn.close()
@@ -222,7 +237,9 @@ def tray_mirror_device(app, address):
         device_name = device.get("name")
         if connect_port and device_name:
             scrcpy = win._get_scrcpy_manager()
-            if not scrcpy.is_mirroring(address, connect_port):
+            if scrcpy.is_mirroring(address, connect_port):
+                scrcpy.stop_mirror(address, connect_port)
+            else:
                 scrcpy.start_mirror(address, connect_port, device_name)
         win._refresh_device_list()
         send_status_to_tray(app)

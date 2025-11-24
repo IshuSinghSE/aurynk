@@ -12,6 +12,9 @@ from typing import Any, Callable, Dict, List, Optional
 from zeroconf import IPVersion, ServiceBrowser, ServiceStateChange, Zeroconf
 
 from aurynk.utils.device_store import DeviceStore
+from aurynk.utils.logger import get_logger
+
+logger = get_logger("ADBController")
 
 # Use XDG_DATA_HOME when available (works inside Flatpak); fall back to
 # ~/.local/share/aurynk for regular installs. Ensure the directory exists.
@@ -66,7 +69,7 @@ class ADBController:
         import time
 
         def log(msg: str):
-            print(f"[ADB] {msg}")
+            logger.info(msg)
             if status_callback:
                 status_callback(msg)
 
@@ -265,7 +268,7 @@ class ADBController:
                 specs["battery"] = f"{match.group(1)}%"
 
         except Exception as e:
-            print(f"[ADB] Error fetching specs: {e}")
+            logger.error(f"Error fetching specs: {e}")
 
         return specs
 
@@ -305,8 +308,8 @@ class ADBController:
                 if os.path.exists(local_path):
                     return local_path
                 else:
-                    print(
-                        "[ADB] Device is locked or screen off, and no previous screenshot available."
+                    logger.warning(
+                        "Device is locked or screen off, and no previous screenshot available."
                     )
                     return None
 
@@ -350,7 +353,7 @@ class ADBController:
             )
             return local_path
         except Exception as e:
-            print(f"[ADB] Error capturing screenshot: {e}")
+            logger.error(f"Error capturing screenshot: {e}")
             # If error, fallback to old image if available
             if os.path.exists(local_path):
                 return local_path
