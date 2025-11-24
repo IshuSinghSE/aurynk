@@ -1,0 +1,12 @@
+version: 2
+updates:
+  # Maintain pip dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+       # Group updates so you don't get 10 PRs at once
+       dependencies:
+         patterns:
+           - "*"
