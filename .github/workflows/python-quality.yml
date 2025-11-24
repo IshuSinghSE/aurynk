@@ -1,0 +1,25 @@
+name: Python Quality
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Lint with Ruff
+        # Checks for errors (F), style (E), imports (I)
+        run: ruff check .
+
+      - name: Check Formatting
+        # Fails if code isn't formatted correctly
+        run: ruff format --check .

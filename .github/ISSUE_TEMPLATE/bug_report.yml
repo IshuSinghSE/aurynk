@@ -1,0 +1,76 @@
+name: 🐛 Bug Report
+description: Create a report to help us improve Aurynk
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Also tell us, what did you expect to happen?
+      placeholder: "When I click the 'Mirror' button, the window opens but stays black..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Open Aurynk
+        2. Connect device via QR code
+        3. Click on 'Device Details'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: |
+        If applicable, add screenshots to help explain your problem. You can drag and drop images here.
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: How did you install Aurynk?
+      options:
+        - Flatpak (Flathub)
+        - Snap Store
+        - Built from Source
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: Linux Distribution & Version
+      placeholder: Ubuntu 24.04, Fedora 39, Arch Linux...
+    validations:
+      required: true
+
+  - type: input
+    id: android-info
+    attributes:
+      label: Android Device & Version
+      placeholder: Pixel 7 (Android 14), Samsung S23 (OneUI 6)...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Log Output
+      description: |
+        Please copy and paste any relevant logs. This is extremely helpful.
+        - **Flatpak:** `flatpak run io.github.IshuSinghSE.aurynk`
+        - **Snap:** `snap run aurynk`
+        - **Terminal:** Check output in the terminal where you launched it.
+      render: shell

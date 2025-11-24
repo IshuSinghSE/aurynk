@@ -1,0 +1,36 @@
+name: Test Flatpak Build
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'flatpak/**'
+      - 'aurynk/**'
+      - 'data/**'
+  pull_request:
+    paths:
+      - 'flatpak/**'
+      - 'aurynk/**'
+
+jobs:
+  flatpak:
+    runs-on: ubuntu-latest
+    container:
+      image: bilelmoussaoui/flatpak-github-actions:gnome-47
+      options: --privileged
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      # We need to install git to clone dependencies inside the container
+      - name: Install build deps
+        run: |
+          dnf install -y git
+
+      # We trust the community action to handle the complex setup
+      - name: Build Flatpak
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: aurynk.flatpak
+          manifest-path: flatpak/io.github.IshuSinghSE.aurynk.yml
+          cache-key: flatpak-builder-${{ github.sha }}

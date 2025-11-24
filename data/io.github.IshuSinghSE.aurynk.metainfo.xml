@@ -22,7 +22,7 @@
       <li>Screen mirroring with scrcpy</li>
     </ul>
   </description>
-  <developer>
+  <developer id="io.github.IshuSinghSE">
     <name>Ishu Singh</name>
   </developer>
   <url type="homepage">https://github.com/IshuSinghSE/aurynk</url>

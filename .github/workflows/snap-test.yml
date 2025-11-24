@@ -1,0 +1,29 @@
+name: Test Snap Build
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'snap/**'
+      - 'aurynk/**'
+  pull_request:
+    paths:
+      - 'snap/**'
+
+jobs:
+  snap-build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build Snap
+      uses: snapcore/action-build@v1
+      id: build
+      with:
+        snapcraft-args: --use-lxd
+
+    - name: Upload Snap Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: aurynk-snap
+        path: ${{ steps.build.outputs.snap }}
