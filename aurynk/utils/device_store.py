@@ -6,8 +6,10 @@ from aurynk.utils.logger import get_logger
 
 logger = get_logger("DeviceStore")
 
+
 class DeviceStore:
     """Manages in-memory device list and syncs with JSON file."""
+
     def __init__(self, path: str):
         self.path = path
         self._devices: List[Dict[str, Any]] = []
@@ -31,6 +33,7 @@ class DeviceStore:
     def add_or_update_device(self, device_info: Dict[str, Any]):
         from aurynk.utils.device_events import notify_device_changed
         from aurynk.utils.notify import show_notification
+
         address = device_info.get("address")
         existing_idx = None
         for idx, device in enumerate(self._devices):
@@ -56,6 +59,7 @@ class DeviceStore:
 
         from aurynk.utils.device_events import notify_device_changed
         from aurynk.utils.notify import show_notification
+
         # Find the device to get its connect_port
         device = next((d for d in self._devices if d.get("address") == address), None)
         should_disconnect = False

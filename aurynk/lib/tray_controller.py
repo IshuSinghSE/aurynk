@@ -83,6 +83,7 @@ def send_devices_to_tray(devices):
             return False
 
     from aurynk.lib.scrcpy_manager import ScrcpyManager
+
     scrcpy = ScrcpyManager()
 
     device_status = []

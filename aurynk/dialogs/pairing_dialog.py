@@ -54,11 +54,15 @@ class PairingDialog(Gtk.Dialog):
         instructions.set_margin_bottom(18)
 
         instr1 = Gtk.Label()
-        instr1.set_markup('<span size="medium">1. On your phone, go to <b>Developer Options → Wireless Debugging</b></span>')
+        instr1.set_markup(
+            '<span size="medium">1. On your phone, go to <b>Developer Options → Wireless Debugging</b></span>'
+        )
         instr1.set_halign(Gtk.Align.CENTER)
         instr1.get_style_context().add_class("dim-label")
         instr2 = Gtk.Label()
-        instr2.set_markup('<span size="medium">2. Tap <b>Pair device with QR code</b> and scan below</span>')
+        instr2.set_markup(
+            '<span size="medium">2. Tap <b>Pair device with QR code</b> and scan below</span>'
+        )
         instr2.set_halign(Gtk.Align.CENTER)
         instr2.get_style_context().add_class("dim-label")
         instructions.append(instr1)
@@ -125,6 +129,7 @@ class PairingDialog(Gtk.Dialog):
 
     def _discover_devices(self):
         """Start mDNS discovery for devices."""
+
         def on_device_found(address, pair_port, connect_port, password):
             # Update UI on main thread
             GLib.idle_add(self._on_device_found, address, pair_port, connect_port, password)
@@ -143,8 +148,11 @@ class PairingDialog(Gtk.Dialog):
         # Start pairing in background thread
         def pair():
             success = self.adb_controller.pair_device(
-                address, pair_port, connect_port, self.password,
-                status_callback=lambda msg: GLib.idle_add(self._update_status, msg)
+                address,
+                pair_port,
+                connect_port,
+                self.password,
+                status_callback=lambda msg: GLib.idle_add(self._update_status, msg),
             )
             if success:
                 GLib.idle_add(self._on_pairing_complete)
@@ -157,6 +165,7 @@ class PairingDialog(Gtk.Dialog):
         self._update_status("✓ Device paired successfully!")
         # Close dialog after a short delay
         from aurynk.utils.device_events import notify_device_changed
+
         notify_device_changed()  # Defensive, but not strictly needed since DeviceStore does this
         # DeviceStore.save triggers notify_device_changed(), and DeviceStore now
         # centrally notifies the tray helper after each save. No direct socket

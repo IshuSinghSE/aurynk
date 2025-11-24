@@ -389,6 +389,7 @@ class AurynkWindow(Adw.ApplicationWindow):
         """Callback when scrcpy process exits."""
         logger.info(f"Mirror stopped for {serial}, refreshing UI")
         from gi.repository import GLib
+
         GLib.idle_add(self._handle_mirror_stop_ui_update)
 
     def _handle_mirror_stop_ui_update(self):

@@ -8,6 +8,7 @@ from aurynk.utils.logger import get_logger
 
 logger = get_logger("ScrcpyManager")
 
+
 class ScrcpyManager:
     """Handles scrcpy process management for device mirroring."""
 
@@ -45,20 +46,22 @@ class ScrcpyManager:
 
         window_title = f"{device_name}" if device_name else f"Aurynk: {serial}"
         try:
-            proc = subprocess.Popen([
-                "scrcpy",
-                "--serial", serial,
-                "--window-title", window_title,
-                "--always-on-top",
-                "--no-audio",
-            ])
+            proc = subprocess.Popen(
+                [
+                    "scrcpy",
+                    "--serial",
+                    serial,
+                    "--window-title",
+                    window_title,
+                    "--always-on-top",
+                    "--no-audio",
+                ]
+            )
             self.processes[serial] = proc
 
             # Start monitoring thread to handle window close events
             monitor_thread = threading.Thread(
-                target=self._monitor_process,
-                args=(serial, proc),
-                daemon=True
+                target=self._monitor_process, args=(serial, proc), daemon=True
             )
             monitor_thread.start()
 
