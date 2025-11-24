@@ -59,6 +59,7 @@ class DeviceStore:
 
         from aurynk.utils.device_events import notify_device_changed
         from aurynk.utils.notify import show_notification
+
         # Find the device to get its connect_port
         device = next((d for d in self._devices if d.get("address") == address), None)
         should_disconnect = False
