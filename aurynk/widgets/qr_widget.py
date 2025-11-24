@@ -51,11 +51,11 @@ def create_qr_widget(data: str, size: int = 200) -> Gtk.Box:
 
         # Convert to PNG bytes
         buf = io.BytesIO()
-        qr_image.save(buf, format='PNG')
+        qr_image.save(buf, format="PNG")
         buf.seek(0)
 
         # Load into GTK
-        pixbuf_loader = GdkPixbuf.PixbufLoader.new_with_type('png')
+        pixbuf_loader = GdkPixbuf.PixbufLoader.new_with_type("png")
         pixbuf_loader.write(buf.getvalue())
         pixbuf_loader.close()
         pixbuf = pixbuf_loader.get_pixbuf()
@@ -64,7 +64,7 @@ def create_qr_widget(data: str, size: int = 200) -> Gtk.Box:
         image = Gtk.Image()
         image.set_from_pixbuf(pixbuf)
 
-        if hasattr(image, 'set_pixel_size'):
+        if hasattr(image, "set_pixel_size"):
             image.set_pixel_size(size)
 
         # Wrap in a frame for rounded corners

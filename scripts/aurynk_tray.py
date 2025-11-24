@@ -16,9 +16,11 @@ from gi.repository import Gtk
 
 try:
     from aurynk.utils.logger import get_logger
+
     logger = get_logger("TrayHelper")
 except ImportError:
     import logging
+
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger("TrayHelper")
 
