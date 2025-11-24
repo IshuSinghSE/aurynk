@@ -51,6 +51,7 @@ class AurynkApp(Adw.Application):
     """Main application class."""
 
     def __init__(self):
+        print("[AurynkApp] Initializing application (Build: Debug-v2)", flush=True)
         super().__init__(
             application_id="io.github.IshuSinghSE.aurynk",
             flags=Gio.ApplicationFlags.DEFAULT_FLAGS,

@@ -18,7 +18,7 @@ finish-args:
   - --talk-name=org.kde.StatusNotifierWatcher
   - --talk-name=org.ayatana.indicator.service
   # USB device access for ADB
-  - --device=all
+  - --device=usb
 
 cleanup:
   - /include

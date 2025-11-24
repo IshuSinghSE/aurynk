@@ -382,15 +382,22 @@ class AurynkWindow(Adw.ApplicationWindow):
         return self._scrcpy_manager
 
     def _on_mirror_clicked(self, button, device):
+        print(f"[_on_mirror_clicked] Button clicked for device: {device.get('name')}", flush=True)
         address = device.get("address")
         connect_port = device.get("connect_port")
         device_name = device.get("name")
         if not address or not connect_port:
+            print("  -> Missing address or port", flush=True)
             return
         scrcpy = self._get_scrcpy_manager()
-        if scrcpy.is_mirroring(address, connect_port):
+        is_running = scrcpy.is_mirroring(address, connect_port)
+        print(f"  -> is_mirroring: {is_running}", flush=True)
+        
+        if is_running:
+            print("  -> Stopping mirror...", flush=True)
             scrcpy.stop_mirror(address, connect_port)
         else:
+            print("  -> Starting mirror...", flush=True)
             scrcpy.start_mirror(address, connect_port, device_name)
         # Sync tray after mirroring
         app = self.get_application()
