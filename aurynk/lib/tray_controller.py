@@ -5,6 +5,7 @@ import time
 from gi.repository import GLib
 
 from aurynk.windows.main_window import AurynkWindow
+from aurynk.lib.scrcpy_manager import ScrcpyManager
 
 TRAY_SOCKET = "/tmp/aurynk_tray.sock"
 APP_SOCKET = "/tmp/aurynk_app.sock"
@@ -21,18 +22,23 @@ def send_status_to_tray(app, status: str = None):
         devices = win.adb_controller.load_paired_devices()
         device_status = []
         from aurynk.utils.adb_pairing import is_device_connected
+        
+        scrcpy = ScrcpyManager()
 
         for d in devices:
             address = d.get("address")
             connect_port = d.get("connect_port")
             connected = False
+            mirroring = False
             if address and connect_port:
                 connected = is_device_connected(address, connect_port)
+                mirroring = scrcpy.is_mirroring(address, connect_port)
             device_status.append(
                 {
                     "name": d.get("name", "Unknown Device"),
                     "address": address,
                     "connected": connected,
+                    "mirroring": mirroring,
                     "model": d.get("model"),
                     "manufacturer": d.get("manufacturer"),
                     "android_version": d.get("android_version"),
@@ -72,15 +78,20 @@ def send_devices_to_tray(devices):
         # If import fails, fallback to assuming devices are disconnected
         def is_device_connected(a, p):
             return False
+            
+    from aurynk.lib.scrcpy_manager import ScrcpyManager
+    scrcpy = ScrcpyManager()
 
     device_status = []
     for d in devices:
         address = d.get("address")
         connect_port = d.get("connect_port")
         connected = False
+        mirroring = False
         if address and connect_port:
             try:
                 connected = is_device_connected(address, connect_port)
+                mirroring = scrcpy.is_mirroring(address, connect_port)
             except Exception:
                 connected = False
         device_status.append(
@@ -88,6 +99,7 @@ def send_devices_to_tray(devices):
                 "name": d.get("name", "Unknown Device"),
                 "address": address,
                 "connected": connected,
+                "mirroring": mirroring,
                 "model": d.get("model"),
                 "manufacturer": d.get("manufacturer"),
                 "android_version": d.get("android_version"),
@@ -222,7 +234,9 @@ def tray_mirror_device(app, address):
         device_name = device.get("name")
         if connect_port and device_name:
             scrcpy = win._get_scrcpy_manager()
-            if not scrcpy.is_mirroring(address, connect_port):
+            if scrcpy.is_mirroring(address, connect_port):
+                scrcpy.stop_mirror(address, connect_port)
+            else:
                 scrcpy.start_mirror(address, connect_port, device_name)
         win._refresh_device_list()
         send_status_to_tray(app)

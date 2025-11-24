@@ -7,9 +7,24 @@ from typing import Optional
 
 class ScrcpyManager:
     """Handles scrcpy process management for device mirroring."""
+    
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(ScrcpyManager, cls).__new__(cls)
+            cls._instance.processes = {}
+            cls._instance.stop_callbacks = []
+        return cls._instance
 
     def __init__(self):
-        self.processes = {}
+        # Init handled in __new__ to ensure singleton properties
+        pass
+
+    def add_stop_callback(self, callback):
+        """Register a callback to be called when a mirroring process stops."""
+        if callback not in self.stop_callbacks:
+            self.stop_callbacks.append(callback)
 
     def start_mirror(self, address: str, port: int, device_name: str = None) -> bool:
         """Start scrcpy for the given device address and port. Returns True if started. Optionally set window title to device name."""
@@ -101,3 +116,9 @@ class ScrcpyManager:
             if serial in self.processes and self.processes[serial] == proc:
                 print(f"[scrcpy] Cleaning up process entry for {serial}", flush=True)
                 del self.processes[serial]
+                # Notify callbacks
+                for callback in self.stop_callbacks:
+                    try:
+                        callback(serial)
+                    except Exception as e:
+                        print(f"[scrcpy] Error in stop callback: {e}", flush=True)

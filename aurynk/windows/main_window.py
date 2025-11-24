@@ -379,7 +379,20 @@ class AurynkWindow(Adw.ApplicationWindow):
     def _get_scrcpy_manager(self):
         if not hasattr(self, "_scrcpy_manager"):
             self._scrcpy_manager = ScrcpyManager()
+            self._scrcpy_manager.add_stop_callback(self._on_mirror_stopped)
         return self._scrcpy_manager
+
+    def _on_mirror_stopped(self, serial):
+        """Callback when scrcpy process exits."""
+        print(f"[MainWindow] Mirror stopped for {serial}, refreshing UI", flush=True)
+        from gi.repository import GLib
+        GLib.idle_add(self._handle_mirror_stop_ui_update)
+
+    def _handle_mirror_stop_ui_update(self):
+        self._refresh_device_list()
+        app = self.get_application()
+        if hasattr(app, "send_status_to_tray"):
+            app.send_status_to_tray()
 
     def _on_mirror_clicked(self, button, device):
         print(f"[_on_mirror_clicked] Button clicked for device: {device.get('name')}", flush=True)

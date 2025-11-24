@@ -127,7 +127,9 @@ class TrayHelper:
                 disconnect_item.connect("activate", self.on_disconnect_device, device)
                 device_menu.append(disconnect_item)
 
-                mirror_item = Gtk.MenuItem(label="Start Mirroring")
+                is_mirroring = device.get("mirroring", False)
+                mirror_label = "Stop Mirroring" if is_mirroring else "Start Mirroring"
+                mirror_item = Gtk.MenuItem(label=mirror_label)
                 mirror_item.set_sensitive(device.get("connected", False))
                 mirror_item.connect("activate", self.on_mirror_device, device)
                 device_menu.append(mirror_item)
