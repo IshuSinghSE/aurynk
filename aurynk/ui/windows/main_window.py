@@ -359,7 +359,7 @@ class AurynkWindow(Adw.ApplicationWindow):
 
     def _on_add_device_clicked(self, button):
         """Handle Add Device button click."""
-        from aurynk.dialogs.pairing_dialog import PairingDialog
+        from aurynk.ui.dialogs.pairing_dialog import PairingDialog
 
         dialog = PairingDialog(self)
         dialog.present()

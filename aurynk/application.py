@@ -133,7 +133,7 @@ class AurynkApp(Adw.Application):
         start_tray_helper()
         # Expose a convenience method on the app instance so windows can call
         # `app.send_status_to_tray()` without importing the tray controller.
-        from aurynk.lib.tray_controller import send_status_to_tray
+        from aurynk.services.tray_service import send_status_to_tray
 
         # create a small wrapper that binds the app instance
         self.send_status_to_tray = lambda status=None: send_status_to_tray(self, status)
