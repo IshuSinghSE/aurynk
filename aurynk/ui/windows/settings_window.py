@@ -28,7 +28,7 @@ class SettingsWindow(Adw.PreferencesWindow):
         
         # Window properties
         self.set_title("Settings")
-        self.set_default_size(600, 700)
+        self.set_default_size(700, 600)
         self.set_modal(False)  # Allow independent window movement
         self.set_hide_on_close(True)
         
