@@ -15,6 +15,9 @@ from aurynk.core.scrcpy_runner import ScrcpyManager
 from aurynk.ui.windows.about_window import AboutWindow
 from aurynk.ui.windows.settings_window import SettingsWindow
 from aurynk.utils.adb_utils import is_device_connected
+from aurynk.utils.logger import get_logger
+
+logger = get_logger("MainWindow")
 from aurynk.utils.device_events import (
     register_device_change_callback,
     unregister_device_change_callback,

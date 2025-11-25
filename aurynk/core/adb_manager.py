@@ -228,7 +228,6 @@ class ADBController:
                                         pass
         except Exception as e:
             logger.debug(f"Could not query mDNS services: {e}")
-
         return None
 
     # ===== Device Information =====
