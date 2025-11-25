@@ -282,7 +282,7 @@ class SettingsWindow(Adw.PreferencesWindow):
         
         # Audio/Video group
         av_group = Adw.PreferencesGroup()
-        av_group.set_title("Audio & Video")
+        av_group.set_title("Audio &amp; Video")
         
         # Enable audio
         enable_audio = Adw.SwitchRow()
@@ -342,7 +342,7 @@ class SettingsWindow(Adw.PreferencesWindow):
         
         # Input group
         input_group = Adw.PreferencesGroup()
-        input_group.set_title("Input & Display")
+        input_group.set_title("Input &amp; Display")
         
         # Show touches
         show_touches = Adw.SwitchRow()
