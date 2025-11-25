@@ -213,16 +213,20 @@ class DeviceMonitor:
                 self._connected_devices.add(address)
                 logger.info(f"✓ Auto-connected to {device_name}")
 
+                # Small delay to ensure connection is fully established before UI update
+                time.sleep(0.5)
+
+                # Always notify callbacks on successful connection (for UI refresh)
+                for callback in self._callbacks["on_device_connected"]:
+                    try:
+                        callback(address, port)
+                    except Exception as e:
+                        logger.error(f"Error in connected callback: {e}")
+                
                 # Update paired device info if port changed
                 if paired_info.get("connect_port") != port:
                     logger.info(f"Port changed from {paired_info.get('connect_port')} to {port}, updating...")
                     paired_info["connect_port"] = port
-                    # Notify callbacks to update storage
-                    for callback in self._callbacks["on_device_connected"]:
-                        try:
-                            callback(address, port)
-                        except Exception as e:
-                            logger.error(f"Error in connected callback: {e}")
             else:
                 logger.warning(f"Failed to auto-connect to {device_name}: {output}")
 

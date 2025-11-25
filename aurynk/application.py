@@ -79,13 +79,26 @@ class AurynkApp(Adw.Application):
                             device["connect_port"] = new_port
                             win.adb_controller.save_paired_device(device)
                             logger.info(f"Updated port for {address} to {new_port}")
-                            # Refresh UI
+                            # Refresh UI on main thread
                             GLib.idle_add(win._refresh_device_list)
                             break
             except Exception as e:
                 logger.error(f"Error updating port: {e}")
         
+        # Register callback for successful connections (including auto-connect)
+        def on_device_connected_refresh(address, port):
+            """Refresh UI when device auto-connects."""
+            try:
+                win = self.props.active_window
+                if win and hasattr(win, "_refresh_device_list"):
+                    # Refresh UI on main thread after auto-connect
+                    GLib.idle_add(win._refresh_device_list)
+                    logger.debug(f"Scheduled UI refresh after auto-connect: {address}:{port}")
+            except Exception as e:
+                logger.error(f"Error refreshing UI: {e}")
+        
         self.device_monitor.register_callback("on_device_connected", on_port_updated)
+        self.device_monitor.register_callback("on_device_connected", on_device_connected_refresh)
 
         # Start tray command listener thread from tray_controller
         self.tray_listener_thread = threading.Thread(
