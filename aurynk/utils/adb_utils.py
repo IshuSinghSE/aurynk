@@ -8,7 +8,8 @@ def is_device_connected(address, connect_port):
         if result.returncode != 0:
             return False
         for line in result.stdout.splitlines():
-            if serial in line and "device" in line:
+            # Must have tab separator and "device" status (not "offline" or other states)
+            if serial in line and "\tdevice" in line:
                 return True
         return False
     except Exception:

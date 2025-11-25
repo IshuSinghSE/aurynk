@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """scrcpy interaction and management for Aurynk."""
 
+import os
 import subprocess
 import threading
 
@@ -46,6 +47,10 @@ class ScrcpyManager:
 
         window_title = f"{device_name}" if device_name else f"Aurynk: {serial}"
         try:
+            # Suppress snap launcher notices
+            env = os.environ.copy()
+            env["SNAP_LAUNCHER_NOTICE_ENABLED"] = "false"
+            
             proc = subprocess.Popen(
                 [
                     "scrcpy",
@@ -55,7 +60,8 @@ class ScrcpyManager:
                     window_title,
                     "--always-on-top",
                     "--no-audio",
-                ]
+                ],
+                env=env
             )
             self.processes[serial] = proc
 
