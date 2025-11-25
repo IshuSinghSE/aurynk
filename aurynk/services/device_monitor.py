@@ -4,7 +4,7 @@
 import subprocess
 import threading
 import time
-from typing import Callable, Dict, Optional, Set
+from typing import Callable, Dict, Optional
 
 from zeroconf import IPVersion, ServiceBrowser, ServiceStateChange, Zeroconf
 
@@ -222,10 +222,12 @@ class DeviceMonitor:
                         callback(address, port)
                     except Exception as e:
                         logger.error(f"Error in connected callback: {e}")
-                
+
                 # Update paired device info if port changed
                 if paired_info.get("connect_port") != port:
-                    logger.info(f"Port changed from {paired_info.get('connect_port')} to {port}, updating...")
+                    logger.info(
+                        f"Port changed from {paired_info.get('connect_port')} to {port}, updating..."
+                    )
                     paired_info["connect_port"] = port
             else:
                 logger.warning(f"Failed to auto-connect to {device_name}: {output}")
@@ -236,7 +238,7 @@ class DeviceMonitor:
     def _monitor_connections(self):
         """Background thread to monitor ADB connection status."""
         previous_connected = set()
-        
+
         while self._running:
             try:
                 # Check which devices are actually connected
@@ -268,7 +270,7 @@ class DeviceMonitor:
                                 callback(address)
                             except Exception as e:
                                 logger.error(f"Error in device lost callback: {e}")
-                    
+
                     # Detect new connections (for devices that weren't tracked before)
                     newly_connected = current_connected - previous_connected
                     if newly_connected:
@@ -289,7 +291,7 @@ class DeviceMonitor:
 
     def register_callback(self, event: str, callback: Callable):
         """Register a callback for device events.
-        
+
         Events:
             - on_device_found: (address, port, service_type)
             - on_device_connected: (address, port)

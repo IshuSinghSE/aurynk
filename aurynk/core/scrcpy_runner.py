@@ -50,7 +50,7 @@ class ScrcpyManager:
             # Suppress snap launcher notices
             env = os.environ.copy()
             env["SNAP_LAUNCHER_NOTICE_ENABLED"] = "false"
-            
+
             proc = subprocess.Popen(
                 [
                     "scrcpy",
@@ -61,7 +61,7 @@ class ScrcpyManager:
                     "--always-on-top",
                     "--no-audio",
                 ],
-                env=env
+                env=env,
             )
             self.processes[serial] = proc
 

@@ -159,7 +159,7 @@ class AurynkWindow(Adw.ApplicationWindow):
         # Force reload from file to get latest changes from other windows/processes
         self.adb_controller.device_store.reload()
         devices = self.adb_controller.load_paired_devices()
-        
+
         # Update device monitor with current paired devices and start monitoring
         app = self.get_application()
         if app and hasattr(app, "device_monitor"):
@@ -359,32 +359,32 @@ class AurynkWindow(Adw.ApplicationWindow):
         else:
             # Connect logic - check device monitor first for current port
             import subprocess
-            
+
             app = self.get_application()
             discovered_port = None
-            
+
             # Try to get port from device monitor (if device is currently discoverable)
             if app and hasattr(app, "device_monitor"):
                 discovered_info = app.device_monitor.get_discovered_device(address)
                 if discovered_info and discovered_info.get("connect_port"):
                     discovered_port = discovered_info["connect_port"]
                     if discovered_port != connect_port:
-                        logger.info(f"Using discovered port {discovered_port} instead of stored {connect_port}")
+                        logger.info(
+                            f"Using discovered port {discovered_port} instead of stored {connect_port}"
+                        )
                         connect_port = discovered_port
 
             logger.info(f"Attempting to connect to {address}:{connect_port}...")
             result = subprocess.run(
-                ["adb", "connect", f"{address}:{connect_port}"],
-                capture_output=True,
-                text=True
+                ["adb", "connect", f"{address}:{connect_port}"], capture_output=True, text=True
             )
-            
+
             output = (result.stdout + result.stderr).lower()
-            
+
             # Check if connection succeeded
             if ("connected" in output or "already connected" in output) and "unable" not in output:
                 logger.info(f"✓ Connected successfully to {address}:{connect_port}")
-                
+
                 # Update stored port if it changed
                 if discovered_port and discovered_port != device.get("connect_port"):
                     device["connect_port"] = discovered_port
@@ -394,28 +394,30 @@ class AurynkWindow(Adw.ApplicationWindow):
                 # Connection failed - try fallback discovery
                 logger.warning(f"Connection failed: {output.strip()}")
                 logger.info("Trying to rediscover device...")
-                
+
                 # Fallback to adb mdns services
                 ports = self.adb_controller.get_current_ports(address, timeout=3)
                 if ports and ports.get("connect_port"):
                     new_port = ports["connect_port"]
                     logger.info(f"Found device on port {new_port}, retrying connection...")
-                    
+
                     result = subprocess.run(
-                        ["adb", "connect", f"{address}:{new_port}"],
-                        capture_output=True,
-                        text=True
+                        ["adb", "connect", f"{address}:{new_port}"], capture_output=True, text=True
                     )
-                    
+
                     if result.returncode == 0:
                         device["connect_port"] = new_port
                         self.adb_controller.save_paired_device(device)
                         logger.info(f"✓ Connected and updated port to {new_port}")
                     else:
-                        logger.error(f"Connection still failed. Please ensure device is on the network.")
+                        logger.error(
+                            "Connection still failed. Please ensure device is on the network."
+                        )
                 else:
-                    logger.error(f"Could not find device at {address}. Make sure wireless debugging is enabled.")
-            
+                    logger.error(
+                        f"Could not find device at {address}. Make sure wireless debugging is enabled."
+                    )
+
         # Refresh device list to update status (will sync tray)
         self._refresh_device_list()
 

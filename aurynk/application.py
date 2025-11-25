@@ -66,7 +66,7 @@ class AurynkApp(Adw.Application):
 
         # Initialize device monitor for auto-connect functionality
         self.device_monitor = DeviceMonitor()
-        
+
         # Register callback for port updates
         def on_port_updated(address, new_port):
             """Update device storage when port changes."""
@@ -84,7 +84,7 @@ class AurynkApp(Adw.Application):
                             break
             except Exception as e:
                 logger.error(f"Error updating port: {e}")
-        
+
         # Register callback for successful connections (including auto-connect)
         def on_device_connected_refresh(address, port):
             """Refresh UI when device auto-connects."""
@@ -96,7 +96,7 @@ class AurynkApp(Adw.Application):
                     logger.debug(f"Scheduled UI refresh after auto-connect: {address}:{port}")
             except Exception as e:
                 logger.error(f"Error refreshing UI: {e}")
-        
+
         # Register callback for device disconnection
         def on_device_disconnected_refresh(address):
             """Refresh UI when device disconnects."""
@@ -108,7 +108,7 @@ class AurynkApp(Adw.Application):
                     logger.info(f"Scheduled UI refresh after disconnect: {address}")
             except Exception as e:
                 logger.error(f"Error refreshing UI on disconnect: {e}")
-        
+
         self.device_monitor.register_callback("on_device_connected", on_port_updated)
         self.device_monitor.register_callback("on_device_connected", on_device_connected_refresh)
         self.device_monitor.register_callback("on_device_lost", on_device_disconnected_refresh)
@@ -149,15 +149,12 @@ class AurynkApp(Adw.Application):
     def quit(self):
         """Quit the application properly, closing all windows."""
         logger.info("Quitting application...")
-        
+
         # Disconnect all connected devices before quitting
         try:
             logger.info("Disconnecting all devices...")
             result = subprocess.run(
-                ["adb", "disconnect"],
-                capture_output=True,
-                text=True,
-                timeout=5
+                ["adb", "disconnect"], capture_output=True, text=True, timeout=5
             )
             if result.returncode == 0:
                 logger.info("✓ All devices disconnected")
@@ -165,13 +162,13 @@ class AurynkApp(Adw.Application):
                 logger.debug(f"ADB disconnect output: {result.stdout}")
         except Exception as e:
             logger.warning(f"Error disconnecting devices on quit: {e}")
-        
+
         # Stop device monitor
         try:
             self.device_monitor.stop()
         except Exception as e:
             logger.debug(f"Error stopping device monitor: {e}")
-        
+
         # Signal the tray command listener thread (if running) to stop.
         try:
             self._stop_tray_listener = True
