@@ -186,6 +186,43 @@ class ADBController:
 
         return zeroconf, (browser_pair, browser_connect)
 
+    def get_current_ports(self, address: str, timeout: int = 3) -> Optional[Dict[str, int]]:
+        """Try to get current ports for a device via mDNS discovery.
+        
+        Returns:
+            Dict with 'pair_port' and 'connect_port' if found, None otherwise
+        """
+        import time
+        
+        # Try using adb mdns services first (faster)
+        try:
+            result = subprocess.run(
+                ["adb", "mdns", "services"],
+                capture_output=True,
+                text=True,
+                timeout=timeout
+            )
+            
+            if result.returncode == 0:
+                # Parse output for the device's IP address
+                # Format: "adb-XXXXX-XXXXXX._adb-tls-connect._tcp    192.168.1.2:37985"
+                for line in result.stdout.splitlines():
+                    if address in line:
+                        if "_adb-tls-connect" in line:
+                            # Extract port
+                            parts = line.split()
+                            for part in parts:
+                                if address in part and ":" in part:
+                                    port = part.split(":")[-1]
+                                    try:
+                                        return {"connect_port": int(port), "pair_port": None}
+                                    except ValueError:
+                                        pass
+        except Exception as e:
+            logger.debug(f"Could not query mDNS services: {e}")
+        
+        return None
+
     # ===== Device Information =====
 
     def _fetch_device_info(self, address: str, connect_port: int) -> Dict[str, Any]:
