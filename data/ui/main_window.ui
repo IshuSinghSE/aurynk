@@ -43,19 +43,19 @@
           </object>
         </child>
         <!-- Remove the center title (middle Aurynk label) -->
-        <!-- Add Device button at the end -->
-        <child type="end">
-          <object class="GtkButton" id="add_device_button">
-            <property name="label">Add Device</property>
-            <property name="icon-name">list-add-symbolic</property>
-            <property name="valign">center</property>
-          </object>
-        </child>
-        <!-- Menu button with preferences (rightmost) -->
+        <!-- Menu button (rightmost - defined first for type="end") -->
         <child type="end">
           <object class="GtkMenuButton" id="menu_button">
             <property name="icon-name">open-menu-symbolic</property>
             <property name="menu-model">primary_menu</property>
+            <property name="valign">center</property>
+          </object>
+        </child>
+        <!-- Add Device button (left of menu) -->
+        <child type="end">
+          <object class="GtkButton" id="add_device_button">
+            <property name="label">Add Device</property>
+            <property name="icon-name">list-add-symbolic</property>
             <property name="valign">center</property>
           </object>
         </child>
