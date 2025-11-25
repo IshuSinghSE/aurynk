@@ -105,7 +105,7 @@ class DeviceStore:
                 def _notify():
                     try:
                         # Import locally to avoid import cycles at module import time
-                        from aurynk.lib.tray_controller import send_devices_to_tray
+                        from aurynk.services.tray_service import send_devices_to_tray
 
                         send_devices_to_tray(self._devices)
                     except Exception as e:

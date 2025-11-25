@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from zeroconf import IPVersion, ServiceBrowser, ServiceStateChange, Zeroconf
 
-from aurynk.utils.device_store import DeviceStore
+from aurynk.core.device_manager import DeviceStore
 from aurynk.utils.logger import get_logger
 
 logger = get_logger("ADBController")

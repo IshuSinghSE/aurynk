@@ -9,8 +9,8 @@ import threading
 
 from gi.repository import GLib, Gtk
 
-from aurynk.lib.adb_controller import ADBController
-from aurynk.widgets.qr_widget import create_qr_widget
+from aurynk.core.adb_manager import ADBController
+from aurynk.ui.widgets.qr_view import create_qr_widget
 
 
 class PairingDialog(Gtk.Dialog):

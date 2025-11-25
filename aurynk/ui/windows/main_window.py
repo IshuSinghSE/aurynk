@@ -9,9 +9,9 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gtk
 
-from aurynk.lib.adb_controller import ADBController
-from aurynk.lib.scrcpy_manager import ScrcpyManager
-from aurynk.utils.adb_pairing import is_device_connected
+from aurynk.core.adb_manager import ADBController
+from aurynk.core.scrcpy_runner import ScrcpyManager
+from aurynk.utils.adb_utils import is_device_connected
 from aurynk.utils.device_events import (
     register_device_change_callback,
     unregister_device_change_callback,
@@ -366,7 +366,7 @@ class AurynkWindow(Adw.ApplicationWindow):
 
     def _on_device_details_clicked(self, button, device):
         """Handle device details button click."""
-        from aurynk.windows.device_details_window import DeviceDetailsWindow
+        from aurynk.ui.windows.device_details import DeviceDetailsWindow
 
         details_window = DeviceDetailsWindow(device, self)
         details_window.present()
