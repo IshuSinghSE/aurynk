@@ -16,8 +16,8 @@ import signal
 from gi.repository import Adw, Gio, GLib
 
 from aurynk.services.tray_service import tray_command_listener
-from aurynk.utils.logger import get_logger
 from aurynk.ui.windows.main_window import AurynkWindow
+from aurynk.utils.logger import get_logger
 
 logger = get_logger("AurynkApp")
 
