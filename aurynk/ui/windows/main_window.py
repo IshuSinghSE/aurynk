@@ -12,9 +12,6 @@ from gi.repository import Adw, Gdk, Gtk
 from aurynk.core.adb_manager import ADBController
 from aurynk.core.scrcpy_runner import ScrcpyManager
 from aurynk.utils.adb_utils import is_device_connected
-from aurynk.utils.logger import get_logger
-
-logger = get_logger("MainWindow")
 from aurynk.utils.device_events import (
     register_device_change_callback,
     unregister_device_change_callback,
