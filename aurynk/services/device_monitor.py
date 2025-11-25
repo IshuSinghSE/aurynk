@@ -9,6 +9,7 @@ from typing import Callable, Dict, Optional
 from zeroconf import IPVersion, ServiceBrowser, ServiceStateChange, Zeroconf
 
 from aurynk.utils.logger import get_logger
+from aurynk.utils.settings import SettingsManager
 
 logger = get_logger("DeviceMonitor")
 
@@ -40,12 +41,31 @@ class DeviceMonitor:
         self._paired_devices = {}  # {address: {connect_port, pair_port, name}}
         self._connected_devices = set()  # Addresses of currently connected devices
         self._discovered_services = {}  # Temporary storage for mDNS discoveries
-        self._auto_connect_enabled = True
+        
+        # Load settings
+        self._settings = SettingsManager()
+        self._auto_connect_enabled = self._settings.get("app", "auto_connect", True)
+        self._monitor_interval = self._settings.get("app", "monitor_interval", 5)
+        
+        # Register settings callbacks for live updates
+        self._settings.register_callback("app", "auto_connect", self._on_auto_connect_changed)
+        self._settings.register_callback("app", "monitor_interval", self._on_monitor_interval_changed)
+        
         self._callbacks = {
             "on_device_found": [],
             "on_device_connected": [],
             "on_device_lost": [],
         }
+
+    def _on_auto_connect_changed(self, new_value):
+        """Handle auto_connect setting change."""
+        self._auto_connect_enabled = new_value
+        logger.info(f"Auto-connect {'enabled' if new_value else 'disabled'}")
+
+    def _on_monitor_interval_changed(self, new_value):
+        """Handle monitor_interval setting change."""
+        self._monitor_interval = new_value
+        logger.info(f"Monitor interval set to {new_value} seconds")
 
     def set_paired_devices(self, devices: list):
         """Update the list of paired devices to monitor."""
@@ -286,8 +306,8 @@ class DeviceMonitor:
             except Exception as e:
                 logger.debug(f"Error monitoring connections: {e}")
 
-            # Sleep before next check
-            time.sleep(5)
+            # Sleep before next check - use setting value
+            time.sleep(self._monitor_interval)
 
     def register_callback(self, event: str, callback: Callable):
         """Register a callback for device events.

@@ -7,7 +7,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gdk, Gtk
+from gi.repository import Adw, Gdk, Gio, Gtk
 
 from aurynk.core.adb_manager import ADBController
 from aurynk.core.scrcpy_runner import ScrcpyManager
@@ -48,12 +48,28 @@ class AurynkWindow(Adw.ApplicationWindow):
         self._stored_position = None
         # Handle close-request to hide window instead of closing app
         self.connect("close-request", self._on_close_request)
+        # Setup actions
+        self._setup_actions()
         # Try to load UI from GResource, fall back to programmatic UI
         try:
             self._setup_ui_from_template()
         except Exception as e:
             logger.error(f"Could not load UI template: {e}")
             self._setup_ui_programmatically()
+
+    def _setup_actions(self):
+        """Setup window actions."""
+        # Preferences action
+        preferences_action = Gio.SimpleAction.new("preferences", None)
+        preferences_action.connect("activate", self._on_preferences_clicked)
+        self.add_action(preferences_action)
+
+    def _on_preferences_clicked(self, action, param):
+        """Open settings window."""
+        from aurynk.ui.windows.settings_window import SettingsWindow
+
+        settings_window = SettingsWindow(transient_for=self)
+        settings_window.present()
 
     def do_close(self):
         unregister_device_change_callback(self._device_change_callback)
@@ -106,6 +122,14 @@ class AurynkWindow(Adw.ApplicationWindow):
         # Header bar
         header_bar = Adw.HeaderBar()
         header_bar.set_show_end_title_buttons(True)
+
+        # Add menu button with settings
+        menu_button = Gtk.MenuButton()
+        menu_button.set_icon_name("open-menu-symbolic")
+        menu = Gio.Menu()
+        menu.append("Preferences", "win.preferences")
+        menu_button.set_menu_model(menu)
+        header_bar.pack_end(menu_button)
 
         # Header content box
         header_content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
@@ -369,14 +393,14 @@ class AurynkWindow(Adw.ApplicationWindow):
                 if discovered_info and discovered_info.get("connect_port"):
                     discovered_port = discovered_info["connect_port"]
                     if discovered_port != connect_port:
-                        logger.info(
-                            f"Using discovered port {discovered_port} instead of stored {connect_port}"
-                        )
+                        logger.info(f"Using discovered port {discovered_port} instead of stored {connect_port}")
                         connect_port = discovered_port
 
             logger.info(f"Attempting to connect to {address}:{connect_port}...")
             result = subprocess.run(
-                ["adb", "connect", f"{address}:{connect_port}"], capture_output=True, text=True
+                ["adb", "connect", f"{address}:{connect_port}"],
+                capture_output=True,
+                text=True
             )
 
             output = (result.stdout + result.stderr).lower()
@@ -402,7 +426,9 @@ class AurynkWindow(Adw.ApplicationWindow):
                     logger.info(f"Found device on port {new_port}, retrying connection...")
 
                     result = subprocess.run(
-                        ["adb", "connect", f"{address}:{new_port}"], capture_output=True, text=True
+                        ["adb", "connect", f"{address}:{new_port}"],
+                        capture_output=True,
+                        text=True
                     )
 
                     if result.returncode == 0:
@@ -410,13 +436,9 @@ class AurynkWindow(Adw.ApplicationWindow):
                         self.adb_controller.save_paired_device(device)
                         logger.info(f"✓ Connected and updated port to {new_port}")
                     else:
-                        logger.error(
-                            "Connection still failed. Please ensure device is on the network."
-                        )
+                        logger.error("Connection still failed. Please ensure device is on the network.")
                 else:
-                    logger.error(
-                        f"Could not find device at {address}. Make sure wireless debugging is enabled."
-                    )
+                    logger.error(f"Could not find device at {address}. Make sure wireless debugging is enabled.")
 
         # Refresh device list to update status (will sync tray)
         self._refresh_device_list()

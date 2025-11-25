@@ -13,6 +13,7 @@ from zeroconf import IPVersion, ServiceBrowser, ServiceStateChange, Zeroconf
 
 from aurynk.core.device_manager import DeviceStore
 from aurynk.utils.logger import get_logger
+from aurynk.utils.settings import SettingsManager
 
 logger = get_logger("ADBController")
 
@@ -87,9 +88,16 @@ class ADBController:
         log(f"Connecting to {address}:{connect_port}...")
         connected = False
 
-        for attempt in range(5):
+        # Load retry settings
+        settings = SettingsManager()
+        max_retries = settings.get("adb", "max_retry_attempts", 5)
+        timeout = settings.get("adb", "connection_timeout", 10)
+
+        for attempt in range(max_retries):
             connect_cmd = ["adb", "connect", f"{address}:{connect_port}"]
-            connect_result = subprocess.run(connect_cmd, capture_output=True, text=True)
+            connect_result = subprocess.run(
+                connect_cmd, capture_output=True, text=True, timeout=timeout
+            )
             output = (connect_result.stdout + connect_result.stderr).lower()
 
             if ("connected" in output or "already connected" in output) and "unable" not in output:
