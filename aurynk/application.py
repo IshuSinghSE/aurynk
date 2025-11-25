@@ -150,6 +150,22 @@ class AurynkApp(Adw.Application):
         """Quit the application properly, closing all windows."""
         logger.info("Quitting application...")
         
+        # Disconnect all connected devices before quitting
+        try:
+            logger.info("Disconnecting all devices...")
+            result = subprocess.run(
+                ["adb", "disconnect"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                logger.info("✓ All devices disconnected")
+            else:
+                logger.debug(f"ADB disconnect output: {result.stdout}")
+        except Exception as e:
+            logger.warning(f"Error disconnecting devices on quit: {e}")
+        
         # Stop device monitor
         try:
             self.device_monitor.stop()
