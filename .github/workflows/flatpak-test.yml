@@ -2,7 +2,7 @@ name: Test Flatpak Build
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [ "main" ]
     paths:
       - 'flatpak/**'
       - 'aurynk/**'
