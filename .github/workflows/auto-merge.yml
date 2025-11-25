@@ -3,6 +3,8 @@ name: Auto Merge PR
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+    branches:
+      - develop
   check_suite:
     types: [completed]
 
