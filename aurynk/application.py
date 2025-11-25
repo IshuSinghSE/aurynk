@@ -15,6 +15,7 @@ import signal
 
 from gi.repository import Adw, Gio, GLib
 
+from aurynk.services.device_monitor import DeviceMonitor
 from aurynk.services.tray_service import tray_command_listener
 from aurynk.ui.windows.main_window import AurynkWindow
 from aurynk.utils.logger import get_logger
@@ -63,6 +64,55 @@ class AurynkApp(Adw.Application):
         # Keep the application running even if no windows are visible (for tray)
         self.hold()
 
+        # Initialize device monitor for auto-connect functionality
+        self.device_monitor = DeviceMonitor()
+
+        # Register callback for port updates
+        def on_port_updated(address, new_port):
+            """Update device storage when port changes."""
+            try:
+                win = self.props.active_window
+                if win and hasattr(win, "adb_controller"):
+                    devices = win.adb_controller.load_paired_devices()
+                    for device in devices:
+                        if device.get("address") == address:
+                            device["connect_port"] = new_port
+                            win.adb_controller.save_paired_device(device)
+                            logger.info(f"Updated port for {address} to {new_port}")
+                            # Refresh UI on main thread
+                            GLib.idle_add(win._refresh_device_list)
+                            break
+            except Exception as e:
+                logger.error(f"Error updating port: {e}")
+
+        # Register callback for successful connections (including auto-connect)
+        def on_device_connected_refresh(address, port):
+            """Refresh UI when device auto-connects."""
+            try:
+                win = self.props.active_window
+                if win and hasattr(win, "_refresh_device_list"):
+                    # Refresh UI on main thread after auto-connect
+                    GLib.idle_add(win._refresh_device_list)
+                    logger.debug(f"Scheduled UI refresh after auto-connect: {address}:{port}")
+            except Exception as e:
+                logger.error(f"Error refreshing UI: {e}")
+
+        # Register callback for device disconnection
+        def on_device_disconnected_refresh(address):
+            """Refresh UI when device disconnects."""
+            try:
+                win = self.props.active_window
+                if win and hasattr(win, "_refresh_device_list"):
+                    # Refresh UI on main thread after disconnect
+                    GLib.idle_add(win._refresh_device_list)
+                    logger.info(f"Scheduled UI refresh after disconnect: {address}")
+            except Exception as e:
+                logger.error(f"Error refreshing UI on disconnect: {e}")
+
+        self.device_monitor.register_callback("on_device_connected", on_port_updated)
+        self.device_monitor.register_callback("on_device_connected", on_device_connected_refresh)
+        self.device_monitor.register_callback("on_device_lost", on_device_disconnected_refresh)
+
         # Start tray command listener thread from tray_controller
         self.tray_listener_thread = threading.Thread(
             target=tray_command_listener, args=(self,), daemon=True
@@ -99,6 +149,26 @@ class AurynkApp(Adw.Application):
     def quit(self):
         """Quit the application properly, closing all windows."""
         logger.info("Quitting application...")
+
+        # Disconnect all connected devices before quitting
+        try:
+            logger.info("Disconnecting all devices...")
+            result = subprocess.run(
+                ["adb", "disconnect"], capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0:
+                logger.info("✓ All devices disconnected")
+            else:
+                logger.debug(f"ADB disconnect output: {result.stdout}")
+        except Exception as e:
+            logger.warning(f"Error disconnecting devices on quit: {e}")
+
+        # Stop device monitor
+        try:
+            self.device_monitor.stop()
+        except Exception as e:
+            logger.debug(f"Error stopping device monitor: {e}")
+
         # Signal the tray command listener thread (if running) to stop.
         try:
             self._stop_tray_listener = True

@@ -2,7 +2,7 @@ name: Test Snap Build
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [ "main"]
     paths:
       - 'snap/**'
       - 'aurynk/**'

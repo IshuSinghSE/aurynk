@@ -160,6 +160,13 @@ class AurynkWindow(Adw.ApplicationWindow):
         self.adb_controller.device_store.reload()
         devices = self.adb_controller.load_paired_devices()
 
+        # Update device monitor with current paired devices and start monitoring
+        app = self.get_application()
+        if app and hasattr(app, "device_monitor"):
+            app.device_monitor.set_paired_devices(devices)
+            if not app.device_monitor._running:
+                app.device_monitor.start()
+
         # Clear existing device rows
         child = self.device_list_box.get_first_child()
         while child:
@@ -350,46 +357,67 @@ class AurynkWindow(Adw.ApplicationWindow):
 
             subprocess.run(["adb", "disconnect", f"{address}:{connect_port}"])
         else:
-            # Connect logic - try stored port first, then rediscover if it fails
+            # Connect logic - check device monitor first for current port
             import subprocess
+
+            app = self.get_application()
+            discovered_port = None
+
+            # Try to get port from device monitor (if device is currently discoverable)
+            if app and hasattr(app, "device_monitor"):
+                discovered_info = app.device_monitor.get_discovered_device(address)
+                if discovered_info and discovered_info.get("connect_port"):
+                    discovered_port = discovered_info["connect_port"]
+                    if discovered_port != connect_port:
+                        logger.info(
+                            f"Using discovered port {discovered_port} instead of stored {connect_port}"
+                        )
+                        connect_port = discovered_port
 
             logger.info(f"Attempting to connect to {address}:{connect_port}...")
             result = subprocess.run(
-                ["adb", "connect", f"{address}:{connect_port}"],
-                capture_output=True,
-                text=True
+                ["adb", "connect", f"{address}:{connect_port}"], capture_output=True, text=True
             )
-            
+
             output = (result.stdout + result.stderr).lower()
-            
-            # Check if connection failed
-            if "failed" in output or "unable" in output or "cannot" in output:
-                logger.warning(f"Connection to stored port failed. Trying to rediscover device...")
-                
-                # Try to get current ports via mDNS
-                ports = self.adb_controller.get_current_ports(address, timeout=2)
+
+            # Check if connection succeeded
+            if ("connected" in output or "already connected" in output) and "unable" not in output:
+                logger.info(f"✓ Connected successfully to {address}:{connect_port}")
+
+                # Update stored port if it changed
+                if discovered_port and discovered_port != device.get("connect_port"):
+                    device["connect_port"] = discovered_port
+                    self.adb_controller.save_paired_device(device)
+                    logger.info(f"Updated stored port to {discovered_port}")
+            else:
+                # Connection failed - try fallback discovery
+                logger.warning(f"Connection failed: {output.strip()}")
+                logger.info("Trying to rediscover device...")
+
+                # Fallback to adb mdns services
+                ports = self.adb_controller.get_current_ports(address, timeout=3)
                 if ports and ports.get("connect_port"):
                     new_port = ports["connect_port"]
-                    if new_port != connect_port:
-                        logger.info(f"Found device on new port {new_port}, updating...")
-                        
-                        # Try connecting to new port
-                        result = subprocess.run(
-                            ["adb", "connect", f"{address}:{new_port}"],
-                            capture_output=True,
-                            text=True
+                    logger.info(f"Found device on port {new_port}, retrying connection...")
+
+                    result = subprocess.run(
+                        ["adb", "connect", f"{address}:{new_port}"], capture_output=True, text=True
+                    )
+
+                    if result.returncode == 0:
+                        device["connect_port"] = new_port
+                        self.adb_controller.save_paired_device(device)
+                        logger.info(f"✓ Connected and updated port to {new_port}")
+                    else:
+                        logger.error(
+                            "Connection still failed. Please ensure device is on the network."
                         )
-                        
-                        if result.returncode == 0:
-                            # Update stored device info with new port
-                            device["connect_port"] = new_port
-                            self.adb_controller.save_paired_device(device)
-                            logger.info(f"Successfully connected and updated port to {new_port}")
                 else:
-                    logger.error(f"Could not rediscover device at {address}. Please re-pair the device.")
-            elif "connected" in output or "already connected" in output:
-                logger.info(f"Connected successfully to {address}:{connect_port}")
-            
+                    logger.error(
+                        f"Could not find device at {address}. Make sure wireless debugging is enabled."
+                    )
+
         # Refresh device list to update status (will sync tray)
         self._refresh_device_list()
 
