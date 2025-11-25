@@ -97,7 +97,21 @@ class AurynkApp(Adw.Application):
             except Exception as e:
                 logger.error(f"Error refreshing UI: {e}")
         
+        # Register callback for device disconnection
+        def on_device_disconnected_refresh(address):
+            """Refresh UI when device disconnects."""
+            try:
+                win = self.props.active_window
+                if win and hasattr(win, "_refresh_device_list"):
+                    # Refresh UI on main thread after disconnect
+                    GLib.idle_add(win._refresh_device_list)
+                    logger.info(f"Scheduled UI refresh after disconnect: {address}")
+            except Exception as e:
+                logger.error(f"Error refreshing UI on disconnect: {e}")
+        
         self.device_monitor.register_callback("on_device_connected", on_port_updated)
+        self.device_monitor.register_callback("on_device_connected", on_device_connected_refresh)
+        self.device_monitor.register_callback("on_device_lost", on_device_disconnected_refresh)
         self.device_monitor.register_callback("on_device_connected", on_device_connected_refresh)
 
         # Start tray command listener thread from tray_controller

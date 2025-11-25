@@ -235,6 +235,8 @@ class DeviceMonitor:
 
     def _monitor_connections(self):
         """Background thread to monitor ADB connection status."""
+        previous_connected = set()
+        
         while self._running:
             try:
                 # Check which devices are actually connected
@@ -256,8 +258,25 @@ class DeviceMonitor:
                                 address = serial.rsplit(":", 1)[0]
                                 current_connected.add(address)
 
+                    # Detect disconnections (devices that were connected but aren't anymore)
+                    disconnected = previous_connected - current_connected
+                    for address in disconnected:
+                        logger.info(f"Device disconnected: {address}")
+                        # Notify callbacks about disconnection
+                        for callback in self._callbacks["on_device_lost"]:
+                            try:
+                                callback(address)
+                            except Exception as e:
+                                logger.error(f"Error in device lost callback: {e}")
+                    
+                    # Detect new connections (for devices that weren't tracked before)
+                    newly_connected = current_connected - previous_connected
+                    if newly_connected:
+                        logger.debug(f"Newly detected connections: {newly_connected}")
+
                     # Update internal state
                     self._connected_devices = current_connected
+                    previous_connected = current_connected.copy()
 
                 else:
                     logger.debug("adb devices command failed")
