@@ -4,8 +4,8 @@ import time
 
 from gi.repository import GLib
 
-from aurynk.windows.main_window import AurynkWindow
-from aurynk.lib.scrcpy_manager import ScrcpyManager
+from aurynk.core.scrcpy_runner import ScrcpyManager
+from aurynk.ui.windows.main_window import AurynkWindow
 from aurynk.utils.logger import get_logger
 
 logger = get_logger("TrayController")
@@ -24,8 +24,8 @@ def send_status_to_tray(app, status: str = None):
             win = AurynkWindow(application=app)
         devices = win.adb_controller.load_paired_devices()
         device_status = []
-        from aurynk.utils.adb_pairing import is_device_connected
-        
+        from aurynk.utils.adb_utils import is_device_connected
+
         scrcpy = ScrcpyManager()
 
         for d in devices:
@@ -76,13 +76,14 @@ def send_devices_to_tray(devices):
     import json
 
     try:
-        from aurynk.utils.adb_pairing import is_device_connected
+        from aurynk.utils.adb_utils import is_device_connected
     except Exception:
         # If import fails, fallback to assuming devices are disconnected
         def is_device_connected(a, p):
             return False
-            
-    from aurynk.lib.scrcpy_manager import ScrcpyManager
+
+    from aurynk.core.scrcpy_runner import ScrcpyManager
+
     scrcpy = ScrcpyManager()
 
     device_status = []
@@ -159,6 +160,8 @@ def tray_command_listener(app):
                         GLib.idle_add(app.present_main_window)
                     elif msg == "pair_new":
                         GLib.idle_add(app.show_pair_dialog)
+                    elif msg == "about":
+                        GLib.idle_add(app.show_about_dialog)
                     elif msg == "quit":
                         logger.info("Received quit from tray. Exiting.")
                         GLib.idle_add(app.quit)

@@ -1,13 +1,15 @@
 import json
 import os
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List
 
 from aurynk.utils.logger import get_logger
 
 logger = get_logger("DeviceStore")
 
+
 class DeviceStore:
     """Manages in-memory device list and syncs with JSON file."""
+
     def __init__(self, path: str):
         self.path = path
         self._devices: List[Dict[str, Any]] = []
@@ -31,6 +33,7 @@ class DeviceStore:
     def add_or_update_device(self, device_info: Dict[str, Any]):
         from aurynk.utils.device_events import notify_device_changed
         from aurynk.utils.notify import show_notification
+
         address = device_info.get("address")
         existing_idx = None
         for idx, device in enumerate(self._devices):
@@ -52,9 +55,11 @@ class DeviceStore:
             pass
 
     def remove_device(self, address: str):
+        import subprocess
+
         from aurynk.utils.device_events import notify_device_changed
         from aurynk.utils.notify import show_notification
-        import subprocess
+
         # Find the device to get its connect_port
         device = next((d for d in self._devices if d.get("address") == address), None)
         should_disconnect = False
@@ -100,7 +105,7 @@ class DeviceStore:
                 def _notify():
                     try:
                         # Import locally to avoid import cycles at module import time
-                        from aurynk.lib.tray_controller import send_devices_to_tray
+                        from aurynk.services.tray_service import send_devices_to_tray
 
                         send_devices_to_tray(self._devices)
                     except Exception as e:

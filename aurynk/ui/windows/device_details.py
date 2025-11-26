@@ -11,7 +11,7 @@ import threading
 
 from gi.repository import Adw, Gtk
 
-from aurynk.lib.adb_controller import ADBController
+from aurynk.core.adb_manager import ADBController
 
 
 class DeviceDetailsWindow(Adw.Window):

@@ -51,6 +51,7 @@ Thumbs.db
 *.bak
 *.orig
 .*.swp
+*.ini
 
 # Runtime/user data files (should not be in repo)
 data/aurynk_paired_devices.json
@@ -70,3 +71,5 @@ uv.lock
 scrcpy-repo/
 repo/
 flathub/
+ADB-QR/
+experiments/

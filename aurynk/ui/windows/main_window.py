@@ -2,16 +2,19 @@
 """Main window for Aurynk application."""
 
 import os
+import threading
 
 import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gdk, Gtk
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
-from aurynk.lib.adb_controller import ADBController
-from aurynk.lib.scrcpy_manager import ScrcpyManager
-from aurynk.utils.adb_pairing import is_device_connected
+from aurynk.core.adb_manager import ADBController
+from aurynk.core.scrcpy_runner import ScrcpyManager
+from aurynk.ui.windows.about_window import AboutWindow
+from aurynk.ui.windows.settings_window import SettingsWindow
+from aurynk.utils.adb_utils import is_device_connected
 from aurynk.utils.device_events import (
     register_device_change_callback,
     unregister_device_change_callback,
@@ -30,9 +33,8 @@ class AurynkWindow(Adw.ApplicationWindow):
         super().__init__(**kwargs)
         # Initialize ADB controller
         self.adb_controller = ADBController()
-        # Register for device change events
-        from gi.repository import GLib
 
+        # Register for device change events
         def safe_refresh():
             GLib.idle_add(self._refresh_device_list)
 
@@ -48,6 +50,8 @@ class AurynkWindow(Adw.ApplicationWindow):
         self._stored_position = None
         # Handle close-request to hide window instead of closing app
         self.connect("close-request", self._on_close_request)
+        # Setup actions
+        self._setup_actions()
         # Try to load UI from GResource, fall back to programmatic UI
         try:
             self._setup_ui_from_template()
@@ -55,19 +59,64 @@ class AurynkWindow(Adw.ApplicationWindow):
             logger.error(f"Could not load UI template: {e}")
             self._setup_ui_programmatically()
 
+    def _setup_actions(self):
+        """Setup window actions."""
+        # Preferences action
+        preferences_action = Gio.SimpleAction.new("preferences", None)
+        preferences_action.connect("activate", self._on_preferences_clicked)
+        self.add_action(preferences_action)
+
+        # About action
+        about_action = Gio.SimpleAction.new("about", None)
+        about_action.connect("activate", self._on_about_clicked)
+        self.add_action(about_action)
+
+    def _on_preferences_clicked(self, action, param):
+        """Open settings window."""
+        settings_window = SettingsWindow(transient_for=self)
+        settings_window.present()
+
+    def _on_about_clicked(self, action, param):
+        """Show About dialog."""
+        AboutWindow.show(self)
+
     def do_close(self):
         unregister_device_change_callback(self._device_change_callback)
         super().do_close()
 
     def _on_close_request(self, window):
-        """Handle close request - hide window instead of destroying it."""
-        logger.info("Close requested - hiding window instead of closing app")
-        self.hide()
-        # Return True to prevent the default close behavior
-        return True
+        """Handle close request - hide window to tray if 'close_to_tray' is enabled, else quit."""
+        from aurynk.utils.settings import SettingsManager
+
+        settings = SettingsManager()
+        close_to_tray = settings.get("app", "close_to_tray", True)
+        if close_to_tray:
+            logger.info(
+                "Close requested - hiding window instead of closing app (Close to Tray enabled)"
+            )
+            self.hide()
+            return True  # Prevent default close
+        else:
+            logger.info("Close requested - quitting app and tray (Close to Tray disabled)")
+            # Remove tray icon if present, and terminate tray helper process if running
+            app = self.get_application()
+            # Attempt to terminate tray helper by sending 'quit' command to its socket
+            import socket
+
+            tray_socket = "/tmp/aurynk_tray.sock"
+            try:
+                with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+                    s.connect(tray_socket)
+                    s.sendall(b"quit")
+                    logger.info("Sent 'quit' command to tray helper via socket.")
+            except Exception as e:
+                logger.warning(f"Could not send 'quit' to tray helper: {e}")
+            if app:
+                app.quit()
+            return False  # Allow default close (app will quit)
 
     def show_pairing_dialog(self):
-        from aurynk.dialogs.pairing_dialog import PairingDialog
+        from aurynk.ui.dialogs.pairing_dialog import PairingDialog
 
         dialog = PairingDialog(self)
         dialog.present()
@@ -106,6 +155,23 @@ class AurynkWindow(Adw.ApplicationWindow):
         # Header bar
         header_bar = Adw.HeaderBar()
         header_bar.set_show_end_title_buttons(True)
+
+        # Add menu button with settings (following GNOME HIG)
+        menu_button = Gtk.MenuButton()
+        menu_button.set_icon_name("open-menu-symbolic")
+        menu_button.set_tooltip_text("Main Menu")
+        menu = Gio.Menu()
+
+        # Primary menu section
+        menu.append("Preferences", "win.preferences")
+
+        # About section (separated as per GNOME HIG)
+        about_section = Gio.Menu()
+        about_section.append("About Aurynk", "win.about")
+        menu.append_section(None, about_section)
+
+        menu_button.set_menu_model(menu)
+        header_bar.pack_end(menu_button)
 
         # Header content box
         header_content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
@@ -159,6 +225,13 @@ class AurynkWindow(Adw.ApplicationWindow):
         # Force reload from file to get latest changes from other windows/processes
         self.adb_controller.device_store.reload()
         devices = self.adb_controller.load_paired_devices()
+
+        # Update device monitor with current paired devices and start monitoring
+        app = self.get_application()
+        if app and hasattr(app, "device_monitor"):
+            app.device_monitor.set_paired_devices(devices)
+            if not app.device_monitor._running:
+                app.device_monitor.start()
 
         # Clear existing device rows
         child = self.device_list_box.get_first_child()
@@ -350,23 +423,150 @@ class AurynkWindow(Adw.ApplicationWindow):
 
             subprocess.run(["adb", "disconnect", f"{address}:{connect_port}"])
         else:
-            # Connect logic
-            import subprocess
+            # Connect logic with loading indicator - run in thread to not block UI
+            def do_connection():
+                nonlocal connect_port  # Declare at the top
+                import subprocess
+                import time
 
-            subprocess.run(["adb", "connect", f"{address}:{connect_port}"])
+                app = self.get_application()
+                discovered_port = None
+
+                # Try to get port from device monitor (if device is currently discoverable)
+                if app and hasattr(app, "device_monitor"):
+                    discovered_info = app.device_monitor.get_discovered_device(address)
+                    if discovered_info and discovered_info.get("connect_port"):
+                        discovered_port = discovered_info["connect_port"]
+                        if discovered_port != connect_port:
+                            logger.info(
+                                f"Using discovered port {discovered_port} instead of stored {connect_port}"
+                            )
+                            connect_port = discovered_port
+
+                logger.info(f"Attempting to connect to {address}:{connect_port}...")
+
+                # Try connection with one retry (sometimes ADB needs a moment)
+                max_attempts = 2
+                for attempt in range(max_attempts):
+                    result = subprocess.run(
+                        ["adb", "connect", f"{address}:{connect_port}"],
+                        capture_output=True,
+                        text=True,
+                        timeout=5,
+                    )
+
+                    output = (result.stdout + result.stderr).lower()
+
+                    # Check if connection succeeded
+                    if (
+                        "connected" in output or "already connected" in output
+                    ) and "unable" not in output:
+                        if attempt > 0:
+                            logger.info(f"✓ Connected successfully on attempt {attempt + 1}")
+                        else:
+                            logger.info(f"✓ Connected successfully to {address}:{connect_port}")
+                        break
+                    elif attempt < max_attempts - 1:
+                        # First attempt failed, wait a moment and retry
+                        logger.debug(f"Connection attempt {attempt + 1} failed, retrying...")
+                        time.sleep(0.5)
+                    else:
+                        # All attempts failed
+                        logger.warning(f"Connection failed: {output.strip()}")
+
+                # Check final connection status
+                if (
+                    "connected" in output or "already connected" in output
+                ) and "unable" not in output:
+                    # Update stored port if it changed
+                    if discovered_port and discovered_port != device.get("connect_port"):
+                        device["connect_port"] = discovered_port
+                        self.adb_controller.save_paired_device(device)
+                        logger.info(f"Updated stored port to {discovered_port}")
+                else:
+                    # Connection failed - try fallback discovery
+                    logger.warning(f"Connection failed: {output.strip()}")
+                    logger.info("Trying to rediscover device...")
+
+                    # Fallback to adb mdns services
+                    ports = self.adb_controller.get_current_ports(address, timeout=3)
+                    if ports and ports.get("connect_port"):
+                        new_port = ports["connect_port"]
+                        logger.info(f"Found device on port {new_port}, retrying connection...")
+
+                        result = subprocess.run(
+                            ["adb", "connect", f"{address}:{new_port}"],
+                            capture_output=True,
+                            text=True,
+                        )
+
+                        if result.returncode == 0:
+                            device["connect_port"] = new_port
+                            self.adb_controller.save_paired_device(device)
+                            logger.info(f"✓ Connected and updated port to {new_port}")
+                        else:
+                            logger.error(
+                                "Connection still failed. Please ensure device is on the network."
+                            )
+                    else:
+                        logger.error(
+                            f"Could not find device at {address}. Make sure wireless debugging is enabled."
+                        )
+
+                # Restore button state on main thread
+                GLib.idle_add(self._restore_connect_button, button, original_label)
+                # Refresh device list to update status
+                GLib.idle_add(self._refresh_device_list)
+
+            # Disable button and show animated connecting state
+            button.set_sensitive(False)
+            original_label = button.get_label()
+
+            # Start animated dots for "Connecting..."
+            self._start_connecting_animation(button)
+
+            # Run connection in background thread
+            thread = threading.Thread(target=do_connection, daemon=True)
+            thread.start()
+            return  # Return immediately, don't block UI
+
         # Refresh device list to update status (will sync tray)
         self._refresh_device_list()
 
+    def _start_connecting_animation(self, button):
+        """Animate button label with dots: Connecting -> Connecting. -> Connecting.. -> Connecting..."""
+        self._animation_counter = 0
+        self._animation_active = True
+
+        def animate_dots():
+            if not self._animation_active:
+                return False  # Stop the animation
+
+            dots = "." * (self._animation_counter % 4)
+            button.set_label(f"Connecting{dots}")
+            self._animation_counter += 1
+            return True  # Continue animation
+
+        # Update every 400ms for smooth animation
+        GLib.timeout_add(400, animate_dots)
+
+    def _restore_connect_button(self, button, original_label):
+        """Restore button to its original state after connection attempt."""
+        self._animation_active = False  # Stop animation
+        button.set_label(original_label)
+        button.set_sensitive(True)
+        return False  # Don't repeat
+
     def _on_add_device_clicked(self, button):
         """Handle Add Device button click."""
-        from aurynk.dialogs.pairing_dialog import PairingDialog
+        from aurynk.ui.dialogs.pairing_dialog import PairingDialog
 
         dialog = PairingDialog(self)
         dialog.present()
 
     def _on_device_details_clicked(self, button, device):
         """Handle device details button click."""
-        from aurynk.windows.device_details_window import DeviceDetailsWindow
+        from aurynk.ui.windows.device_details import DeviceDetailsWindow
 
         details_window = DeviceDetailsWindow(device, self)
         details_window.present()
@@ -388,7 +588,6 @@ class AurynkWindow(Adw.ApplicationWindow):
     def _on_mirror_stopped(self, serial):
         """Callback when scrcpy process exits."""
         logger.info(f"Mirror stopped for {serial}, refreshing UI")
-        from gi.repository import GLib
         GLib.idle_add(self._handle_mirror_stop_ui_update)
 
     def _handle_mirror_stop_ui_update(self):

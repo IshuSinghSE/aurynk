@@ -3,6 +3,23 @@
   <requires lib="gtk" version="4.0"/>
   <requires lib="libadwaita" version="1.0"/>
   
+  <!-- Menu model for primary menu -->
+  <menu id="primary_menu">
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">_Preferences</attribute>
+        <attribute name="action">win.preferences</attribute>
+        <attribute name="accel">&lt;Primary&gt;comma</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">_About Aurynk</attribute>
+        <attribute name="action">win.about</attribute>
+      </item>
+    </section>
+  </menu>
+  
   <object class="GtkBox" id="main_content">
     <property name="orientation">vertical</property>
     
@@ -22,7 +39,15 @@
           </object>
         </child>
         <!-- Remove the center title (middle Aurynk label) -->
-        <!-- Add Device button at the end -->
+        <!-- Menu button (rightmost - defined first for type="end") -->
+        <child type="end">
+          <object class="GtkMenuButton" id="menu_button">
+            <property name="icon-name">open-menu-symbolic</property>
+            <property name="menu-model">primary_menu</property>
+            <property name="valign">center</property>
+          </object>
+        </child>
+        <!-- Add Device button (left of menu) -->
         <child type="end">
           <object class="GtkButton" id="add_device_button">
             <property name="label">Add Device</property>
