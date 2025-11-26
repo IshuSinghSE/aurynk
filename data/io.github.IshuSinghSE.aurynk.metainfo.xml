@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <component type="desktop-application">
   <id>io.github.IshuSinghSE.aurynk</id>
   <metadata_license>CC0-1.0</metadata_license>
@@ -56,65 +56,112 @@
       <caption xml:lang="en">Main window showing paired devices</caption>
       <image type="source">https://raw.githubusercontent.com/IshuSinghSE/aurynk/main/data/screenshots/screenshot-1-main.png</image>
     </screenshot>
-
     <screenshot>
       <caption xml:lang="en">Scanning the QR code to pair</caption>
       <image type="source">https://raw.githubusercontent.com/IshuSinghSE/aurynk/main/data/screenshots/screenshot-2-pairing.png</image>
     </screenshot>
-
     <screenshot>
       <caption xml:lang="en">Screen mirroring active</caption>
       <image type="source">https://raw.githubusercontent.com/IshuSinghSE/aurynk/main/data/screenshots/screenshot-3-menu.png</image>
     </screenshot>
   </screenshots>
-  <content_rating type="oars-1.1"/>
+  <content_rating type="oars-1.1" />
   <translation type="gettext">io.github.IshuSinghSE.aurynk</translation>
   <releases>
+    <release version="1.1.0" date="2025-11-26">
+      <description>
+        <p>A massive update with a complete settings overhaul, advanced mirroring controls, and many new features to give you full control over your experience.</p>
+        <p>
+          <b>🚀 New Features</b>
+        </p>
+        <ul>
+          <li>
+            <b>Complete Settings Overhaul:</b> A new modern settings window with dedicated tabs for Application, Device, and Mirroring preferences.</li>
+          <li>
+            <b>Advanced Mirroring Controls:</b> Full control over bitrate, max FPS, video codec, audio sources, and recording options.</li>
+          <li>
+            <b>Instant Settings:</b> All changes are saved automatically and applied instantly.</li>
+          <li>
+            <b>Window Management:</b> Customize window size and position, with handy presets for mobile form factors. Added options for always on top, fullscreen, and borderless modes.</li>
+          <li>
+            <b>New Control Modes:</b> Added View-only mode and OTG support for using your PC's keyboard and mouse on the device.</li>
+          <li>
+            <b>Recording:</b> Easily record your mirroring session with customizable formats and save paths.</li>
+          <li>
+            <b>About Page:</b> A new section with app information and credits.</li>
+        </ul>
+        <p>
+          <b>📈 Improvements</b>
+        </p>
+        <ul>
+          <li>
+            <b>Improved Connectivity:</b> Device pairing and discovery are now faster and more reliable.</li>
+          <li>
+            <b>Better Performance:</b> Added advanced options for hardware acceleration and running without a window.</li>
+          <li>
+            <b>User Interface:</b> A completely refreshed and consistent user interface across the application.</li>
+          <li>
+            <b>Enhanced Stability:</b> Improved settings management, device monitoring, and tray icon integration.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.5" date="2025-11-24">
       <description>
-        <p>Critical bug fixes and logging improvements.</p>
+        <p>Critical bug fixes and improvements to enhance application stability and reliability, including a new logging system.</p>
+        <p>
+          <b>🐛 Bug Fixes</b>
+        </p>
         <ul>
-          <li>Fixed mirroring synchronization issues</li>
-          <li>Added centralized logging system</li>
-          <li>Fixed application lifecycle and premature quitting</li>
-          <li>Improved tray menu synchronization</li>
-          <li>Fixed GPU permissions for Flatpak</li>
+          <li>Fixed an issue causing mirroring synchronization problems.</li>
+          <li>Fixed a bug where the application would quit prematurely.</li>
+          <li>Resolved issues with the tray menu synchronization.</li>
+          <li>Fixed GPU permission issues for the Flatpak version.</li>
+          <li>Added a centralized logging system for better debugging.</li>
         </ul>
       </description>
     </release>
     <release version="1.0.4" date="2025-11-23">
       <description>
-        <p>Maintenance release with documentation updates.</p>
+        <p>A maintenance release with documentation updates.</p>
+        <p>
+          <b>📈 Improvements</b>
+        </p>
         <ul>
-          <li>Added screenshots to README</li>
-          <li>Updated documentation</li>
+          <li>Updated the README with new screenshots.</li>
+          <li>General documentation improvements.</li>
         </ul>
       </description>
     </release>
     <release version="1.0.3" date="2025-11-16">
       <description>
-        <p>Multi-arch scrcpy support &amp; Portal notifications.</p>
+        <p>Under-the-hood improvements for better performance and modern platform support.</p>
+        <p>
+          <b>⚙️ Under the Hood</b>
+        </p>
         <ul>
-          <li>GNOME 49 runtime</li>
-          <li>Inline Ayatana stack</li>
-          <li>Refreshed Flatpak/Debian artifacts</li>
+          <li>Updated to the GNOME 49 runtime for better performance and stability.</li>
+          <li>Switched to an inline Ayatana stack.</li>
+          <li>Refreshed Flatpak and Debian build artifacts.</li>
         </ul>
       </description>
     </release>
     <release version="1.0.2" date="2025-11-20">
       <description>
-        <p>Fixes and improvements.</p>
+        <p>Important bug fixes to improve reliability and prevent crashes.</p>
+        <p>
+          <b>🐛 Bug Fixes</b>
+        </p>
         <ul>
-          <li>Fix UnboundLocalError in actions.mirror_device</li>
-          <li>Ensure main-window to tray synchronization</li>
-          <li>Make tray command listener stoppable</li>
-          <li>Add PID fallback in tray helper</li>
+          <li>Fixed a crash (UnboundLocalError) when starting device mirroring.</li>
+          <li>Ensured the main window and tray icon stay perfectly synchronized.</li>
+          <li>Fixed an issue where the tray command listener couldn't be stopped.</li>
+          <li>Added a PID fallback for better tray icon reliability.</li>
         </ul>
       </description>
     </release>
     <release version="0.1.0" date="2025-11-06">
       <description>
-        <p>Initial Flatpak and Debian release with device management, wireless pairing, mirroring, and screenshot support.</p>
+        <p>Initial release of Aurynk with device management, wireless pairing, low-latency mirroring, and screenshot support for Flatpak and Debian.</p>
       </description>
     </release>
   </releases>

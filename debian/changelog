@@ -1,49 +1,55 @@
+aurynk (1.1.0) noble; urgency=medium
+  A massive update with a complete settings overhaul, advanced mirroring controls, and many new features to give you full control over your experience.
+  * Complete Settings Overhaul: A new modern settings window with dedicated tabs for Application, Device, and Mirroring preferences.
+  * Advanced Mirroring Controls: Full control over bitrate, max FPS, video codec, audio sources, and recording options.
+  * Instant Settings: All changes are saved automatically and applied instantly.
+  * Window Management: Customize window size and position, with handy presets for mobile form factors. Added options for always on top, fullscreen, and borderless modes.
+  * New Control Modes: Added View-only mode and OTG support for using your PC's keyboard and mouse on the device.
+  * Recording: Easily record your mirroring session with customizable formats and save paths.
+  * About Page: A new section with app information and credits.
+  * Improved Connectivity: Device pairing and discovery are now faster and more reliable.
+  * Better Performance: Added advanced options for hardware acceleration and running without a window.
+  * User Interface: A completely refreshed and consistent user interface across the application.
+  * Enhanced Stability: Improved settings management, device monitoring, and tray icon integration.
+
+ -- Ishu Singh <ishu.111636@yahoo.com>  Wed, 26 Nov 2025 23:11:28  +0530
+
+aurynk (1.0.5) noble; urgency=medium
+  Critical bug fixes and improvements to enhance application stability and reliability, including a new logging system.
+  * Fixed an issue causing mirroring synchronization problems.
+  * Fixed a bug where the application would quit prematurely.
+  * Resolved issues with the tray menu synchronization.
+  * Fixed GPU permission issues for the Flatpak version.
+  * Added a centralized logging system for better debugging.
+
+ -- Ishu Singh <ishu.111636@yahoo.com>  Wed, 26 Nov 2025 23:11:28  +0530
+
 aurynk (1.0.4) noble; urgency=medium
+  A maintenance release with documentation updates.
+  * Updated the README with new screenshots.
+  * General documentation improvements.
 
-  * Release v1.0.4 — documentation updates
-  * Add screenshots to README
-  * Update documentation
-
- -- Ishu Singh <ishu.111636@yahoo.com>  Sun, 23 Nov 2025 12:00:00 +0530
+ -- Ishu Singh <ishu.111636@yahoo.com>  Wed, 26 Nov 2025 23:11:28  +0530
 
 aurynk (1.0.3) noble; urgency=medium
+  Under-the-hood improvements for better performance and modern platform support.
+  * Updated to the GNOME 49 runtime for better performance and stability.
+  * Switched to an inline Ayatana stack.
+  * Refreshed Flatpak and Debian build artifacts.
 
-  * Release v1.0.3 — Multi-arch scrcpy support & Portal notifications
-  * GNOME 49 runtime
-  * Inline Ayatana stack
-  * Refreshed Flatpak/Debian artifacts
-
- -- Ishu Singh <ishu.111636@yahoo.com>  Sat, 16 Nov 2025 16:00:00 +0530
+ -- Ishu Singh <ishu.111636@yahoo.com>  Wed, 26 Nov 2025 23:11:28  +0530
 
 aurynk (1.0.2) noble; urgency=medium
+  Important bug fixes to improve reliability and prevent crashes.
+  * Fixed a crash (UnboundLocalError) when starting device mirroring.
+  * Ensured the main window and tray icon stay perfectly synchronized.
+  * Fixed an issue where the tray command listener couldn't be stopped.
+  * Added a PID fallback for better tray icon reliability.
 
-  * Release v1.0.2 — fixes and improvements
-  * Fix UnboundLocalError in actions.mirror_device
-  * Ensure main-window → tray synchronization by exposing app-bound send_status_to_tray
-  * Make tray command listener stoppable so app.quit exits cleanly
-  * Add PID fallback in tray helper so Quit still works if socket IPC fails
-  * Flatpak: update manifest to point at v1.0.2 source archive
-  * Misc: UI and packaging fixes
-
- -- IshuSinghSE <ishu.111636@yahoo.com>  Sat, 08 Nov 2025 01:00:00 +0000
-
-aurynk (0.1.1) noble; urgency=medium
-
-  * Added AppIndicator dependency for tray support
-  * Removed unused Pillow (python3-pil) dependency
-  * Added scrcpy as runtime dependency
-  * Improved packaging for icon visibility and runtime requirements
-  * Improved UI design
-  * Various bug fixes
-
- -- IshuSinghSE <ishu.111636@yahoo.com>  Wed, 05 Nov 2025 01:00:00 +0000
+ -- Ishu Singh <ishu.111636@yahoo.com>  Wed, 26 Nov 2025 23:11:28  +0530
 
 aurynk (0.1.0) noble; urgency=medium
+  Initial release of Aurynk with device management, wireless pairing, low-latency mirroring, and screenshot support for Flatpak and Debian.
 
-  * Initial release
-  * Wireless device pairing via QR code
-  * Device information display
-  * Screenshot capture functionality
-  * Modern GTK4/libadwaita interface
+ -- Ishu Singh <ishu.111636@yahoo.com>  Wed, 26 Nov 2025 23:11:28  +0530
 
- -- IshuSinghSE <ishu.111636@yahoo.com>  Sat, 02 Nov 2025 00:00:00 +0000

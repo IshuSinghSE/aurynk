@@ -11,8 +11,10 @@ from typing import Any, Callable, Dict, List, Optional
 
 from zeroconf import IPVersion, ServiceBrowser, ServiceStateChange, Zeroconf
 
-from aurynk.utils.device_store import DeviceStore
+from aurynk.core.device_manager import DeviceStore
+from aurynk.utils.adb_utils import get_adb_path
 from aurynk.utils.logger import get_logger
+from aurynk.utils.settings import SettingsManager
 
 logger = get_logger("ADBController")
 
@@ -75,7 +77,7 @@ class ADBController:
 
         # Step 1: Pair
         log(f"Pairing with {address}:{pair_port}...")
-        pair_cmd = ["adb", "pair", f"{address}:{pair_port}", password]
+        pair_cmd = [get_adb_path(), "pair", f"{address}:{pair_port}", password]
         pair_result = subprocess.run(pair_cmd, capture_output=True, text=True)
 
         if pair_result.returncode == 0:
@@ -87,9 +89,16 @@ class ADBController:
         log(f"Connecting to {address}:{connect_port}...")
         connected = False
 
-        for attempt in range(5):
-            connect_cmd = ["adb", "connect", f"{address}:{connect_port}"]
-            connect_result = subprocess.run(connect_cmd, capture_output=True, text=True)
+        # Load retry settings
+        settings = SettingsManager()
+        max_retries = settings.get("adb", "max_retry_attempts", 5)
+        timeout = settings.get("adb", "connection_timeout", 10)
+
+        for attempt in range(max_retries):
+            connect_cmd = [get_adb_path(), "connect", f"{address}:{connect_port}"]
+            connect_result = subprocess.run(
+                connect_cmd, capture_output=True, text=True, timeout=timeout
+            )
             output = (connect_result.stdout + connect_result.stderr).lower()
 
             if ("connected" in output or "already connected" in output) and "unable" not in output:
@@ -186,6 +195,42 @@ class ADBController:
 
         return zeroconf, (browser_pair, browser_connect)
 
+    def get_current_ports(self, address: str, timeout: int = 3) -> Optional[Dict[str, int]]:
+        """Try to get current ports for a device via mDNS discovery.
+
+        Returns:
+            Dict with 'pair_port' and 'connect_port' if found, None otherwise
+        """
+
+        # Try using adb mdns services first (faster)
+        try:
+            result = subprocess.run(
+                [get_adb_path(), "mdns", "services"],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+
+            if result.returncode == 0:
+                # Parse output for the device's IP address
+                # Format: "adb-XXXXX-XXXXXX._adb-tls-connect._tcp    192.168.1.2:37985"
+                for line in result.stdout.splitlines():
+                    if address in line:
+                        if "_adb-tls-connect" in line:
+                            # Extract port
+                            parts = line.split()
+                            for part in parts:
+                                if address in part and ":" in part:
+                                    port = part.split(":")[-1]
+                                    try:
+                                        return {"connect_port": int(port), "pair_port": None}
+                                    except ValueError:
+                                        pass
+        except Exception as e:
+            logger.debug(f"Could not query mDNS services: {e}")
+
+        return None
+
     # ===== Device Information =====
 
     def _fetch_device_info(self, address: str, connect_port: int) -> Dict[str, Any]:
@@ -196,11 +241,12 @@ class ADBController:
         # Helper to run adb shell command
         def get_prop(prop: str) -> str:
             try:
+                timeout = SettingsManager().get("adb", "connection_timeout", 10)
                 result = subprocess.run(
-                    ["adb", "-s", serial, "shell", "getprop", prop],
+                    [get_adb_path(), "-s", serial, "shell", "getprop", prop],
                     capture_output=True,
                     text=True,
-                    timeout=5,
+                    timeout=timeout,
                 )
                 return result.stdout.strip()
             except Exception:
@@ -227,11 +273,12 @@ class ADBController:
 
         try:
             # RAM
+            timeout = SettingsManager().get("adb", "connection_timeout", 10)
             meminfo = subprocess.run(
-                ["adb", "-s", serial, "shell", "cat", "/proc/meminfo"],
+                [get_adb_path(), "-s", serial, "shell", "cat", "/proc/meminfo"],
                 capture_output=True,
                 text=True,
-                timeout=5,
+                timeout=timeout,
             )
             import re
 
@@ -243,10 +290,10 @@ class ADBController:
 
             # Storage
             df = subprocess.run(
-                ["adb", "-s", serial, "shell", "df", "/data"],
+                [get_adb_path(), "-s", serial, "shell", "df", "/data"],
                 capture_output=True,
                 text=True,
-                timeout=5,
+                timeout=timeout,
             )
             lines = df.stdout.splitlines()
             if len(lines) > 1:
@@ -258,10 +305,10 @@ class ADBController:
 
             # Battery
             battery = subprocess.run(
-                ["adb", "-s", serial, "shell", "dumpsys", "battery"],
+                [get_adb_path(), "-s", serial, "shell", "dumpsys", "battery"],
                 capture_output=True,
                 text=True,
-                timeout=5,
+                timeout=timeout,
             )
             match = re.search(r"level: (\d+)", battery.stdout)
             if match:
@@ -281,11 +328,12 @@ class ADBController:
         try:
             # 1. Check if device is locked or screen is off
             # Check screen state
+            timeout = SettingsManager().get("adb", "connection_timeout", 10)
             dumpsys = subprocess.run(
-                ["adb", "-s", serial, "shell", "dumpsys", "window"],
+                [get_adb_path(), "-s", serial, "shell", "dumpsys", "window"],
                 capture_output=True,
                 text=True,
-                timeout=5,
+                timeout=timeout,
             )
             screen_off = (
                 "mDreamingLockscreen=true" in dumpsys.stdout
@@ -294,10 +342,10 @@ class ADBController:
             )
             # Check keyguard (lock)
             keyguard = subprocess.run(
-                ["adb", "-s", serial, "shell", "dumpsys", "window", "windows"],
+                [get_adb_path(), "-s", serial, "shell", "dumpsys", "window", "windows"],
                 capture_output=True,
                 text=True,
-                timeout=5,
+                timeout=timeout,
             )
             locked = (
                 "mShowingLockscreen=true" in keyguard.stdout
@@ -315,10 +363,10 @@ class ADBController:
 
             # 2. Get current foreground app/activity
             activity_result = subprocess.run(
-                ["adb", "-s", serial, "shell", "dumpsys", "window", "windows"],
+                [get_adb_path(), "-s", serial, "shell", "dumpsys", "window", "windows"],
                 capture_output=True,
                 text=True,
-                timeout=5,
+                timeout=timeout,
             )
             import re
 
@@ -329,27 +377,38 @@ class ADBController:
 
             # 3. Go to home screen
             subprocess.run(
-                ["adb", "-s", serial, "shell", "input", "keyevent", "3"], check=True, timeout=5
+                [get_adb_path(), "-s", serial, "shell", "input", "keyevent", "3"],
+                check=True,
+                timeout=timeout,
             )
 
             # 4. Take screenshot on home
             subprocess.run(
-                ["adb", "-s", serial, "shell", "screencap", "-p", "/sdcard/aurynk_screen.png"],
+                [
+                    get_adb_path(),
+                    "-s",
+                    serial,
+                    "shell",
+                    "screencap",
+                    "-p",
+                    "/sdcard/aurynk_screen.png",
+                ],
                 check=True,
-                timeout=10,
+                timeout=timeout,
             )
 
             # 5. Return to previous app if possible
             if current_app:
                 subprocess.run(
-                    ["adb", "-s", serial, "shell", "monkey", "-p", current_app, "1"], timeout=5
+                    [get_adb_path(), "-s", serial, "shell", "monkey", "-p", current_app, "1"],
+                    timeout=timeout,
                 )
 
             # 6. Pull to local temp directory
             subprocess.run(
-                ["adb", "-s", serial, "pull", "/sdcard/aurynk_screen.png", local_path],
+                [get_adb_path(), "-s", serial, "pull", "/sdcard/aurynk_screen.png", local_path],
                 check=True,
-                timeout=10,
+                timeout=timeout,
             )
             return local_path
         except Exception as e:

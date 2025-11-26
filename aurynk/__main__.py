@@ -2,7 +2,8 @@
 """Entry point for running aurynk as a module: python -m aurynk"""
 
 import sys
-from aurynk.app import main
+
+from aurynk.application import main
 from aurynk.utils.logger import get_logger
 
 logger = get_logger("Main")
