@@ -25,21 +25,51 @@ except ImportError:
     logger = logging.getLogger("TrayHelper")
 
 APP_ID = "aurynk-indicator"
-ICON_NAME = "io.github.IshuSinghSE.aurynk.tray"  # Icon theme name for tray icon
 TRAY_SOCKET = "/tmp/aurynk_tray.sock"
 APP_SOCKET = "/tmp/aurynk_app.sock"
 
 
 class TrayHelper:
     def __init__(self):
+        # Use absolute path to icon for development, falls back to theme name when installed
+        icon_path = self._get_icon_path()
+
         self.indicator = AppIndicator.Indicator.new(
-            APP_ID, ICON_NAME, AppIndicator.IndicatorCategory.APPLICATION_STATUS
+            APP_ID, icon_path, AppIndicator.IndicatorCategory.APPLICATION_STATUS
         )
         self.indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE)
         self.menu = self.build_menu()
         self.indicator.set_menu(self.menu)
         self.listen_thread = threading.Thread(target=self.listen_socket, daemon=True)
         self.listen_thread.start()
+
+    def _get_icon_path(self):
+        """Get the icon path, trying absolute path first for development."""
+        # Try to find the icon in the source tree
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(script_dir)
+
+        # Try different icon sizes
+        icon_paths = [
+            os.path.join(
+                project_root, "data/icons/hicolor/48x48/apps/io.github.IshuSinghSE.aurynk.tray.png"
+            ),
+            os.path.join(
+                project_root, "data/icons/hicolor/32x32/apps/io.github.IshuSinghSE.aurynk.tray.png"
+            ),
+            os.path.join(
+                project_root, "data/icons/hicolor/48x48/apps/io.github.IshuSinghSE.aurynk.png"
+            ),
+        ]
+
+        for icon_path in icon_paths:
+            if os.path.exists(icon_path):
+                logger.info(f"Using tray icon: {icon_path}")
+                return icon_path
+
+        # Fall back to theme name (for installed version)
+        logger.warning("Could not find icon file, falling back to theme name")
+        return "io.github.IshuSinghSE.aurynk"
 
     def build_menu(self):
         menu = Gtk.Menu()
@@ -128,14 +158,17 @@ class TrayHelper:
         if devices:
             for device in devices:
                 device_menu = Gtk.Menu()
+
                 connect_item = Gtk.MenuItem(label="Connect")
                 connect_item.set_sensitive(not device.get("connected", False))
                 connect_item.connect("activate", self.on_connect_device, device)
+                connect_item.show()
                 device_menu.append(connect_item)
 
                 disconnect_item = Gtk.MenuItem(label="Disconnect")
                 disconnect_item.set_sensitive(device.get("connected", False))
                 disconnect_item.connect("activate", self.on_disconnect_device, device)
+                disconnect_item.show()
                 device_menu.append(disconnect_item)
 
                 is_mirroring = device.get("mirroring", False)
@@ -143,42 +176,54 @@ class TrayHelper:
                 mirror_item = Gtk.MenuItem(label=mirror_label)
                 mirror_item.set_sensitive(device.get("connected", False))
                 mirror_item.connect("activate", self.on_mirror_device, device)
+                mirror_item.show()
                 device_menu.append(mirror_item)
 
-                device_menu.append(Gtk.SeparatorMenuItem())
+                separator = Gtk.SeparatorMenuItem()
+                separator.show()
+                device_menu.append(separator)
 
                 unpair_item = Gtk.MenuItem(label="Unpair")
                 unpair_item.connect("activate", self.on_unpair_device, device)
+                unpair_item.show()
                 device_menu.append(unpair_item)
 
                 device_label = Gtk.MenuItem(label=device.get("name", "Unknown Device"))
                 device_label.set_submenu(device_menu)
+                device_label.show()
                 new_menu.append(device_label)
         else:
             # Show placeholder if no devices
             placeholder = Gtk.MenuItem(label="No devices found")
             placeholder.set_sensitive(False)
+            placeholder.show()
             new_menu.append(placeholder)
 
         # Add static items once after device submenus
-        new_menu.append(Gtk.SeparatorMenuItem())
+        separator = Gtk.SeparatorMenuItem()
+        separator.show()
+        new_menu.append(separator)
+
         pair_item = Gtk.MenuItem(label="Pair New Device")
         pair_item.connect("activate", self.on_pair_new)
+        pair_item.show()
         new_menu.append(pair_item)
 
         show_item = Gtk.MenuItem(label="Show Window")
         show_item.connect("activate", self.on_show)
+        show_item.show()
         new_menu.append(show_item)
 
         quit_item = Gtk.MenuItem(label="Quit Aurynk")
         quit_item.connect("activate", self.on_quit)
+        quit_item.show()
         new_menu.append(quit_item)
 
         # Replace the menu and set it on the indicator
         self.menu = new_menu
         self.indicator.set_menu(self.menu)
-        # Show all items after setting the menu to avoid GTK warnings
-        new_menu.show_all()
+        # Show menu itself
+        new_menu.show()
 
     def on_connect_device(self, _, device):
         self.send_command_to_app(f"connect:{device.get('address')}")

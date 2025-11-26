@@ -2,12 +2,13 @@
 """Main window for Aurynk application."""
 
 import os
+import threading
 
 import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gdk, Gio, Gtk
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
 from aurynk.core.adb_manager import ADBController
 from aurynk.core.scrcpy_runner import ScrcpyManager
@@ -31,9 +32,8 @@ class AurynkWindow(Adw.ApplicationWindow):
         super().__init__(**kwargs)
         # Initialize ADB controller
         self.adb_controller = ADBController()
-        # Register for device change events
-        from gi.repository import GLib
 
+        # Register for device change events
         def safe_refresh():
             GLib.idle_add(self._refresh_device_list)
 
@@ -380,119 +380,139 @@ class AurynkWindow(Adw.ApplicationWindow):
 
             subprocess.run(["adb", "disconnect", f"{address}:{connect_port}"])
         else:
-            # Connect logic with loading indicator
-            import subprocess
-            import time
+            # Connect logic with loading indicator - run in thread to not block UI
+            def do_connection():
+                nonlocal connect_port  # Declare at the top
+                import subprocess
+                import time
 
-            # Disable button and show loading state
-            button.set_sensitive(False)
-            original_label = button.get_label()
-            
-            # Store original button width to prevent layout shift
-            button.set_size_request(button.get_width(), -1)
-            
-            # Create spinner with box for better visibility
-            spinner_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-            spinner_box.set_halign(Gtk.Align.CENTER)
-            spinner_box.set_valign(Gtk.Align.CENTER)
-            
-            spinner = Gtk.Spinner()
-            spinner.set_spinning(True)
-            spinner.set_size_request(16, 16)
-            spinner_box.append(spinner)
-            
-            button.set_child(spinner_box)
+                app = self.get_application()
+                discovered_port = None
 
-            app = self.get_application()
-            discovered_port = None
+                # Try to get port from device monitor (if device is currently discoverable)
+                if app and hasattr(app, "device_monitor"):
+                    discovered_info = app.device_monitor.get_discovered_device(address)
+                    if discovered_info and discovered_info.get("connect_port"):
+                        discovered_port = discovered_info["connect_port"]
+                        if discovered_port != connect_port:
+                            logger.info(
+                                f"Using discovered port {discovered_port} instead of stored {connect_port}"
+                            )
+                            connect_port = discovered_port
 
-            # Try to get port from device monitor (if device is currently discoverable)
-            if app and hasattr(app, "device_monitor"):
-                discovered_info = app.device_monitor.get_discovered_device(address)
-                if discovered_info and discovered_info.get("connect_port"):
-                    discovered_port = discovered_info["connect_port"]
-                    if discovered_port != connect_port:
-                        logger.info(
-                            f"Using discovered port {discovered_port} instead of stored {connect_port}"
-                        )
-                        connect_port = discovered_port
+                logger.info(f"Attempting to connect to {address}:{connect_port}...")
 
-            logger.info(f"Attempting to connect to {address}:{connect_port}...")
+                # Try connection with one retry (sometimes ADB needs a moment)
+                max_attempts = 2
+                for attempt in range(max_attempts):
+                    result = subprocess.run(
+                        ["adb", "connect", f"{address}:{connect_port}"],
+                        capture_output=True,
+                        text=True,
+                        timeout=5,
+                    )
 
-            # Try connection with one retry (sometimes ADB needs a moment)
-            max_attempts = 2
-            for attempt in range(max_attempts):
-                result = subprocess.run(
-                    ["adb", "connect", f"{address}:{connect_port}"],
-                    capture_output=True,
-                    text=True,
-                    timeout=5,
-                )
+                    output = (result.stdout + result.stderr).lower()
 
-                output = (result.stdout + result.stderr).lower()
+                    # Check if connection succeeded
+                    if (
+                        "connected" in output or "already connected" in output
+                    ) and "unable" not in output:
+                        if attempt > 0:
+                            logger.info(f"✓ Connected successfully on attempt {attempt + 1}")
+                        else:
+                            logger.info(f"✓ Connected successfully to {address}:{connect_port}")
+                        break
+                    elif attempt < max_attempts - 1:
+                        # First attempt failed, wait a moment and retry
+                        logger.debug(f"Connection attempt {attempt + 1} failed, retrying...")
+                        time.sleep(0.5)
+                    else:
+                        # All attempts failed
+                        logger.warning(f"Connection failed: {output.strip()}")
 
-                # Check if connection succeeded
+                # Check final connection status
                 if (
                     "connected" in output or "already connected" in output
                 ) and "unable" not in output:
-                    if attempt > 0:
-                        logger.info(f"✓ Connected successfully on attempt {attempt + 1}")
-                    else:
-                        logger.info(f"✓ Connected successfully to {address}:{connect_port}")
-                    break
-                elif attempt < max_attempts - 1:
-                    # First attempt failed, wait a moment and retry
-                    logger.debug(f"Connection attempt {attempt + 1} failed, retrying...")
-                    import time
-
-                    time.sleep(0.5)
-                else:
-                    # All attempts failed
-                    logger.warning(f"Connection failed: {output.strip()}")
-
-            # Check final connection status
-            if ("connected" in output or "already connected" in output) and "unable" not in output:
-                # Update stored port if it changed
-                if discovered_port and discovered_port != device.get("connect_port"):
-                    device["connect_port"] = discovered_port
-                    self.adb_controller.save_paired_device(device)
-                    logger.info(f"Updated stored port to {discovered_port}")
-            else:
-                # Connection failed - try fallback discovery
-                logger.warning(f"Connection failed: {output.strip()}")
-                logger.info("Trying to rediscover device...")
-
-                # Fallback to adb mdns services
-                ports = self.adb_controller.get_current_ports(address, timeout=3)
-                if ports and ports.get("connect_port"):
-                    new_port = ports["connect_port"]
-                    logger.info(f"Found device on port {new_port}, retrying connection...")
-
-                    result = subprocess.run(
-                        ["adb", "connect", f"{address}:{new_port}"], capture_output=True, text=True
-                    )
-
-                    if result.returncode == 0:
-                        device["connect_port"] = new_port
+                    # Update stored port if it changed
+                    if discovered_port and discovered_port != device.get("connect_port"):
+                        device["connect_port"] = discovered_port
                         self.adb_controller.save_paired_device(device)
-                        logger.info(f"✓ Connected and updated port to {new_port}")
+                        logger.info(f"Updated stored port to {discovered_port}")
+                else:
+                    # Connection failed - try fallback discovery
+                    logger.warning(f"Connection failed: {output.strip()}")
+                    logger.info("Trying to rediscover device...")
+
+                    # Fallback to adb mdns services
+                    ports = self.adb_controller.get_current_ports(address, timeout=3)
+                    if ports and ports.get("connect_port"):
+                        new_port = ports["connect_port"]
+                        logger.info(f"Found device on port {new_port}, retrying connection...")
+
+                        result = subprocess.run(
+                            ["adb", "connect", f"{address}:{new_port}"],
+                            capture_output=True,
+                            text=True,
+                        )
+
+                        if result.returncode == 0:
+                            device["connect_port"] = new_port
+                            self.adb_controller.save_paired_device(device)
+                            logger.info(f"✓ Connected and updated port to {new_port}")
+                        else:
+                            logger.error(
+                                "Connection still failed. Please ensure device is on the network."
+                            )
                     else:
                         logger.error(
-                            "Connection still failed. Please ensure device is on the network."
+                            f"Could not find device at {address}. Make sure wireless debugging is enabled."
                         )
-                else:
-                    logger.error(
-                        f"Could not find device at {address}. Make sure wireless debugging is enabled."
-                    )
 
-            # Restore button state
-            button.set_child(None)
-            button.set_label(original_label)
-            button.set_size_request(-1, -1)  # Reset size constraint
-            button.set_sensitive(True)
+                # Restore button state on main thread
+                GLib.idle_add(self._restore_connect_button, button, original_label)
+                # Refresh device list to update status
+                GLib.idle_add(self._refresh_device_list)
+
+            # Disable button and show animated connecting state
+            button.set_sensitive(False)
+            original_label = button.get_label()
+
+            # Start animated dots for "Connecting..."
+            self._start_connecting_animation(button)
+
+            # Run connection in background thread
+            thread = threading.Thread(target=do_connection, daemon=True)
+            thread.start()
+            return  # Return immediately, don't block UI
 
         # Refresh device list to update status (will sync tray)
         self._refresh_device_list()
+
+    def _start_connecting_animation(self, button):
+        """Animate button label with dots: Connecting -> Connecting. -> Connecting.. -> Connecting..."""
+        self._animation_counter = 0
+        self._animation_active = True
+
+        def animate_dots():
+            if not self._animation_active:
+                return False  # Stop the animation
+
+            dots = "." * (self._animation_counter % 4)
+            button.set_label(f"Connecting{dots}")
+            self._animation_counter += 1
+            return True  # Continue animation
+
+        # Update every 400ms for smooth animation
+        GLib.timeout_add(400, animate_dots)
+
+    def _restore_connect_button(self, button, original_label):
+        """Restore button to its original state after connection attempt."""
+        self._animation_active = False  # Stop animation
+        button.set_label(original_label)
+        button.set_sensitive(True)
+        return False  # Don't repeat
 
     def _on_add_device_clicked(self, button):
         """Handle Add Device button click."""
@@ -525,8 +545,6 @@ class AurynkWindow(Adw.ApplicationWindow):
     def _on_mirror_stopped(self, serial):
         """Callback when scrcpy process exits."""
         logger.info(f"Mirror stopped for {serial}, refreshing UI")
-        from gi.repository import GLib
-
         GLib.idle_add(self._handle_mirror_stop_ui_update)
 
     def _handle_mirror_stop_ui_update(self):
