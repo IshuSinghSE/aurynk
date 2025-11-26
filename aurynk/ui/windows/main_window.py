@@ -382,19 +382,26 @@ class AurynkWindow(Adw.ApplicationWindow):
         else:
             # Connect logic with loading indicator
             import subprocess
-            
+            import time
+
             # Disable button and show loading state
             button.set_sensitive(False)
             original_label = button.get_label()
             
-            # Create and show spinner
+            # Store original button width to prevent layout shift
+            button.set_size_request(button.get_width(), -1)
+            
+            # Create spinner with box for better visibility
+            spinner_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+            spinner_box.set_halign(Gtk.Align.CENTER)
+            spinner_box.set_valign(Gtk.Align.CENTER)
+            
             spinner = Gtk.Spinner()
             spinner.set_spinning(True)
-            button.set_child(spinner)
+            spinner.set_size_request(16, 16)
+            spinner_box.append(spinner)
             
-            # Process pending events to show spinner
-            while Gtk.events_pending():
-                Gtk.main_iteration()
+            button.set_child(spinner_box)
 
             app = self.get_application()
             discovered_port = None
@@ -481,6 +488,7 @@ class AurynkWindow(Adw.ApplicationWindow):
             # Restore button state
             button.set_child(None)
             button.set_label(original_label)
+            button.set_size_request(-1, -1)  # Reset size constraint
             button.set_sensitive(True)
 
         # Refresh device list to update status (will sync tray)
