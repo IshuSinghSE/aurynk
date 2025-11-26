@@ -1,6 +1,6 @@
 [project]
 name = "aurynk"
-version = "1.0.5"
+version = "1.1.0"
 description = "Android Device Manager for Linux with wireless pairing and device management"
 readme = "README.md"
 requires-python = ">=3.11"
