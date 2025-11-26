@@ -174,10 +174,11 @@ class TrayHelper:
         quit_item.connect("activate", self.on_quit)
         new_menu.append(quit_item)
 
-        new_menu.show_all()
         # Replace the menu and set it on the indicator
         self.menu = new_menu
         self.indicator.set_menu(self.menu)
+        # Show all items after setting the menu to avoid GTK warnings
+        new_menu.show_all()
 
     def on_connect_device(self, _, device):
         self.send_command_to_app(f"connect:{device.get('address')}")
