@@ -380,8 +380,21 @@ class AurynkWindow(Adw.ApplicationWindow):
 
             subprocess.run(["adb", "disconnect", f"{address}:{connect_port}"])
         else:
-            # Connect logic - check device monitor first for current port
+            # Connect logic with loading indicator
             import subprocess
+            
+            # Disable button and show loading state
+            button.set_sensitive(False)
+            original_label = button.get_label()
+            
+            # Create and show spinner
+            spinner = Gtk.Spinner()
+            spinner.set_spinning(True)
+            button.set_child(spinner)
+            
+            # Process pending events to show spinner
+            while Gtk.events_pending():
+                Gtk.main_iteration()
 
             app = self.get_application()
             discovered_port = None
@@ -398,21 +411,23 @@ class AurynkWindow(Adw.ApplicationWindow):
                         connect_port = discovered_port
 
             logger.info(f"Attempting to connect to {address}:{connect_port}...")
-            
+
             # Try connection with one retry (sometimes ADB needs a moment)
             max_attempts = 2
             for attempt in range(max_attempts):
                 result = subprocess.run(
-                    ["adb", "connect", f"{address}:{connect_port}"], 
-                    capture_output=True, 
+                    ["adb", "connect", f"{address}:{connect_port}"],
+                    capture_output=True,
                     text=True,
-                    timeout=5
+                    timeout=5,
                 )
 
                 output = (result.stdout + result.stderr).lower()
-                
+
                 # Check if connection succeeded
-                if ("connected" in output or "already connected" in output) and "unable" not in output:
+                if (
+                    "connected" in output or "already connected" in output
+                ) and "unable" not in output:
                     if attempt > 0:
                         logger.info(f"✓ Connected successfully on attempt {attempt + 1}")
                     else:
@@ -422,6 +437,7 @@ class AurynkWindow(Adw.ApplicationWindow):
                     # First attempt failed, wait a moment and retry
                     logger.debug(f"Connection attempt {attempt + 1} failed, retrying...")
                     import time
+
                     time.sleep(0.5)
                 else:
                     # All attempts failed
@@ -461,6 +477,11 @@ class AurynkWindow(Adw.ApplicationWindow):
                     logger.error(
                         f"Could not find device at {address}. Make sure wireless debugging is enabled."
                     )
+
+            # Restore button state
+            button.set_child(None)
+            button.set_label(original_label)
+            button.set_sensitive(True)
 
         # Refresh device list to update status (will sync tray)
         self._refresh_device_list()
