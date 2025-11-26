@@ -298,7 +298,7 @@ class SettingsWindow(Adw.PreferencesWindow):
         session_group = Adw.PreferencesGroup()
         session_group.set_title("Session Options")
 
-        # Scrcpy Path
+        # Scrcpy Path (modern: entry + file picker button)
         scrcpy_path_row = Adw.ActionRow()
         scrcpy_path_row.set_title("Scrcpy Path")
         scrcpy_path_row.set_subtitle("Path to scrcpy binary (leave blank for system default)")
@@ -307,6 +307,44 @@ class SettingsWindow(Adw.PreferencesWindow):
         scrcpy_path_entry.set_placeholder_text("/usr/bin/scrcpy")
         scrcpy_path_entry.set_text(self.settings.get("scrcpy", "scrcpy_path", ""))
         scrcpy_path_row.add_suffix(scrcpy_path_entry)
+        scrcpy_path_button = Gtk.Button()
+        scrcpy_path_button.set_icon_name("folder-open-symbolic")
+        scrcpy_path_button.set_valign(Gtk.Align.CENTER)
+        scrcpy_path_button.add_css_class("flat")
+
+        def on_choose_scrcpy_path(button, entry, row):
+            from gi.repository import Gio
+
+            dialog = Gtk.FileDialog()
+            dialog.set_title("Select scrcpy Binary")
+            dialog.set_modal(True)
+            filter_exec = Gtk.FileFilter()
+            filter_exec.set_name("Executable files")
+            filter_exec.add_pattern("*")
+            filters = Gio.ListStore.new(Gtk.FileFilter)
+            filters.append(filter_exec)
+            dialog.set_filters(filters)
+
+            def on_file_selected(dialog, result):
+                try:
+                    file = dialog.open_finish(result)
+                    if file:
+                        path = file.get_path()
+                        import os
+
+                        if os.path.isfile(path) and os.access(path, os.X_OK):
+                            entry.set_text(path)
+                        else:
+                            entry.set_text("")
+                except Exception:
+                    pass
+
+            dialog.open(self, None, on_file_selected)
+
+        scrcpy_path_button.connect(
+            "clicked", on_choose_scrcpy_path, scrcpy_path_entry, scrcpy_path_row
+        )
+        scrcpy_path_row.add_suffix(scrcpy_path_button)
         session_group.add(scrcpy_path_row)
 
         # Always on Top
@@ -333,16 +371,234 @@ class SettingsWindow(Adw.PreferencesWindow):
         borderless.connect("notify::active", self._on_borderless_changed)
         session_group.add(borderless)
 
-        # Initial Window Size/Position
+        # --- Window Size ---
         window_size_row = Adw.ActionRow()
-        window_size_row.set_title("Initial Window Size/Position")
-        window_size_row.set_subtitle("Set window width, height, X, Y (comma separated)")
-        window_size_entry = Gtk.Entry()
-        window_size_entry.set_hexpand(True)
-        window_size_entry.set_placeholder_text("width,height,x,y (e.g. 800,600,100,100)")
-        window_size_entry.set_text(self.settings.get("scrcpy", "window_geometry", ""))
-        window_size_row.add_suffix(window_size_entry)
+        window_size_row.set_title("Window Initial Size")
+        from gi.repository import Gtk as GtkLocal
+
+        geom = self.settings.get("scrcpy", "window_geometry", "")
+        try:
+            width, height, x, y = [int(v) for v in geom.split(",")]
+        except Exception:
+            width, height, x, y = 800, 600, 100, 100
+
+        def size_summary():
+            return f"{width} × {height}"
+
+        window_size_row.set_subtitle(size_summary())
+        # Popover for width/height
+        size_popover = GtkLocal.Popover()
+        size_popover.set_position(GtkLocal.PositionType.BOTTOM)
+        size_box = GtkLocal.Box(
+            orientation=GtkLocal.Orientation.VERTICAL,
+            spacing=8,
+            margin_top=8,
+            margin_bottom=8,
+            margin_start=8,
+            margin_end=8,
+        )
+        width_adj = GtkLocal.Adjustment(value=width, lower=100, upper=3840, step_increment=10)
+        height_adj = GtkLocal.Adjustment(value=height, lower=100, upper=2160, step_increment=10)
+        width_spin = GtkLocal.SpinButton(adjustment=width_adj, digits=0)
+        width_spin.set_tooltip_text("Width")
+        height_spin = GtkLocal.SpinButton(adjustment=height_adj, digits=0)
+        height_spin.set_tooltip_text("Height")
+        width_row = GtkLocal.Box(orientation=GtkLocal.Orientation.HORIZONTAL, spacing=6)
+        width_row.append(GtkLocal.Label(label="Width", xalign=0))
+        width_row.append(width_spin)
+        size_box.append(width_row)
+        height_row = GtkLocal.Box(orientation=GtkLocal.Orientation.HORIZONTAL, spacing=6)
+        height_row.append(GtkLocal.Label(label="Height", xalign=0))
+        height_row.append(height_spin)
+        size_box.append(height_row)
+        size_popover.set_child(size_box)
+        size_arrow_button = GtkLocal.Button()
+        size_arrow_icon = GtkLocal.Image.new_from_icon_name("pan-down-symbolic")
+        size_arrow_button.set_child(size_arrow_icon)
+        size_arrow_button.set_valign(GtkLocal.Align.CENTER)
+
+        def on_size_arrow_clicked(btn):
+            size_popover.set_pointing_to(btn.get_allocation())
+            size_popover.set_parent(btn)
+            size_popover.popup()
+
+        size_arrow_button.connect("clicked", on_size_arrow_clicked)
+        window_size_row.add_suffix(size_arrow_button)
+
+        def save_size(*_):
+            nonlocal width, height
+            width = width_spin.get_value_as_int()
+            height = height_spin.get_value_as_int()
+            geom_str = f"{width},{height},{x},{y}"
+            self.settings.set("scrcpy", "window_geometry", geom_str)
+            window_size_row.set_subtitle(size_summary())
+
+        width_spin.connect("value-changed", save_size)
+        height_spin.connect("value-changed", save_size)
         session_group.add(window_size_row)
+
+        # --- Window Position ---
+        window_pos_row = Adw.ActionRow()
+        window_pos_row.set_title("Window Initial Position")
+        # All combinations of vertical and horizontal positions
+        verticals = ["Top", "Center", "Bottom"]
+        horizontals = ["Left", "Center", "Right"]
+        pos_options = []
+        for v in verticals:
+            for h in horizontals:
+                if v == "Center" and h == "Center":
+                    pos_options.append(("Center", "center"))
+                else:
+                    pos_options.append((f"{v} {h}", f"{v.lower()}-{h.lower()}"))
+        pos_options.append(("Custom", "custom"))
+
+        def get_position_label(x, y):
+            # Map x/y to label
+            if x == -1 and y == -1:
+                return "Center"
+            elif x == 0 and y == 0:
+                return "Top Left"
+            elif x > 0 and y == 0:
+                return "Top Right"
+            elif x == 0 and y > 0:
+                return "Bottom Left"
+            elif x > 0 and y > 0:
+                return "Bottom Right"
+            elif x == -1 and y == 0:
+                return "Top Center"
+            elif x == -1 and y > 0:
+                return "Bottom Center"
+            elif x == 0 and y == -1:
+                return "Center Left"
+            elif x > 0 and y == -1:
+                return "Center Right"
+            else:
+                return "Custom"
+
+        def get_position_value(x, y):
+            if x == -1 and y == -1:
+                return "center"
+            elif x == 0 and y == 0:
+                return "top-left"
+            elif x > 0 and y == 0:
+                return "top-right"
+            elif x == 0 and y > 0:
+                return "bottom-left"
+            elif x > 0 and y > 0:
+                return "bottom-right"
+            elif x == -1 and y == 0:
+                return "top-center"
+            elif x == -1 and y > 0:
+                return "bottom-center"
+            elif x == 0 and y == -1:
+                return "center-left"
+            elif x > 0 and y == -1:
+                return "center-right"
+            else:
+                return "custom"
+
+        pos_value = get_position_value(x, y)
+        pos_label = get_position_label(x, y)
+        window_pos_row.set_subtitle(pos_label if pos_value != "custom" else f"Custom ({x},{y})")
+        pos_combo = GtkLocal.ComboBoxText()
+        for label, value in pos_options:
+            pos_combo.append_text(label)
+        pos_index = (
+            [v for _, v in pos_options].index(pos_value)
+            if pos_value in [v for _, v in pos_options]
+            else 0
+        )
+        pos_combo.set_active(pos_index)
+        # Popover for custom x/y
+        pos_popover = GtkLocal.Popover()
+        pos_popover.set_position(GtkLocal.PositionType.BOTTOM)
+        pos_box = GtkLocal.Box(
+            orientation=GtkLocal.Orientation.VERTICAL,
+            spacing=8,
+            margin_top=8,
+            margin_bottom=8,
+            margin_start=8,
+            margin_end=8,
+        )
+        x_adj = GtkLocal.Adjustment(value=x, lower=0, upper=3840, step_increment=10)
+        y_adj = GtkLocal.Adjustment(value=y, lower=0, upper=2160, step_increment=10)
+        x_spin = GtkLocal.SpinButton(adjustment=x_adj, digits=0)
+        x_spin.set_tooltip_text("X Position")
+        y_spin = GtkLocal.SpinButton(adjustment=y_adj, digits=0)
+        y_spin.set_tooltip_text("Y Position")
+        x_row = GtkLocal.Box(orientation=GtkLocal.Orientation.HORIZONTAL, spacing=6)
+        x_row.append(GtkLocal.Label(label="X", xalign=0))
+        x_row.append(x_spin)
+        pos_box.append(x_row)
+        y_row = GtkLocal.Box(orientation=GtkLocal.Orientation.HORIZONTAL, spacing=6)
+        y_row.append(GtkLocal.Label(label="Y", xalign=0))
+        y_row.append(y_spin)
+        pos_box.append(y_row)
+        pos_popover.set_child(pos_box)
+        pos_arrow_button = GtkLocal.Button()
+        pos_arrow_icon = GtkLocal.Image.new_from_icon_name("pan-down-symbolic")
+        pos_arrow_button.set_child(pos_arrow_icon)
+        pos_arrow_button.set_valign(GtkLocal.Align.CENTER)
+
+        def on_pos_arrow_clicked(btn):
+            if pos_combo.get_active() == len(pos_options) - 1:  # Custom
+                pos_popover.set_pointing_to(btn.get_allocation())
+                pos_popover.set_parent(btn)
+                pos_popover.popup()
+
+        pos_arrow_button.connect("clicked", on_pos_arrow_clicked)
+        window_pos_row.add_suffix(pos_combo)
+
+        # Only show the arrow button for custom
+        def update_arrow_visibility():
+            idx = pos_combo.get_active()
+            value = pos_options[idx][1]
+            if value == "custom":
+                if pos_arrow_button.get_parent() is None:
+                    window_pos_row.add_suffix(pos_arrow_button)
+            else:
+                if pos_arrow_button.get_parent() is not None:
+                    window_pos_row.remove(pos_arrow_button)
+
+        update_arrow_visibility()
+
+        def save_position(*_):
+            nonlocal x, y
+            idx = pos_combo.get_active()
+            value = pos_options[idx][1]
+            # Set x/y for all positions
+            if value == "center":
+                x, y = -1, -1
+            elif value == "top-left":
+                x, y = 0, 0
+            elif value == "top-center":
+                x, y = -1, 0
+            elif value == "top-right":
+                x, y = 100, 0
+            elif value == "center-left":
+                x, y = 0, -1
+            elif value == "center-right":
+                x, y = 100, -1
+            elif value == "bottom-left":
+                x, y = 0, 100
+            elif value == "bottom-center":
+                x, y = -1, 100
+            elif value == "bottom-right":
+                x, y = 100, 100
+            elif value == "custom":
+                x = x_spin.get_value_as_int()
+                y = y_spin.get_value_as_int()
+            geom_str = f"{width},{height},{x},{y}"
+            self.settings.set("scrcpy", "window_geometry", geom_str)
+            window_pos_row.set_subtitle(
+                get_position_label(x, y) if value != "custom" else f"Custom ({x},{y})"
+            )
+            update_arrow_visibility()
+
+        pos_combo.connect("changed", save_position)
+        x_spin.connect("value-changed", save_position)
+        y_spin.connect("value-changed", save_position)
+        session_group.add(window_pos_row)
 
         # Disable Screensaver
         disable_screensaver = Adw.SwitchRow()
