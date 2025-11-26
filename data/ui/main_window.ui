@@ -15,11 +15,7 @@
     <section>
       <item>
         <attribute name="label" translatable="yes">_About Aurynk</attribute>
-        <attribute name="action">app.about</attribute>
-      </item>
-      <item>
-        <attribute name="label" translatable="yes">_Keyboard Shortcuts</attribute>
-        <attribute name="action">win.show-help-overlay</attribute>
+        <attribute name="action">win.about</attribute>
       </item>
     </section>
   </menu>

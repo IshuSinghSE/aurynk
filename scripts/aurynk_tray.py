@@ -83,6 +83,12 @@ class TrayHelper:
         show_item.connect("activate", self.on_show)
         menu.append(show_item)
 
+        menu.append(Gtk.SeparatorMenuItem())
+
+        about_item = Gtk.MenuItem(label="About Aurynk")
+        about_item.connect("activate", self.on_about)
+        menu.append(about_item)
+
         quit_item = Gtk.MenuItem(label="Quit Aurynk")
         quit_item.connect("activate", self.on_quit)
         menu.append(quit_item)
@@ -96,6 +102,9 @@ class TrayHelper:
 
     def on_show(self, _):
         self.send_command_to_app("show")
+
+    def on_about(self, _):
+        self.send_command_to_app("about")
 
     def on_quit(self, _):
         # Best-effort: notify the app via socket, then quit our own loop.
@@ -213,6 +222,15 @@ class TrayHelper:
         show_item.connect("activate", self.on_show)
         show_item.show()
         new_menu.append(show_item)
+
+        separator2 = Gtk.SeparatorMenuItem()
+        separator2.show()
+        new_menu.append(separator2)
+
+        about_item = Gtk.MenuItem(label="About Aurynk")
+        about_item.connect("activate", self.on_about)
+        about_item.show()
+        new_menu.append(about_item)
 
         quit_item = Gtk.MenuItem(label="Quit Aurynk")
         quit_item.connect("activate", self.on_quit)

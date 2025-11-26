@@ -146,6 +146,23 @@ class AurynkApp(Adw.Application):
         # Simply activate the application - do_activate will handle the window
         self.activate()
 
+    def show_about_dialog(self):
+        """Show the About dialog - called from tray icon."""
+        from aurynk.ui.windows.about_window import AboutWindow
+
+        # Ensure we have a window to be transient for
+        win = self.props.active_window
+        if not win:
+            # Activate to create/show window first
+            self.activate()
+            win = self.props.active_window
+
+        # Show about dialog
+        if win:
+            AboutWindow.show(win)
+        else:
+            logger.warning("Could not show About dialog - no window available")
+
     def quit(self):
         """Quit the application properly, closing all windows."""
         logger.info("Quitting application...")
@@ -211,23 +228,23 @@ class AurynkApp(Adw.Application):
         # Send initial device status to tray so menu is populated
         # Use the bound helper to send the initial status
         self.send_status_to_tray()
-    
+
     def _apply_theme(self):
         """Apply the theme from settings."""
         from aurynk.utils.settings import SettingsManager
-        
+
         settings = SettingsManager()
         theme = settings.get("app", "theme", "system")
-        
+
         style_manager = Adw.StyleManager.get_default()
-        
+
         if theme == "light":
             style_manager.set_color_scheme(Adw.ColorScheme.FORCE_LIGHT)
         elif theme == "dark":
             style_manager.set_color_scheme(Adw.ColorScheme.FORCE_DARK)
         else:  # system
             style_manager.set_color_scheme(Adw.ColorScheme.DEFAULT)
-        
+
         logger.info(f"Applied theme: {theme}")
 
     def do_activate(self):

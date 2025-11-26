@@ -160,6 +160,8 @@ def tray_command_listener(app):
                         GLib.idle_add(app.present_main_window)
                     elif msg == "pair_new":
                         GLib.idle_add(app.show_pair_dialog)
+                    elif msg == "about":
+                        GLib.idle_add(app.show_about_dialog)
                     elif msg == "quit":
                         logger.info("Received quit from tray. Exiting.")
                         GLib.idle_add(app.quit)

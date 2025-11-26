@@ -12,6 +12,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
 from aurynk.core.adb_manager import ADBController
 from aurynk.core.scrcpy_runner import ScrcpyManager
+from aurynk.ui.windows.about_window import AboutWindow
 from aurynk.ui.windows.settings_window import SettingsWindow
 from aurynk.utils.adb_utils import is_device_connected
 from aurynk.utils.device_events import (
@@ -65,10 +66,19 @@ class AurynkWindow(Adw.ApplicationWindow):
         preferences_action.connect("activate", self._on_preferences_clicked)
         self.add_action(preferences_action)
 
+        # About action
+        about_action = Gio.SimpleAction.new("about", None)
+        about_action.connect("activate", self._on_about_clicked)
+        self.add_action(about_action)
+
     def _on_preferences_clicked(self, action, param):
         """Open settings window."""
         settings_window = SettingsWindow(transient_for=self)
         settings_window.present()
+
+    def _on_about_clicked(self, action, param):
+        """Show About dialog."""
+        AboutWindow.show(self)
 
     def do_close(self):
         unregister_device_change_callback(self._device_change_callback)
@@ -122,11 +132,20 @@ class AurynkWindow(Adw.ApplicationWindow):
         header_bar = Adw.HeaderBar()
         header_bar.set_show_end_title_buttons(True)
 
-        # Add menu button with settings
+        # Add menu button with settings (following GNOME HIG)
         menu_button = Gtk.MenuButton()
         menu_button.set_icon_name("open-menu-symbolic")
+        menu_button.set_tooltip_text("Main Menu")
         menu = Gio.Menu()
+
+        # Primary menu section
         menu.append("Preferences", "win.preferences")
+
+        # About section (separated as per GNOME HIG)
+        about_section = Gio.Menu()
+        about_section.append("About Aurynk", "win.about")
+        menu.append_section(None, about_section)
+
         menu_button.set_menu_model(menu)
         header_bar.pack_end(menu_button)
 

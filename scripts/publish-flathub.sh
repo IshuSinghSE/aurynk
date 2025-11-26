@@ -17,6 +17,10 @@ fi
 echo "🚀 Preparing Flathub release for version $VERSION..."
 
 # 1. Calculate SHA256 of the release tarball
+ver="${VERSION#v}"
+echo "🔄 Updating aurynk/__init__.py to version $ver..."
+sed -i "s/^__version__ = \".*\"/__version__ = \"$ver\"/" aurynk/__init__.py
+
 TARBALL_URL="https://github.com/IshuSinghSE/aurynk/releases/download/${VERSION}/aurynk-${VERSION#v}.tar.gz"
 echo "📥 Downloading tarball to calculate SHA256..."
 wget -q -O /tmp/aurynk.tar.gz "$TARBALL_URL"
