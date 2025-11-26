@@ -71,46 +71,29 @@
     <release version="1.1.0" date="2025-11-26">
       <description>
         <p>A massive update with a complete settings overhaul, advanced mirroring controls, and many new features to give you full control over your experience.</p>
-        <p>
-          <b>🚀 New Features</b>
-        </p>
+        <p>🚀 New Features</p>
         <ul>
-          <li>
-            <b>Complete Settings Overhaul:</b> A new modern settings window with dedicated tabs for Application, Device, and Mirroring preferences.</li>
-          <li>
-            <b>Advanced Mirroring Controls:</b> Full control over bitrate, max FPS, video codec, audio sources, and recording options.</li>
-          <li>
-            <b>Instant Settings:</b> All changes are saved automatically and applied instantly.</li>
-          <li>
-            <b>Window Management:</b> Customize window size and position, with handy presets for mobile form factors. Added options for always on top, fullscreen, and borderless modes.</li>
-          <li>
-            <b>New Control Modes:</b> Added View-only mode and OTG support for using your PC's keyboard and mouse on the device.</li>
-          <li>
-            <b>Recording:</b> Easily record your mirroring session with customizable formats and save paths.</li>
-          <li>
-            <b>About Page:</b> A new section with app information and credits.</li>
+          <li>Complete Settings Overhaul: A new modern settings window with dedicated tabs for Application, Device, and Mirroring preferences.</li>
+          <li>Advanced Mirroring Controls: Full control over bitrate, max FPS, video codec, audio sources, and recording options.</li>
+          <li>Instant Settings: All changes are saved automatically and applied instantly.</li>
+          <li>Window Management: Customize window size and position, with handy presets for mobile form factors. Added options for always on top, fullscreen, and borderless modes.</li>
+          <li>New Control Modes: Added View-only mode and OTG support for using your PC's keyboard and mouse on the device.</li>
+          <li>Recording: Easily record your mirroring session with customizable formats and save paths.</li>
+          <li>About Page: A new section with app information and credits.</li>
         </ul>
-        <p>
-          <b>📈 Improvements</b>
-        </p>
+        <p>📈 Improvements</p>
         <ul>
-          <li>
-            <b>Improved Connectivity:</b> Device pairing and discovery are now faster and more reliable.</li>
-          <li>
-            <b>Better Performance:</b> Added advanced options for hardware acceleration and running without a window.</li>
-          <li>
-            <b>User Interface:</b> A completely refreshed and consistent user interface across the application.</li>
-          <li>
-            <b>Enhanced Stability:</b> Improved settings management, device monitoring, and tray icon integration.</li>
+          <li>Improved Connectivity: Device pairing and discovery are now faster and more reliable.</li>
+          <li>Better Performance: Added advanced options for hardware acceleration and running without a window.</li>
+          <li>User Interface: A completely refreshed and consistent user interface across the application.</li>
+          <li>Enhanced Stability: Improved settings management, device monitoring, and tray icon integration.</li>
         </ul>
       </description>
     </release>
     <release version="1.0.5" date="2025-11-24">
       <description>
         <p>Critical bug fixes and improvements to enhance application stability and reliability, including a new logging system.</p>
-        <p>
-          <b>🐛 Bug Fixes</b>
-        </p>
+        <p>🐛 Bug Fixes</p>
         <ul>
           <li>Fixed an issue causing mirroring synchronization problems.</li>
           <li>Fixed a bug where the application would quit prematurely.</li>
@@ -123,9 +106,7 @@
     <release version="1.0.4" date="2025-11-23">
       <description>
         <p>A maintenance release with documentation updates.</p>
-        <p>
-          <b>📈 Improvements</b>
-        </p>
+        <p>📈 Improvements</p>
         <ul>
           <li>Updated the README with new screenshots.</li>
           <li>General documentation improvements.</li>
@@ -135,9 +116,7 @@
     <release version="1.0.3" date="2025-11-16">
       <description>
         <p>Under-the-hood improvements for better performance and modern platform support.</p>
-        <p>
-          <b>⚙️ Under the Hood</b>
-        </p>
+        <p>⚙️ Under the Hood</p>
         <ul>
           <li>Updated to the GNOME 49 runtime for better performance and stability.</li>
           <li>Switched to an inline Ayatana stack.</li>
@@ -148,9 +127,7 @@
     <release version="1.0.2" date="2025-11-20">
       <description>
         <p>Important bug fixes to improve reliability and prevent crashes.</p>
-        <p>
-          <b>🐛 Bug Fixes</b>
-        </p>
+        <p>🐛 Bug Fixes</p>
         <ul>
           <li>Fixed a crash (UnboundLocalError) when starting device mirroring.</li>
           <li>Ensured the main window and tray icon stay perfectly synchronized.</li>
