@@ -1,27 +1,28 @@
 #!/bin/bash
 set -e
 
-# Usage: ./scripts/publish-flathub.sh <version> <path-to-flathub-fork>
-# Example: ./scripts/publish-flathub.sh v1.0.4 ../flathub
 
-VERSION="$1"
-FLATHUB_DIR="$2"
+# Usage: ./scripts/publish-flathub.sh <path-to-flathub-fork>
+# Example: ./scripts/publish-flathub.sh ../flathub
+
+FLATHUB_DIR="$1"
 MANIFEST_SRC="flatpak/io.github.IshuSinghSE.aurynk.yml"
 MANIFEST_DEST="$FLATHUB_DIR/io.github.IshuSinghSE.aurynk.yml"
 
-if [ -z "$VERSION" ] || [ -z "$FLATHUB_DIR" ]; then
-    echo "Usage: $0 <version> <path-to-flathub-fork>"
+if [ -z "$FLATHUB_DIR" ]; then
+    echo "Usage: $0 <path-to-flathub-fork>"
     exit 1
 fi
 
-echo "🚀 Preparing Flathub release for version $VERSION..."
+
+echo "🚀 Preparing Flathub release for version v$VERSION..."
+
+# Get version from pyproject.toml (requires toml Python package)
+VERSION=$(python3 -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")
+echo "Detected version: $VERSION"
 
 # 1. Calculate SHA256 of the release tarball
-ver="${VERSION#v}"
-echo "🔄 Updating aurynk/__init__.py to version $ver..."
-sed -i "s/^__version__ = \".*\"/__version__ = \"$ver\"/" aurynk/__init__.py
-
-TARBALL_URL="https://github.com/IshuSinghSE/aurynk/releases/download/${VERSION}/aurynk-${VERSION#v}.tar.gz"
+TARBALL_URL="https://github.com/IshuSinghSE/aurynk/releases/download/v$VERSION/aurynk-$VERSION.tar.gz"
 echo "📥 Downloading tarball to calculate SHA256..."
 wget -q -O /tmp/aurynk.tar.gz "$TARBALL_URL"
 SHA256=$(sha256sum /tmp/aurynk.tar.gz | awk '{print $1}')
@@ -67,7 +68,8 @@ import sys
 
 src_file = '$MANIFEST_SRC'
 dest_file = '$MANIFEST_DEST'
-version = '$VERSION'
+
+version = 'v$VERSION'
 tarball_url = '$TARBALL_URL'
 sha256 = '$SHA256'
 
