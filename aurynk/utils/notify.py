@@ -2,6 +2,7 @@ from typing import Optional
 
 _inited = False
 
+
 def notify_device_event(event: str, device: str = "", extra: str = "", error: bool = False):
     """
     Central notification handler for device events.

@@ -5,8 +5,10 @@ from aurynk.utils.logger import get_logger
 
 logger = get_logger("PowerMonitor")
 
+
 class PowerMonitor:
     """Monitors system suspend/resume and triggers callbacks."""
+
     def __init__(self):
         self._callbacks = {"sleep": [], "resume": []}
         self._running = False

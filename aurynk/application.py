@@ -119,14 +119,18 @@ class AurynkApp(Adw.Application):
         def _on_system_sleep():
             """Handle system sleep: disconnect ADB devices if setting enabled."""
             from aurynk.utils.settings import SettingsManager
+
             settings = SettingsManager()
             if settings.get("adb", "auto_disconnect_on_sleep", False):
                 try:
                     import subprocess
 
                     from aurynk.utils.adb_utils import get_adb_path
+
                     logger.info("System sleep: disconnecting all ADB devices...")
-                    result = subprocess.run([get_adb_path(), "disconnect"], capture_output=True, text=True, timeout=5)
+                    result = subprocess.run(
+                        [get_adb_path(), "disconnect"], capture_output=True, text=True, timeout=5
+                    )
                     if result.returncode == 0:
                         logger.info("✓ All devices disconnected (sleep)")
                     else:
