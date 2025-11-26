@@ -43,22 +43,27 @@ class DeviceMonitor:
         self._connected_devices = set()  # Addresses of currently connected devices
         self._discovered_services = {}  # Temporary storage for mDNS discoveries
 
-        # Load settings
-        self._settings = SettingsManager()
-        self._auto_connect_enabled = self._settings.get("app", "auto_connect", True)
-        self._monitor_interval = self._settings.get("app", "monitor_interval", 5)
-
-        # Register settings callbacks for live updates
-        self._settings.register_callback("app", "auto_connect", self._on_auto_connect_changed)
-        self._settings.register_callback(
-            "app", "monitor_interval", self._on_monitor_interval_changed
-        )
-
+        # Initialize callbacks dict here
         self._callbacks = {
             "on_device_found": [],
             "on_device_connected": [],
             "on_device_lost": [],
         }
+
+        # Load settings
+        self._settings = SettingsManager()
+        self._auto_connect_enabled = self._settings.get("app", "auto_connect", True)
+        self._monitor_interval = self._settings.get("app", "monitor_interval", 5)
+        self._keep_alive_interval = self._settings.get("adb", "keep_alive_interval", 0)
+
+        # Register settings callbacks for live updates
+        self._settings.register_callback("app", "auto_connect", self._on_auto_connect_changed)
+        self._settings.register_callback("app", "monitor_interval", self._on_monitor_interval_changed)
+        self._settings.register_callback("adb", "keep_alive_interval", self._on_keep_alive_interval_changed)
+
+    def _on_keep_alive_interval_changed(self, new_value):
+        self._keep_alive_interval = new_value
+        logger.info(f"ADB keep-alive interval set to {new_value} seconds")
 
     def _on_auto_connect_changed(self, new_value):
         """Handle auto_connect setting change."""
@@ -310,8 +315,10 @@ class DeviceMonitor:
         logger.info(f"Auto-connecting to paired device: {device_name} ({address}:{port})")
 
         try:
+            from aurynk.utils.adb_utils import get_adb_path
+
             result = subprocess.run(
-                ["adb", "connect", f"{address}:{port}"],
+                [get_adb_path(), "connect", f"{address}:{port}"],
                 capture_output=True,
                 text=True,
                 timeout=10,
@@ -354,14 +361,17 @@ class DeviceMonitor:
             logger.error(f"Error auto-connecting to {device_name}: {e}")
 
     def _monitor_connections(self):
-        """Background thread to monitor ADB connection status."""
+        """Background thread to monitor ADB connection status and send keep-alive if enabled."""
         previous_connected = set()
+        last_keep_alive = time.time()
 
         while self._running:
             try:
                 # Check which devices are actually connected
+                from aurynk.utils.adb_utils import get_adb_path
+
                 result = subprocess.run(
-                    ["adb", "devices"],
+                    [get_adb_path(), "devices"],
                     capture_output=True,
                     text=True,
                     timeout=5,
@@ -412,6 +422,24 @@ class DeviceMonitor:
                     # Update internal state
                     self._connected_devices = current_connected
                     previous_connected = current_connected.copy()
+
+                    # --- KEEP ALIVE LOGIC ---
+                    now = time.time()
+                    if self._keep_alive_interval and self._keep_alive_interval > 0:
+                        if now - last_keep_alive >= self._keep_alive_interval:
+                            for address in current_connected:
+                                try:
+                                    # Send a harmless keep-alive command (adb shell echo)
+                                    serial = address
+                                    subprocess.run(
+                                        [get_adb_path(), "-s", serial, "shell", "echo", "ping"],
+                                        capture_output=True,
+                                        timeout=5,
+                                    )
+                                    logger.debug(f"Sent keep-alive to {serial}")
+                                except Exception as e:
+                                    logger.debug(f"Keep-alive failed for {address}: {e}")
+                            last_keep_alive = now
 
                 else:
                     logger.debug("adb devices command failed")

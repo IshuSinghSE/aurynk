@@ -66,6 +66,27 @@ class SettingsWindow(Adw.PreferencesWindow):
         page.set_title("Application")
         page.set_icon_name("applications-system-symbolic")
 
+        # Appearance group
+        appearance_group = Adw.PreferencesGroup()
+        appearance_group.set_title("Appearance")
+
+        # Theme selector
+        theme_row = Adw.ComboRow()
+        theme_row.set_title("Theme")
+        theme_row.set_subtitle("Choose the application theme")
+
+        theme_model = Gtk.StringList.new(["System", "Light", "Dark"])
+        theme_row.set_model(theme_model)
+
+        # Set current theme
+        current_theme = self.settings.get("app", "theme", "system")
+        theme_map = {"system": 0, "light": 1, "dark": 2}
+        theme_row.set_selected(theme_map.get(current_theme, 0))
+        theme_row.connect("notify::selected", self._on_theme_changed)
+
+        appearance_group.add(theme_row)
+        page.add(appearance_group)
+
         # General group
         general_group = Adw.PreferencesGroup()
         general_group.set_title("General")
@@ -105,30 +126,9 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         page.add(general_group)
 
-        # Appearance group
-        appearance_group = Adw.PreferencesGroup()
-        appearance_group.set_title("Appearance")
-
-        # Theme selector
-        theme_row = Adw.ComboRow()
-        theme_row.set_title("Theme")
-        theme_row.set_subtitle("Choose the application theme")
-
-        theme_model = Gtk.StringList.new(["System", "Light", "Dark"])
-        theme_row.set_model(theme_model)
-
-        # Set current theme
-        current_theme = self.settings.get("app", "theme", "system")
-        theme_map = {"system": 0, "light": 1, "dark": 2}
-        theme_row.set_selected(theme_map.get(current_theme, 0))
-        theme_row.connect("notify::selected", self._on_theme_changed)
-
-        appearance_group.add(theme_row)
-        page.add(appearance_group)
-
         # System tray group
         tray_group = Adw.PreferencesGroup()
-        tray_group.set_title("System Tray")
+        tray_group.set_title("Behavior")
 
         # Close to tray switch
         self.close_to_tray = Adw.SwitchRow()
@@ -161,13 +161,35 @@ class SettingsWindow(Adw.PreferencesWindow):
     def _create_adb_page(self):
         """Create the ADB settings page."""
         page = Adw.PreferencesPage()
-        page.set_title("ADB")
-        page.set_icon_name("video-display-symbolic")
+        page.set_title("Device")
+        page.set_icon_name("smartphone-symbolic")
 
         # Connection group
         connection_group = Adw.PreferencesGroup()
         connection_group.set_title("Connection")
         connection_group.set_description("ADB connection settings")
+
+        # ADB Path row
+        adb_path_row = Adw.ActionRow()
+        adb_path_row.set_title("ADB Path")
+        adb_path_row.set_subtitle("Path to adb (leave blank for system default)")
+
+        adb_path_entry = Gtk.Entry()
+        adb_path_entry.set_hexpand(True)
+        adb_path_entry.set_placeholder_text("/usr/bin/adb")
+        adb_path_entry.set_text(self.settings.get("adb", "adb_path", ""))
+        adb_path_entry.connect("changed", self._on_adb_path_changed, adb_path_row)
+        adb_path_row.add_suffix(adb_path_entry)
+
+        # File picker button
+        adb_path_button = Gtk.Button()
+        adb_path_button.set_icon_name("folder-open-symbolic")
+        adb_path_button.set_valign(Gtk.Align.CENTER)
+        adb_path_button.add_css_class("flat")
+        adb_path_button.connect("clicked", self._on_choose_adb_path, adb_path_entry, adb_path_row)
+        adb_path_row.add_suffix(adb_path_button)
+
+        connection_group.add(adb_path_row)
 
         # Connection timeout
         connection_timeout = Adw.SpinRow()
@@ -238,8 +260,8 @@ class SettingsWindow(Adw.PreferencesWindow):
     def _create_scrcpy_page(self):
         """Create the Scrcpy settings page."""
         page = Adw.PreferencesPage()
-        page.set_title("Scrcpy")
-        page.set_icon_name("smartphone-symbolic")
+        page.set_title("Mirroring")
+        page.set_icon_name("video-display-symbolic")
 
         # Display group
         display_group = Adw.PreferencesGroup()
@@ -249,7 +271,7 @@ class SettingsWindow(Adw.PreferencesWindow):
         # Always on top
         always_on_top = Adw.SwitchRow()
         always_on_top.set_title("Always on Top")
-        always_on_top.set_subtitle("Keep scrcpy window above other windows")
+        always_on_top.set_subtitle("Keep mirroring window above other windows")
         always_on_top.set_active(self.settings.get("scrcpy", "always_on_top", True))
         always_on_top.connect("notify::active", self._on_always_on_top_changed)
         display_group.add(always_on_top)
@@ -504,6 +526,52 @@ class SettingsWindow(Adw.PreferencesWindow):
     def _on_connection_timeout_changed(self, spin, _):
         """Handle connection timeout setting change."""
         self.settings.set("adb", "connection_timeout", int(spin.get_value()))
+
+    def _on_adb_path_changed(self, entry, row):
+        """Handle ADB path entry change."""
+        import os
+
+        path = entry.get_text().strip()
+        if path and (not os.path.isfile(path) or not os.access(path, os.X_OK)):
+            row.set_subtitle("Invalid path or not executable")
+            entry.get_style_context().add_class("error")
+        else:
+            row.set_subtitle("Path to adb binary (leave blank for system default)")
+            entry.get_style_context().remove_class("error")
+            self.settings.set("adb", "adb_path", path)
+
+    def _on_choose_adb_path(self, button, entry, row):
+        """Open file chooser for adb binary."""
+        from gi.repository import Gio
+
+        dialog = Gtk.FileDialog()
+        dialog.set_title("Select ADB Binary")
+        dialog.set_modal(True)
+        # Only allow single file selection (not folders or multiple files)
+        # dialog.select_folder(False)
+        # Create a filter for executable files (show all, validate on select)
+        filter_exec = Gtk.FileFilter()
+        filter_exec.set_name("Executable files")
+        filter_exec.add_pattern("*")
+        filters = Gio.ListStore.new(Gtk.FileFilter)
+        filters.append(filter_exec)
+        dialog.set_filters(filters)
+
+        def on_file_selected(dialog, result):
+            try:
+                file = dialog.open_finish(result)
+                if file:
+                    path = file.get_path()
+                    import os
+
+                    if os.path.isfile(path) and os.access(path, os.X_OK):
+                        entry.set_text(path)
+                    else:
+                        entry.set_text("")
+            except Exception:
+                pass
+
+        dialog.open(self, None, on_file_selected)
 
     def _on_max_retry_changed(self, spin, _):
         """Handle max retry attempts setting change."""

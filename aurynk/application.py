@@ -19,6 +19,7 @@ from aurynk.services.device_monitor import DeviceMonitor
 from aurynk.services.tray_service import tray_command_listener
 from aurynk.ui.windows.main_window import AurynkWindow
 from aurynk.utils.logger import get_logger
+from aurynk.utils.power import PowerMonitor
 
 logger = get_logger("AurynkApp")
 
@@ -70,6 +71,9 @@ class AurynkApp(Adw.Application):
         # Initialize device monitor for auto-connect functionality
         self.device_monitor = DeviceMonitor()
 
+        # Power monitor for suspend/resume
+        self.power_monitor = PowerMonitor()
+
         # Register callback for port updates
         def on_port_updated(address, new_port):
             """Update device storage when port changes."""
@@ -112,9 +116,29 @@ class AurynkApp(Adw.Application):
             except Exception as e:
                 logger.error(f"Error refreshing UI on disconnect: {e}")
 
+        def _on_system_sleep():
+            """Handle system sleep: disconnect ADB devices if setting enabled."""
+            from aurynk.utils.settings import SettingsManager
+            settings = SettingsManager()
+            if settings.get("adb", "auto_disconnect_on_sleep", False):
+                try:
+                    import subprocess
+
+                    from aurynk.utils.adb_utils import get_adb_path
+                    logger.info("System sleep: disconnecting all ADB devices...")
+                    result = subprocess.run([get_adb_path(), "disconnect"], capture_output=True, text=True, timeout=5)
+                    if result.returncode == 0:
+                        logger.info("✓ All devices disconnected (sleep)")
+                    else:
+                        logger.debug(f"ADB disconnect output (sleep): {result.stdout}")
+                except Exception as e:
+                    logger.warning(f"Error disconnecting devices on sleep: {e}")
+
         self.device_monitor.register_callback("on_device_connected", on_port_updated)
         self.device_monitor.register_callback("on_device_connected", on_device_connected_refresh)
         self.device_monitor.register_callback("on_device_lost", on_device_disconnected_refresh)
+        self.power_monitor.register_callback("sleep", _on_system_sleep)
+        self.power_monitor.start()
 
         # Start tray command listener thread from tray_controller
         self.tray_listener_thread = threading.Thread(
