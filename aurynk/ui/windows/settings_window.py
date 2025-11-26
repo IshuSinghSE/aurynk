@@ -287,208 +287,316 @@ class SettingsWindow(Adw.PreferencesWindow):
     def _on_require_confirmation_changed(self, switch, _):
         self.settings.set("adb", "require_confirmation_for_unpair", switch.get_active())
 
+    # scrcpy settings page
     def _create_scrcpy_page(self):
-        """Create the Scrcpy settings page."""
+        """Create the Scrcpy settings dashboard page with all features."""
         page = Adw.PreferencesPage()
         page.set_title("Mirroring")
         page.set_icon_name("video-display-symbolic")
 
-        # Display group
-        display_group = Adw.PreferencesGroup()
-        display_group.set_title("Display")
-        display_group.set_description("Screen mirroring display options")
+        # --- General/Session Options ---
+        session_group = Adw.PreferencesGroup()
+        session_group.set_title("Session Options")
 
-        # Always on top
+        # Scrcpy Path
+        scrcpy_path_row = Adw.ActionRow()
+        scrcpy_path_row.set_title("Scrcpy Path")
+        scrcpy_path_row.set_subtitle("Path to scrcpy binary (leave blank for system default)")
+        scrcpy_path_entry = Gtk.Entry()
+        scrcpy_path_entry.set_hexpand(True)
+        scrcpy_path_entry.set_placeholder_text("/usr/bin/scrcpy")
+        scrcpy_path_entry.set_text(self.settings.get("scrcpy", "scrcpy_path", ""))
+        scrcpy_path_row.add_suffix(scrcpy_path_entry)
+        session_group.add(scrcpy_path_row)
+
+        # Always on Top
         always_on_top = Adw.SwitchRow()
         always_on_top.set_title("Always on Top")
-        always_on_top.set_subtitle("Keep mirroring window above other windows")
-        always_on_top.set_active(self.settings.get("scrcpy", "always_on_top", True))
+        always_on_top.set_subtitle("Keep mirror window above others.")
+        always_on_top.set_active(self.settings.get("scrcpy", "always_on_top", False))
         always_on_top.connect("notify::active", self._on_always_on_top_changed)
-        display_group.add(always_on_top)
+        session_group.add(always_on_top)
 
         # Fullscreen
         fullscreen = Adw.SwitchRow()
         fullscreen.set_title("Fullscreen")
-        fullscreen.set_subtitle("Start in fullscreen mode")
+        fullscreen.set_subtitle("Start in fullscreen mode.")
         fullscreen.set_active(self.settings.get("scrcpy", "fullscreen", False))
         fullscreen.connect("notify::active", self._on_fullscreen_changed)
-        display_group.add(fullscreen)
+        session_group.add(fullscreen)
 
-        # Window borderless
+        # Borderless
         borderless = Adw.SwitchRow()
         borderless.set_title("Borderless Window")
-        borderless.set_subtitle("Remove window decorations")
+        borderless.set_subtitle("Remove window decorations.")
         borderless.set_active(self.settings.get("scrcpy", "window_borderless", False))
         borderless.connect("notify::active", self._on_borderless_changed)
-        display_group.add(borderless)
+        session_group.add(borderless)
 
-        # Max size
-        max_size = Adw.SpinRow()
-        max_size.set_title("Max Size")
-        max_size.set_subtitle("Maximum dimension in pixels (0 for device size)")
-        adjustment = Gtk.Adjustment(
-            value=self.settings.get("scrcpy", "max_size", 0),
-            lower=0,
-            upper=2560,
-            step_increment=100,
-            page_increment=200,
-        )
-        max_size.set_adjustment(adjustment)
-        max_size.set_digits(0)
-        max_size.connect("notify::value", self._on_max_size_changed)
-        display_group.add(max_size)
+        # Initial Window Size/Position
+        window_size_row = Adw.ActionRow()
+        window_size_row.set_title("Initial Window Size/Position")
+        window_size_row.set_subtitle("Set window width, height, X, Y (comma separated)")
+        window_size_entry = Gtk.Entry()
+        window_size_entry.set_hexpand(True)
+        window_size_entry.set_placeholder_text("width,height,x,y (e.g. 800,600,100,100)")
+        window_size_entry.set_text(self.settings.get("scrcpy", "window_geometry", ""))
+        window_size_row.add_suffix(window_size_entry)
+        session_group.add(window_size_row)
 
-        # Rotation
-        rotation = Adw.SpinRow()
-        rotation.set_title("Rotation")
-        rotation.set_subtitle("Screen rotation in degrees (0, 90, 180, 270)")
-        adjustment = Gtk.Adjustment(
-            value=self.settings.get("scrcpy", "rotation", 0),
-            lower=0,
-            upper=270,
-            step_increment=90,
-            page_increment=90,
-        )
-        rotation.set_adjustment(adjustment)
-        rotation.set_digits(0)
-        rotation.connect("notify::value", self._on_rotation_changed)
-        display_group.add(rotation)
-
-        page.add(display_group)
-
-        # Audio/Video group
-        av_group = Adw.PreferencesGroup()
-        av_group.set_title("Audio &amp; Video")
-
-        # Enable audio
-        enable_audio = Adw.SwitchRow()
-        enable_audio.set_title("Enable Audio")
-        enable_audio.set_subtitle("Forward device audio (requires scrcpy 2.0+)")
-        enable_audio.set_active(self.settings.get("scrcpy", "enable_audio", False))
-        enable_audio.connect("notify::active", self._on_enable_audio_changed)
-        av_group.add(enable_audio)
-
-        # Video codec
-        codec_row = Adw.ComboRow()
-        codec_row.set_title("Video Codec")
-        codec_row.set_subtitle("Video encoding codec")
-
-        codec_model = Gtk.StringList.new(["h264", "h265", "av1"])
-        codec_row.set_model(codec_model)
-
-        current_codec = self.settings.get("scrcpy", "video_codec", "h264")
-        codec_map = {"h264": 0, "h265": 1, "av1": 2}
-        codec_row.set_selected(codec_map.get(current_codec, 0))
-        codec_row.connect("notify::selected", self._on_video_codec_changed)
-        av_group.add(codec_row)
-
-        # Video bitrate
-        bitrate = Adw.SpinRow()
-        bitrate.set_title("Video Bitrate")
-        bitrate.set_subtitle("Video bitrate in Mbps")
-        adjustment = Gtk.Adjustment(
-            value=self.settings.get("scrcpy", "video_bitrate", 8),
-            lower=1,
-            upper=100,
-            step_increment=1,
-            page_increment=5,
-        )
-        bitrate.set_adjustment(adjustment)
-        bitrate.set_digits(0)
-        bitrate.connect("notify::value", self._on_bitrate_changed)
-        av_group.add(bitrate)
-
-        # Max FPS
-        max_fps = Adw.SpinRow()
-        max_fps.set_title("Max FPS")
-        max_fps.set_subtitle("Maximum frame rate (0 for unlimited)")
-        adjustment = Gtk.Adjustment(
-            value=self.settings.get("scrcpy", "max_fps", 0),
-            lower=0,
-            upper=120,
-            step_increment=10,
-            page_increment=30,
-        )
-        max_fps.set_adjustment(adjustment)
-        max_fps.set_digits(0)
-        max_fps.connect("notify::value", self._on_max_fps_changed)
-        av_group.add(max_fps)
-
-        page.add(av_group)
-
-        # Input group
-        input_group = Adw.PreferencesGroup()
-        input_group.set_title("Input &amp; Display")
-
-        # Show touches
-        show_touches = Adw.SwitchRow()
-        show_touches.set_title("Show Touches")
-        show_touches.set_subtitle("Display touch points on screen")
-        show_touches.set_active(self.settings.get("scrcpy", "show_touches", False))
-        show_touches.connect("notify::active", self._on_show_touches_changed)
-        input_group.add(show_touches)
-
-        # Stay awake
-        stay_awake = Adw.SwitchRow()
-        stay_awake.set_title("Stay Awake")
-        stay_awake.set_subtitle("Keep device screen on while mirroring")
-        stay_awake.set_active(self.settings.get("scrcpy", "stay_awake", True))
-        stay_awake.connect("notify::active", self._on_stay_awake_changed)
-        input_group.add(stay_awake)
-
-        # Turn screen off
-        turn_screen_off = Adw.SwitchRow()
-        turn_screen_off.set_title("Turn Screen Off")
-        turn_screen_off.set_subtitle("Turn device screen off when mirroring starts")
-        turn_screen_off.set_active(self.settings.get("scrcpy", "turn_screen_off", False))
-        turn_screen_off.connect("notify::active", self._on_turn_screen_off_changed)
-        input_group.add(turn_screen_off)
-
-        # Disable screensaver
+        # Disable Screensaver
         disable_screensaver = Adw.SwitchRow()
         disable_screensaver.set_title("Disable Screensaver")
-        disable_screensaver.set_subtitle("Prevent computer screensaver during mirroring")
-        disable_screensaver.set_active(self.settings.get("scrcpy", "disable_screensaver", True))
+        disable_screensaver.set_subtitle("Prevent computer screensaver during mirroring.")
+        disable_screensaver.set_active(self.settings.get("scrcpy", "disable_screensaver", False))
         disable_screensaver.connect("notify::active", self._on_disable_screensaver_changed)
-        input_group.add(disable_screensaver)
+        session_group.add(disable_screensaver)
 
-        page.add(input_group)
+        page.add(session_group)
 
-        # Recording group
+        # --- Stream Quality ---
+        quality_group = Adw.PreferencesGroup()
+        quality_group.set_title("Stream Quality")
+
+        # Resolution Limit
+        resolution_row = Adw.ComboRow()
+        resolution_row.set_title("Resolution Limit")
+        resolution_row.set_subtitle("Limit the maximum dimension of the video stream.")
+        res_options = ["Native (Max)", "1080p", "720p"]
+        res_model = Gtk.StringList.new(res_options)
+        resolution_row.set_model(res_model)
+        current_max = self.settings.get("scrcpy", "max_size", 0)
+        if current_max == 0:
+            resolution_row.set_selected(0)
+        elif current_max >= 1920:
+            resolution_row.set_selected(1)
+        else:
+            resolution_row.set_selected(2)
+        quality_group.add(resolution_row)
+
+        # Video Bitrate
+        bitrate_row = Adw.ActionRow()
+        bitrate_row.set_title("Video Bitrate (Mbps)")
+        bitrate_row.set_subtitle("Higher is better quality but uses more bandwidth.")
+        bitrate_scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 2, 16, 1)
+        bitrate_scale.set_value(self.settings.get("scrcpy", "video_bitrate", 8))
+        bitrate_scale.set_digits(0)
+        bitrate_scale.set_hexpand(True)
+        bitrate_scale.set_draw_value(True)
+        bitrate_scale.set_value_pos(Gtk.PositionType.RIGHT)
+        bitrate_scale.set_tooltip_text("Video bitrate in Mbps")
+        bitrate_row.add_suffix(bitrate_scale)
+        quality_group.add(bitrate_row)
+
+        # Frame Rate Cap
+        fps_row = Adw.ComboRow()
+        fps_row.set_title("Frame Rate Cap")
+        fps_row.set_subtitle("Limit the frame rate to save resources.")
+        fps_options = ["Max", "60 FPS", "30 FPS"]
+        fps_model = Gtk.StringList.new(fps_options)
+        fps_row.set_model(fps_model)
+        current_fps = self.settings.get("scrcpy", "max_fps", 0)
+        if current_fps == 60:
+            fps_row.set_selected(1)
+        elif current_fps == 30:
+            fps_row.set_selected(2)
+        else:
+            fps_row.set_selected(0)
+        quality_group.add(fps_row)
+
+        # Video Codec
+        codec_row = Adw.ComboRow()
+        codec_row.set_title("Video Codec")
+        codec_row.set_subtitle("Codec for video encoding.")
+        codec_options = ["h264", "h265", "av1"]
+        codec_model = Gtk.StringList.new(codec_options)
+        codec_row.set_model(codec_model)
+        current_codec = self.settings.get("scrcpy", "video_codec", "h264")
+        codec_row.set_selected(
+            codec_options.index(current_codec) if current_codec in codec_options else 0
+        )
+        quality_group.add(codec_row)
+
+        page.add(quality_group)
+
+        # --- Audio & Input ---
+        audio_group = Adw.PreferencesGroup()
+        audio_group.set_title("Audio Input")
+
+        # Enable Audio
+        enable_audio = Adw.SwitchRow()
+        enable_audio.set_title("Enable Audio")
+        enable_audio.set_subtitle("Stream device audio to PC.")
+        enable_audio.set_active(not self.settings.get("scrcpy", "no_audio", False))
+        enable_audio.connect(
+            "notify::active",
+            lambda s, _: self.settings.set("scrcpy", "no_audio", not s.get_active()),
+        )
+        audio_group.add(enable_audio)
+
+        # Audio Source
+        audio_source_row = Adw.ComboRow()
+        audio_source_row.set_title("Audio Source")
+        audio_source_row.set_subtitle("Choose between device output or mic.")
+        audio_source_options = ["default", "output", "mic"]
+        audio_source_model = Gtk.StringList.new(audio_source_options)
+        audio_source_row.set_model(audio_source_model)
+        current_audio_source = self.settings.get("scrcpy", "audio_source", "default")
+        audio_source_row.set_selected(
+            audio_source_options.index(current_audio_source)
+            if current_audio_source in audio_source_options
+            else 0
+        )
+        audio_group.add(audio_source_row)
+
+        # Show Touches
+        show_touches = Adw.SwitchRow()
+        show_touches.set_title("Show Touches")
+        show_touches.set_subtitle("Visual feedback for touches.")
+        show_touches.set_active(self.settings.get("scrcpy", "show_touches", False))
+        show_touches.connect("notify::active", self._on_show_touches_changed)
+        audio_group.add(show_touches)
+
+        # Keep Device Screen On
+        stay_awake = Adw.SwitchRow()
+        stay_awake.set_title("Keep Device Screen On")
+        stay_awake.set_subtitle("Keep device screen on during mirroring.")
+        stay_awake.set_active(self.settings.get("scrcpy", "stay_awake", True))
+        stay_awake.connect("notify::active", self._on_stay_awake_changed)
+        audio_group.add(stay_awake)
+
+        # Turn Device Screen Off
+        turn_screen_off = Adw.SwitchRow()
+        turn_screen_off.set_title("Turn Device Screen Off")
+        turn_screen_off.set_subtitle("Mirror with device screen off.")
+        turn_screen_off.set_active(self.settings.get("scrcpy", "turn_screen_off", False))
+        turn_screen_off.connect("notify::active", self._on_turn_screen_off_changed)
+        audio_group.add(turn_screen_off)
+
+        # Read-only Mode
+        readonly_mode = Adw.SwitchRow()
+        readonly_mode.set_title("Read-only Mode")
+        readonly_mode.set_subtitle("Disable device control (view only)")
+        readonly_mode.set_active(self.settings.get("scrcpy", "no_control", False))
+        readonly_mode.connect(
+            "notify::active", lambda s, _: self.settings.set("scrcpy", "no_control", s.get_active())
+        )
+        audio_group.add(readonly_mode)
+
+        # Use Keyboard & Mouse via OTG
+        otg_row = Adw.ComboRow()
+        otg_row.set_title("Keyboard/Mouse via OTG")
+        otg_row.set_subtitle("Control device using OTG keyboard/mouse")
+        otg_options = ["None", "Keyboard (uhid)", "Mouse (uhid)", "Keyboard (aoa)", "Mouse (aoa)"]
+        otg_model = Gtk.StringList.new(otg_options)
+        otg_row.set_model(otg_model)
+        current_otg = self.settings.get("scrcpy", "otg_mode", "None")
+        otg_row.set_selected(otg_options.index(current_otg) if current_otg in otg_options else 0)
+        audio_group.add(otg_row)
+
+        # Ensure group is added after all children
+        page.add(audio_group)
+
+        # --- Recording ---
         recording_group = Adw.PreferencesGroup()
         recording_group.set_title("Recording")
 
-        # Record format
-        format_row = Adw.ComboRow()
-        format_row.set_title("Record Format")
-        format_row.set_subtitle("Video recording format")
+        # Record Mirroring
+        record_session = Adw.SwitchRow()
+        record_session.set_title("Record Mirroring")
+        record_session.set_subtitle("Enable/disable recording of mirroring session.")
+        record_session.set_active(self.settings.get("scrcpy", "record", False))
+        recording_group.add(record_session)
 
-        format_model = Gtk.StringList.new(["mp4", "mkv", "m4a", "mka", "opus"])
-        format_row.set_model(format_model)
-
+        # Record Format
+        record_format_row = Adw.ComboRow()
+        record_format_row.set_title("Record Format")
+        record_format_row.set_subtitle("Select recording format/container.")
+        record_format_options = ["mp4", "mkv", "m4a", "mka", "opus"]
+        record_format_model = Gtk.StringList.new(record_format_options)
+        record_format_row.set_model(record_format_model)
         current_format = self.settings.get("scrcpy", "record_format", "mp4")
-        format_map = {"mp4": 0, "mkv": 1, "m4a": 2, "mka": 3, "opus": 4}
-        format_row.set_selected(format_map.get(current_format, 0))
-        format_row.connect("notify::selected", self._on_record_format_changed)
-        recording_group.add(format_row)
+        record_format_row.set_selected(
+            record_format_options.index(current_format)
+            if current_format in record_format_options
+            else 0
+        )
+        recording_group.add(record_format_row)
 
-        # Record path
+        # Recording Path
         record_path_row = Adw.ActionRow()
         record_path_row.set_title("Recording Path")
         record_path_row.set_subtitle(
-            str(Path(self.settings.get("scrcpy", "record_path", "~/Videos/Aurynk")).expanduser())
+            str(self.settings.get("scrcpy", "record_path", "~/Videos/Aurynk"))
         )
-
-        choose_button = Gtk.Button()
-        choose_button.set_icon_name("folder-open-symbolic")
-        choose_button.set_valign(Gtk.Align.CENTER)
-        choose_button.add_css_class("flat")
-        choose_button.connect("clicked", self._on_choose_record_path, record_path_row)
-        record_path_row.add_suffix(choose_button)
-
+        record_path_button = Gtk.Button()
+        record_path_button.set_icon_name("folder-open-symbolic")
+        record_path_button.set_valign(Gtk.Align.CENTER)
+        record_path_button.add_css_class("flat")
+        record_path_button.connect("clicked", self._on_choose_record_path, record_path_row)
+        record_path_row.add_suffix(record_path_button)
         recording_group.add(record_path_row)
+
         page.add(recording_group)
 
+        # --- Advanced ---
+        advanced_group = Adw.PreferencesGroup()
+        advanced_group.set_title("Advanced")
+
+        # Hardware Acceleration
+        hwaccel_row = Adw.ComboRow()
+        hwaccel_row.set_title("Hardware Acceleration")
+        hwaccel_row.set_subtitle("Use GPU for encoding.")
+        hwaccel_options = ["Default", "h264", "h265", "av1"]
+        hwaccel_model = Gtk.StringList.new(hwaccel_options)
+        hwaccel_row.set_model(hwaccel_model)
+        current_hwaccel = self.settings.get("scrcpy", "video_encoder", "Default")
+        hwaccel_row.set_selected(
+            hwaccel_options.index(current_hwaccel) if current_hwaccel in hwaccel_options else 0
+        )
+        advanced_group.add(hwaccel_row)
+
+        # No Window
+        no_window = Adw.SwitchRow()
+        no_window.set_title("No Window")
+        no_window.set_subtitle("Run without a window (background only)")
+        no_window.set_active(self.settings.get("scrcpy", "no_window", False))
+        no_window.connect(
+            "notify::active", lambda s, _: self.settings.set("scrcpy", "no_window", s.get_active())
+        )
+        advanced_group.add(no_window)
+
+        # No Video
+        no_video = Adw.SwitchRow()
+        no_video.set_title("No Video")
+        no_video.set_subtitle("Audio/control only (no video stream)")
+        no_video.set_active(self.settings.get("scrcpy", "no_video", False))
+        no_video.connect(
+            "notify::active", lambda s, _: self.settings.set("scrcpy", "no_video", s.get_active())
+        )
+        advanced_group.add(no_video)
+
+        # No Audio
+        no_audio = Adw.SwitchRow()
+        no_audio.set_title("No Audio")
+        no_audio.set_subtitle("Video/control only (no audio stream)")
+        no_audio.set_active(self.settings.get("scrcpy", "no_audio", False))
+        no_audio.connect(
+            "notify::active", lambda s, _: self.settings.set("scrcpy", "no_audio", s.get_active())
+        )
+        advanced_group.add(no_audio)
+
+        # No Control
+        no_control = Adw.SwitchRow()
+        no_control.set_title("No Control")
+        no_control.set_subtitle("Mirror only, no input")
+        no_control.set_active(self.settings.get("scrcpy", "no_control", False))
+        no_control.connect(
+            "notify::active", lambda s, _: self.settings.set("scrcpy", "no_control", s.get_active())
+        )
+        advanced_group.add(no_control)
+
+        page.add(advanced_group)
         self.add(page)
 
     # App settings callbacks
