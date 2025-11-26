@@ -2,6 +2,28 @@ from typing import Optional
 
 _inited = False
 
+def notify_device_event(event: str, device: str = "", extra: str = "", error: bool = False):
+    """
+    Central notification handler for device events.
+    event: 'connected', 'disconnected', 'error', etc.
+    device: device name or address
+    extra: additional info (e.g. error message)
+    error: if True, treat as error notification
+    """
+    from aurynk.utils.settings import SettingsManager
+
+    settings = SettingsManager()
+    if not settings.get("app", "show_notifications", True):
+        return
+    if event == "connected":
+        show_notification(title="Device Connected", body=f"{device} is now connected.")
+    elif event == "disconnected":
+        show_notification(title="Device Disconnected", body=f"{device} is now disconnected.")
+    elif event == "error":
+        show_notification(title="Device Error", body=f"{device}: {extra}", icon=None)
+    else:
+        show_notification(title="Device Event", body=f"{event}: {device} {extra}")
+
 
 def _ensure_init(app_id: str) -> bool:
     global _inited

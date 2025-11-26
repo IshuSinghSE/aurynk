@@ -148,7 +148,7 @@ class TrayHelper:
                 if data:
                     msg = data.decode()
                     if msg.strip() == "quit":
-                        logger.info("Received 'quit' command via socket. Quitting tray helper.")
+                        logger.info("Received 'quit'. Quitting tray helper.")
                         Gtk.main_quit()
                         break
                     try:

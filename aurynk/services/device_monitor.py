@@ -188,23 +188,25 @@ class DeviceMonitor:
         """
         try:
             # Remove service type suffix
-            base_name = service_name.split('._adb-tls-')[0]
+            base_name = service_name.split("._adb-tls-")[0]
             # Remove 'adb-' prefix
-            if base_name.startswith('adb-'):
+            if base_name.startswith("adb-"):
                 base_name = base_name[4:]
             # Extract model (part before last hyphen + random string)
             # Usually format is: <model>-<random>
-            parts = base_name.split('-')
+            parts = base_name.split("-")
             if len(parts) >= 2:
                 # Model is everything except the last part (which is random)
-                model = '-'.join(parts[:-1])
+                model = "-".join(parts[:-1])
                 return model
             return base_name
         except Exception as e:
             logger.debug(f"Could not extract model from service name {service_name}: {e}")
             return ""
 
-    def _handle_device_discovered(self, address: str, port: int, service_type: str, model: str = ""):
+    def _handle_device_discovered(
+        self, address: str, port: int, service_type: str, model: str = ""
+    ):
         """Handle a device discovered via mDNS."""
         logger.debug(f"Discovered {service_type} service: {address}:{port}")
 
@@ -225,7 +227,11 @@ class DeviceMonitor:
                 logger.error(f"Error in device found callback: {e}")
 
         # Auto-connect to discovered device if it's in our paired list OR if we only have one paired device
-        if self._auto_connect_enabled and service_type == "connect" and address not in self._connected_devices:
+        if (
+            self._auto_connect_enabled
+            and service_type == "connect"
+            and address not in self._connected_devices
+        ):
             # Check if this exact IP:port is in our paired devices
             if address in self._paired_devices:
                 logger.info(f"Found known paired device at {address}:{port}")
@@ -234,7 +240,9 @@ class DeviceMonitor:
             elif len(self._paired_devices) == 1:
                 paired_address = list(self._paired_devices.keys())[0]
                 paired_device = self._paired_devices[paired_address]
-                logger.info(f"Single paired device scenario: {paired_device['name']} expected at {paired_address}, discovered at {address}")
+                logger.info(
+                    f"Single paired device scenario: {paired_device['name']} expected at {paired_address}, discovered at {address}"
+                )
                 # Update the address if it changed
                 if paired_address != address:
                     logger.info(f"Device IP changed: {paired_address} → {address}")
@@ -271,6 +279,20 @@ class DeviceMonitor:
         if address in self._discovered_services:
             del self._discovered_services[address]
 
+        # Notify user
+        try:
+            from aurynk.utils.notify import notify_device_event
+
+            # Try to get device name if available
+            name = address
+            for info in self._paired_devices.values():
+                if info.get("address") == address:
+                    name = info.get("name", address)
+                    break
+            notify_device_event("disconnected", device=name)
+        except Exception:
+            pass
+
         # Notify callbacks
         for callback in self._callbacks["on_device_lost"]:
             try:
@@ -300,6 +322,14 @@ class DeviceMonitor:
             if ("connected" in output or "already connected" in output) and "unable" not in output:
                 self._connected_devices.add(address)
                 logger.info(f"✓ Auto-connected to {device_name}")
+
+                # Notify user
+                try:
+                    from aurynk.utils.notify import notify_device_event
+
+                    notify_device_event("connected", device=device_name)
+                except Exception:
+                    pass
 
                 # Small delay to ensure connection is fully established before UI update
                 time.sleep(0.5)
@@ -352,6 +382,13 @@ class DeviceMonitor:
                     disconnected = previous_connected - current_connected
                     for address in disconnected:
                         logger.info(f"Device disconnected: {address}")
+                        # Notify user
+                        try:
+                            from aurynk.utils.notify import notify_device_event
+
+                            notify_device_event("disconnected", device=address)
+                        except Exception:
+                            pass
                         # Notify callbacks about disconnection
                         for callback in self._callbacks["on_device_lost"]:
                             try:
@@ -363,6 +400,14 @@ class DeviceMonitor:
                     newly_connected = current_connected - previous_connected
                     if newly_connected:
                         logger.debug(f"Newly detected connections: {newly_connected}")
+                        # Notify user for each new connection
+                        try:
+                            from aurynk.utils.notify import notify_device_event
+
+                            for address in newly_connected:
+                                notify_device_event("connected", device=address)
+                        except Exception:
+                            pass
 
                     # Update internal state
                     self._connected_devices = current_connected
@@ -373,6 +418,12 @@ class DeviceMonitor:
 
             except Exception as e:
                 logger.debug(f"Error monitoring connections: {e}")
+                try:
+                    from aurynk.utils.notify import notify_device_event
+
+                    notify_device_event("error", device="Device Monitor", extra=str(e), error=True)
+                except Exception:
+                    pass
 
             # Sleep before next check - use setting value
             time.sleep(self._monitor_interval)
