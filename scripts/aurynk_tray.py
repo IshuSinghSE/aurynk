@@ -147,6 +147,10 @@ class TrayHelper:
                 data = conn.recv(4096)
                 if data:
                     msg = data.decode()
+                    if msg.strip() == "quit":
+                        logger.info("Received 'quit' command via socket. Quitting tray helper.")
+                        Gtk.main_quit()
+                        break
                     try:
                         status = json.loads(msg)
                         if "devices" in status:

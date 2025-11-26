@@ -178,10 +178,10 @@ class DeviceMonitor:
 
         except Exception as e:
             logger.error(f"Failed to start mDNS discovery: {e}")
-    
+
     def _extract_model_from_service_name(self, service_name: str) -> str:
         """Extract device model from mDNS service name.
-        
+
         Service name format: adb-<model>-<random>._adb-tls-<type>._tcp.local.
         Example: adb-beryl-abc123._adb-tls-connect._tcp.local.
         Returns: model (e.g., 'beryl')
@@ -243,16 +243,16 @@ class DeviceMonitor:
                     # Update in storage
                     self._update_device_address(paired_device.get("model"), address, port)
                 self._auto_connect_to_device(address, port)
-    
+
     def _update_device_address(self, model: str, new_address: str, new_port: int):
         """Update device address in storage when IP changes."""
         try:
             # Import here to avoid circular dependencies
             from aurynk.core.device_manager import DeviceStorage
-            
+
             storage = DeviceStorage()
             devices = storage.load_devices()
-            
+
             for device in devices:
                 if device.get("model") == model:
                     device["address"] = new_address

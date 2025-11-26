@@ -25,7 +25,7 @@ class SettingsManager:
             "auto_connect": True,
             "monitor_interval": 5,
             "show_notifications": True,
-            "minimize_to_tray": True,
+            "close_to_tray": True,
             "start_minimized": False,
             "theme": "system",
         },

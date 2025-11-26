@@ -85,11 +85,35 @@ class AurynkWindow(Adw.ApplicationWindow):
         super().do_close()
 
     def _on_close_request(self, window):
-        """Handle close request - hide window instead of destroying it."""
-        logger.info("Close requested - hiding window instead of closing app")
-        self.hide()
-        # Return True to prevent the default close behavior
-        return True
+        """Handle close request - hide window to tray if 'close_to_tray' is enabled, else quit."""
+        from aurynk.utils.settings import SettingsManager
+
+        settings = SettingsManager()
+        close_to_tray = settings.get("app", "close_to_tray", True)
+        if close_to_tray:
+            logger.info(
+                "Close requested - hiding window instead of closing app (Close to Tray enabled)"
+            )
+            self.hide()
+            return True  # Prevent default close
+        else:
+            logger.info("Close requested - quitting app and tray (Close to Tray disabled)")
+            # Remove tray icon if present, and terminate tray helper process if running
+            app = self.get_application()
+            # Attempt to terminate tray helper by sending 'quit' command to its socket
+            import socket
+
+            tray_socket = "/tmp/aurynk_tray.sock"
+            try:
+                with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+                    s.connect(tray_socket)
+                    s.sendall(b"quit")
+                    logger.info("Sent 'quit' command to tray helper via socket.")
+            except Exception as e:
+                logger.warning(f"Could not send 'quit' to tray helper: {e}")
+            if app:
+                app.quit()
+            return False  # Allow default close (app will quit)
 
     def show_pairing_dialog(self):
         from aurynk.ui.dialogs.pairing_dialog import PairingDialog

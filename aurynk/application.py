@@ -64,6 +64,9 @@ class AurynkApp(Adw.Application):
         # Keep the application running even if no windows are visible (for tray)
         self.hold()
 
+        # Track if this is the first activation (startup)
+        self._first_activation = True
+
         # Initialize device monitor for auto-connect functionality
         self.device_monitor = DeviceMonitor()
 
@@ -249,6 +252,11 @@ class AurynkApp(Adw.Application):
 
     def do_activate(self):
         """Called when the application is activated (main entry point or from tray)."""
+        from aurynk.utils.settings import SettingsManager
+
+        settings = SettingsManager()
+        start_minimized = settings.get("app", "start_minimized", False)
+
         # Get or create the main window
         win = self.props.active_window
         if not win:
@@ -257,11 +265,18 @@ class AurynkApp(Adw.Application):
         else:
             logger.debug(f"Window exists, visible: {win.get_visible()}")
 
-        # present() will:
-        # 1. Show the window if hidden (un-hide)
-        # 2. Center it if first time shown
-        # 3. Bring to front and give focus
-        win.present()
+        if self._first_activation:
+            # On first activation, only show window if not start_minimized
+            if not start_minimized:
+                win.present()
+            else:
+                logger.info(
+                    "Start Minimized to Tray is enabled; not showing main window on startup."
+                )
+            self._first_activation = False
+        else:
+            # On subsequent activations (e.g., from tray), always show window
+            win.present()
 
     def _load_gresource(self):
         """Load the compiled GResource file."""
