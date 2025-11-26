@@ -38,7 +38,8 @@ class DeviceMonitor:
         self._zeroconf = None
         self._browsers = []
         self._monitor_thread = None
-        self._paired_devices = {}  # {address: {connect_port, pair_port, name}}
+        self._paired_devices = {}  # {model: {address, connect_port, pair_port, name}}
+        self._device_by_address = {}  # {address: model} - for quick IP lookups
         self._connected_devices = set()  # Addresses of currently connected devices
         self._discovered_services = {}  # Temporary storage for mDNS discoveries
 
@@ -72,14 +73,18 @@ class DeviceMonitor:
     def set_paired_devices(self, devices: list):
         """Update the list of paired devices to monitor."""
         self._paired_devices.clear()
+        self._device_by_address.clear()
         for device in devices:
+            model = device.get("model")
             address = device.get("address")
-            if address:
-                self._paired_devices[address] = {
+            if model and address:
+                self._paired_devices[model] = {
+                    "address": address,
+                    "name": device.get("name", "Unknown"),
                     "connect_port": device.get("connect_port"),
                     "pair_port": device.get("pair_port"),
-                    "name": device.get("name", "Unknown"),
                 }
+                self._device_by_address[address] = model
         logger.debug(f"Monitoring {len(self._paired_devices)} paired devices")
 
     def start(self):
@@ -138,7 +143,9 @@ class DeviceMonitor:
                     if info and info.addresses:
                         address = ".".join(map(str, info.addresses[0]))
                         port = info.port
-                        self._handle_device_discovered(address, port, "connect")
+                        # Extract device model from service name (format: "adb-<model>-<random>._adb-tls-connect._tcp.local.")
+                        model = self._extract_model_from_service_name(name)
+                        self._handle_device_discovered(address, port, "connect", model)
                 elif state_change == ServiceStateChange.Removed:
                     info = zeroconf.get_service_info(service_type, name)
                     if info and info.addresses:
@@ -152,7 +159,8 @@ class DeviceMonitor:
                     if info and info.addresses:
                         address = ".".join(map(str, info.addresses[0]))
                         port = info.port
-                        self._handle_device_discovered(address, port, "pair")
+                        model = self._extract_model_from_service_name(name)
+                        self._handle_device_discovered(address, port, "pair", model)
 
             # Browse for both service types
             browser_connect = ServiceBrowser(
@@ -171,10 +179,35 @@ class DeviceMonitor:
 
         except Exception as e:
             logger.error(f"Failed to start mDNS discovery: {e}")
+    
+    def _extract_model_from_service_name(self, service_name: str) -> str:
+        """Extract device model from mDNS service name.
+        
+        Service name format: adb-<model>-<random>._adb-tls-<type>._tcp.local.
+        Example: adb-beryl-abc123._adb-tls-connect._tcp.local.
+        Returns: model (e.g., 'beryl')
+        """
+        try:
+            # Remove service type suffix
+            base_name = service_name.split('._adb-tls-')[0]
+            # Remove 'adb-' prefix
+            if base_name.startswith('adb-'):
+                base_name = base_name[4:]
+            # Extract model (part before last hyphen + random string)
+            # Usually format is: <model>-<random>
+            parts = base_name.split('-')
+            if len(parts) >= 2:
+                # Model is everything except the last part (which is random)
+                model = '-'.join(parts[:-1])
+                return model
+            return base_name
+        except Exception as e:
+            logger.debug(f"Could not extract model from service name {service_name}: {e}")
+            return ""
 
-    def _handle_device_discovered(self, address: str, port: int, service_type: str):
+    def _handle_device_discovered(self, address: str, port: int, service_type: str, model: str = ""):
         """Handle a device discovered via mDNS."""
-        logger.debug(f"Discovered {service_type} service: {address}:{port}")
+        logger.debug(f"Discovered {service_type} service: {address}:{port} (model: {model})")
 
         # Store in temporary discovery cache
         if address not in self._discovered_services:
@@ -184,6 +217,9 @@ class DeviceMonitor:
             self._discovered_services[address]["connect_port"] = port
         elif service_type == "pair":
             self._discovered_services[address]["pair_port"] = port
+        
+        if model:
+            self._discovered_services[address]["model"] = model
 
         # Notify callbacks
         for callback in self._callbacks["on_device_found"]:
@@ -192,10 +228,43 @@ class DeviceMonitor:
             except Exception as e:
                 logger.error(f"Error in device found callback: {e}")
 
-        # Check if this is a paired device and auto-connect
-        if self._auto_connect_enabled and address in self._paired_devices:
+        # Check if this is a paired device by model (not IP!)
+        if self._auto_connect_enabled and model and model in self._paired_devices:
+            paired_device = self._paired_devices[model]
+            old_address = paired_device["address"]
+            
+            # Update IP address if it changed
+            if old_address != address:
+                logger.info(f"Device {model} IP changed: {old_address} → {address}")
+                paired_device["address"] = address
+                self._device_by_address.pop(old_address, None)
+                self._device_by_address[address] = model
+                
+                # Update stored device info
+                self._update_device_address(model, address, port)
+            
+            # Auto-connect if it's a connect service and not already connected
             if service_type == "connect" and address not in self._connected_devices:
                 self._auto_connect_to_device(address, port)
+    
+    def _update_device_address(self, model: str, new_address: str, new_port: int):
+        """Update device address in storage when IP changes."""
+        try:
+            # Import here to avoid circular dependencies
+            from aurynk.core.device_manager import DeviceStorage
+            
+            storage = DeviceStorage()
+            devices = storage.load_devices()
+            
+            for device in devices:
+                if device.get("model") == model:
+                    device["address"] = new_address
+                    device["connect_port"] = new_port
+                    storage.save_device(device)
+                    logger.info(f"Updated {model} address to {new_address}:{new_port} in storage")
+                    break
+        except Exception as e:
+            logger.error(f"Failed to update device address in storage: {e}")
 
     def _handle_device_lost(self, address: str):
         """Handle a device that went offline."""
