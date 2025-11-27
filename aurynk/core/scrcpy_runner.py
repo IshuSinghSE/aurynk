@@ -157,6 +157,32 @@ class ScrcpyManager:
             if max_fps > 0:
                 cmd.extend(["--max-fps", str(max_fps)])
 
+            # Recording options
+            record_enabled = settings.get("scrcpy", "record", False)
+            record_path = settings.get("scrcpy", "record_path", "~/Videos/Aurynk")
+            record_format = settings.get("scrcpy", "record_format", "mp4")
+
+            if record_enabled:
+                from pathlib import Path
+
+                # Expand ~ and ensure directory exists
+                record_dir = Path(record_path).expanduser()
+                record_dir.mkdir(parents=True, exist_ok=True)
+                # Generate a unique filename with timestamp
+                import datetime
+
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                # Format device name for filename: lowercase, spaces to underscores, alphanum/underscore only
+                safe_device_name = device_name or serial
+                safe_device_name = safe_device_name.lower().replace(" ", "_")
+                # Remove any non-alphanumeric or underscore chars
+                import re
+
+                safe_device_name = re.sub(r"[^a-z0-9_]+", "", safe_device_name)
+                filename = f"aurynk_record_{safe_device_name}_{timestamp}.{record_format}"
+                full_path = str(record_dir / filename)
+                cmd.extend(["--record", full_path, "--record-format", record_format])
+
             # Input settings
             # Use adb to set show_touches before starting scrcpy, with serial and delay
             show_touches = settings.get("scrcpy", "show_touches")

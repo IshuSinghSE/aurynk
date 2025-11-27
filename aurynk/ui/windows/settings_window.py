@@ -742,9 +742,9 @@ class SettingsWindow(Adw.PreferencesWindow):
         stay_awake = Adw.SwitchRow()
         stay_awake.set_title("Keep Device Screen On (experimental)")
         stay_awake.set_subtitle(
-            "Keep device screen on during mirroring (experimental, may not work on all devices or wireless mode)."
+            "Keep device screen on during mirroring (may not work on all devices or wireless mode)."
         )
-        stay_awake.set_active(self.settings.get("scrcpy", "stay_awake", True))
+        stay_awake.set_active(self.settings.get("scrcpy", "stay_awake", False))
 
         def on_stay_awake_changed(switch, _):
             self.settings.set("scrcpy", "stay_awake", switch.get_active())
@@ -786,7 +786,7 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Use Keyboard & Mouse via OTG
         otg_row = Adw.ComboRow()
-        otg_row.set_title("Keyboard/Mouse via OTG")
+        otg_row.set_title("Keyboard/Mouse via OTG (experimental)")
         otg_row.set_subtitle("Control device using OTG keyboard/mouse")
         otg_options = ["None", "Keyboard (uhid)", "Mouse (uhid)", "Keyboard (aoa)", "Mouse (aoa)"]
         otg_model = Gtk.StringList.new(otg_options)
@@ -824,7 +824,7 @@ class SettingsWindow(Adw.PreferencesWindow):
         # Record Format
         record_format_row = Adw.ComboRow()
         record_format_row.set_title("Record Format")
-        record_format_row.set_subtitle("Select recording format/container.")
+        record_format_row.set_subtitle("Select recording format.")
         record_format_options = ["mp4", "mkv", "m4a", "mka", "opus"]
         record_format_model = Gtk.StringList.new(record_format_options)
         record_format_row.set_model(record_format_model)
