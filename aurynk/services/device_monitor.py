@@ -54,10 +54,18 @@ class DeviceMonitor:
         self._settings = SettingsManager()
         self._auto_connect_enabled = self._settings.get("app", "auto_connect", True)
         self._monitor_interval = self._settings.get("app", "monitor_interval", 5)
+        self._auto_connect_retries = self._settings.get("app", "auto_connect_retries", 3)
+        self._auto_connect_retry_delay = self._settings.get("app", "auto_connect_retry_delay", 5)
         self._keep_alive_interval = self._settings.get("adb", "keep_alive_interval", 0)
 
         # Register settings callbacks for live updates
         self._settings.register_callback("app", "auto_connect", self._on_auto_connect_changed)
+        self._settings.register_callback(
+            "app", "auto_connect_retries", self._on_auto_connect_retries_changed
+        )
+        self._settings.register_callback(
+            "app", "auto_connect_retry_delay", self._on_auto_connect_retry_delay_changed
+        )
         self._settings.register_callback(
             "app", "monitor_interval", self._on_monitor_interval_changed
         )
@@ -65,7 +73,15 @@ class DeviceMonitor:
             "adb", "keep_alive_interval", self._on_keep_alive_interval_changed
         )
 
-    def _on_keep_alive_interval_changed(self, new_value):
+    def _on_auto_connect_retries_changed(self, new_value):
+        self._auto_connect_retries = new_value
+        logger.info(f"Auto-connect retries set to {new_value}")
+
+    def _on_auto_connect_retry_delay_changed(self, new_value):
+        self._auto_connect_retry_delay = new_value
+        logger.info(f"Auto-connect retry delay set to {new_value} seconds")
+
+    def _on_keep_alive_interval_changed(self, new_value, old_value):
         self._keep_alive_interval = new_value
         logger.info(f"ADB keep-alive interval set to {new_value} seconds")
 
@@ -310,7 +326,7 @@ class DeviceMonitor:
                 logger.error(f"Error in device lost callback: {e}")
 
     def _auto_connect_to_device(self, address: str, port: int):
-        """Automatically connect to a paired device."""
+        """Automatically connect to a paired device with retry logic."""
         paired_info = self._paired_devices.get(address)
         if not paired_info:
             return
@@ -318,51 +334,59 @@ class DeviceMonitor:
         device_name = paired_info.get("name", address)
         logger.info(f"Auto-connecting to paired device: {device_name} ({address}:{port})")
 
-        try:
-            from aurynk.utils.adb_utils import get_adb_path
+        from aurynk.utils.adb_utils import get_adb_path
+        from aurynk.utils.notify import notify_device_event
 
-            result = subprocess.run(
-                [get_adb_path(), "connect", f"{address}:{port}"],
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-
-            output = (result.stdout + result.stderr).lower()
-
-            if ("connected" in output or "already connected" in output) and "unable" not in output:
-                self._connected_devices.add(address)
-                logger.info(f"✓ Auto-connected to {device_name}")
-
-                # Notify user
-                try:
-                    from aurynk.utils.notify import notify_device_event
-
-                    notify_device_event("connected", device=device_name)
-                except Exception:
-                    pass
-
-                # Small delay to ensure connection is fully established before UI update
-                time.sleep(0.5)
-
-                # Always notify callbacks on successful connection (for UI refresh)
-                for callback in self._callbacks["on_device_connected"]:
+        for attempt in range(1, self._auto_connect_retries + 1):
+            try:
+                result = subprocess.run(
+                    [get_adb_path(), "connect", f"{address}:{port}"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                output = (result.stdout + result.stderr).lower()
+                if (
+                    "connected" in output or "already connected" in output
+                ) and "unable" not in output:
+                    self._connected_devices.add(address)
+                    logger.info(f"✓ Auto-connected to {device_name}")
                     try:
-                        callback(address, port)
-                    except Exception as e:
-                        logger.error(f"Error in connected callback: {e}")
-
-                # Update paired device info if port changed
-                if paired_info.get("connect_port") != port:
-                    logger.info(
-                        f"Port changed from {paired_info.get('connect_port')} to {port}, updating..."
+                        notify_device_event("connected", device=device_name)
+                    except Exception:
+                        pass
+                    time.sleep(0.5)
+                    for callback in self._callbacks["on_device_connected"]:
+                        try:
+                            callback(address, port)
+                        except Exception as e:
+                            logger.error(f"Error in connected callback: {e}")
+                    if paired_info.get("connect_port") != port:
+                        logger.info(
+                            f"Port changed from {paired_info.get('connect_port')} to {port}, updating..."
+                        )
+                        paired_info["connect_port"] = port
+                    return
+                else:
+                    logger.warning(
+                        f"[Attempt {attempt}/{self._auto_connect_retries}] Failed to auto-connect to {device_name}: {output}"
                     )
-                    paired_info["connect_port"] = port
-            else:
-                logger.warning(f"Failed to auto-connect to {device_name}: {output}")
-
-        except Exception as e:
-            logger.error(f"Error auto-connecting to {device_name}: {e}")
+            except Exception as e:
+                logger.error(
+                    f"[Attempt {attempt}/{self._auto_connect_retries}] Error auto-connecting to {device_name}: {e}"
+                )
+            if attempt < self._auto_connect_retries:
+                time.sleep(self._auto_connect_retry_delay)
+        # If all attempts fail, notify user
+        try:
+            notify_device_event(
+                "error", device=device_name, extra="Unlock device to auto-connect", error=True
+            )
+        except Exception:
+            pass
+        logger.error(
+            f"Auto-connect failed after {self._auto_connect_retries} attempts. User notified."
+        )
 
     def _monitor_connections(self):
         """Background thread to monitor ADB connection status and send keep-alive if enabled."""
@@ -403,6 +427,79 @@ class DeviceMonitor:
                             notify_device_event("disconnected", device=address)
                         except Exception:
                             pass
+                        # Auto-unpair logic
+                        try:
+                            from aurynk.utils.settings import SettingsManager
+
+                            settings = SettingsManager()
+                            auto_unpair = settings.get("adb", "auto_unpair_on_disconnect", False)
+                            require_confirm = settings.get(
+                                "adb", "require_confirmation_for_unpair", True
+                            )
+                            if auto_unpair:
+
+                                def do_unpair_on_main():
+                                    try:
+                                        from gi.repository import Adw, Gtk
+
+                                        main_window = None
+                                        app = Gtk.Application.get_default()
+                                        if app:
+                                            for win in app.get_windows():
+                                                if win.get_visible():
+                                                    main_window = win
+                                                    break
+                                        if require_confirm and main_window:
+                                            dialog = Adw.MessageDialog.new(main_window)
+                                            dialog.set_heading("Remove Device?")
+                                            body_text = (
+                                                f"Are you sure you want to remove\n{address} ?"
+                                            )
+                                            dialog.set_body(body_text)
+                                            dialog.set_default_size(340, 120)
+                                            body_label = (
+                                                dialog.get_body_label()
+                                                if hasattr(dialog, "get_body_label")
+                                                else None
+                                            )
+                                            if body_label:
+                                                body_label.set_line_wrap(True)
+                                                body_label.set_max_width_chars(40)
+                                            dialog.add_response("cancel", "Cancel")
+                                            dialog.add_response("remove", "Remove")
+                                            dialog.set_response_appearance(
+                                                "remove", Adw.ResponseAppearance.DESTRUCTIVE
+                                            )
+
+                                            def on_response(dlg, response):
+                                                if response == "remove":
+                                                    from aurynk.core.adb_manager import (
+                                                        ADBController,
+                                                    )
+
+                                                    ADBController().remove_device(address)
+                                                    logger.info(
+                                                        f"Device {address} unpaired after disconnect (confirmed)"
+                                                    )
+                                                dlg.destroy()
+
+                                            dialog.connect("response", on_response)
+                                            dialog.present()
+                                        else:
+                                            from aurynk.core.adb_manager import ADBController
+
+                                            ADBController().remove_device(address)
+                                            logger.info(
+                                                f"Device {address} unpaired after disconnect (no confirmation or no window)"
+                                            )
+                                    except Exception as e:
+                                        logger.error(f"Auto-unpair dialog/main thread failed: {e}")
+
+                                from gi.repository import GLib
+
+                                GLib.idle_add(do_unpair_on_main)
+                        except Exception as e:
+                            logger.error(f"Auto-unpair on disconnect failed: {e}")
                         # Notify callbacks about disconnection
                         for callback in self._callbacks["on_device_lost"]:
                             try:
