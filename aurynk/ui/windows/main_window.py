@@ -40,24 +40,20 @@ class AurynkWindow(Adw.ApplicationWindow):
 
         self._device_change_callback = safe_refresh
         register_device_change_callback(self._device_change_callback)
-        # Load custom CSS for outlined button
+        # Load custom CSS
         self._load_custom_css()
         # Window properties
         self.set_title("Aurynk")
         self.set_icon_name("io.github.IshuSinghSE.aurynk")
-        self.set_default_size(700, 520)
+        self.set_default_size(800, 600)
         # Store window position when hiding
         self._stored_position = None
         # Handle close-request to hide window instead of closing app
         self.connect("close-request", self._on_close_request)
         # Setup actions
         self._setup_actions()
-        # Try to load UI from GResource, fall back to programmatic UI
-        try:
-            self._setup_ui_from_template()
-        except Exception as e:
-            logger.error(f"Could not load UI template: {e}")
-            self._setup_ui_programmatically()
+
+        self._setup_ui()
 
     def _setup_actions(self):
         """Setup window actions."""
@@ -121,21 +117,6 @@ class AurynkWindow(Adw.ApplicationWindow):
         dialog = PairingDialog(self)
         dialog.present()
 
-    def _setup_ui_from_template(self):
-        """Load UI from XML template (GResource)."""
-        builder = Gtk.Builder.new_from_resource("/io/github/IshuSinghSE/aurynk/ui/main_window.ui")
-        main_content = builder.get_object("main_content")
-        if main_content:
-            self.set_content(main_content)
-            self.device_list_box = builder.get_object("device_list")
-            add_device_btn = builder.get_object("add_device_button")
-            if add_device_btn:
-                add_device_btn.connect("clicked", self._on_add_device_clicked)
-            # No search entry, no app logo/name in template path
-            self._refresh_device_list()
-        else:
-            raise Exception("Could not find main_content in UI template")
-
     def _load_custom_css(self):
         css_provider = Gtk.CssProvider()
         css_path = "/io/github/IshuSinghSE/aurynk/styles/aurynk.css"
@@ -147,71 +128,58 @@ class AurynkWindow(Adw.ApplicationWindow):
         except Exception as e:
             logger.warning(f"Could not load CSS from {css_path}: {e}")
 
-    def _setup_ui_programmatically(self):
-        """Create UI programmatically if template loading fails."""
-        # Main vertical box
-        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+    def _setup_ui(self):
+        """Create UI programmatically."""
+        # Main content box
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.set_content(main_box)
 
         # Header bar
         header_bar = Adw.HeaderBar()
         header_bar.set_show_end_title_buttons(True)
 
-        # Add menu button with settings (following GNOME HIG)
+        # Add Device button
+        add_device_btn = Gtk.Button()
+        add_device_btn.set_icon_name("list-add-symbolic")
+        add_device_btn.set_tooltip_text("Add Device")
+        add_device_btn.connect("clicked", self._on_add_device_clicked)
+        # Use primary style for CTA
+        add_device_btn.add_css_class("suggested-action")
+        header_bar.pack_start(add_device_btn)
+
+        # Menu button
         menu_button = Gtk.MenuButton()
         menu_button.set_icon_name("open-menu-symbolic")
         menu_button.set_tooltip_text("Main Menu")
         menu = Gio.Menu()
-
-        # Primary menu section
         menu.append("Preferences", "win.preferences")
-
-        # About section (separated as per GNOME HIG)
         about_section = Gio.Menu()
         about_section.append("About Aurynk", "win.about")
         menu.append_section(None, about_section)
-
         menu_button.set_menu_model(menu)
         header_bar.pack_end(menu_button)
 
-        # Header content box
-        header_content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-
-        # Add Device button
-        add_device_btn = Gtk.Button()
-        add_device_btn.set_label("Add Device")
-        add_device_btn.set_icon_name("list-add-symbolic")
-        add_device_btn.border_width = 2
-        add_device_btn.connect("clicked", self._on_add_device_clicked)
-
-        # header_content.append(app_header_box)
-        header_content.append(add_device_btn)
-        header_bar.set_title_widget(header_content)
-
         main_box.append(header_bar)
 
-        # Scrolled window for device list
+        # Content area with clamping for better layout on wide screens
+        clamp = Adw.Clamp()
+        clamp.set_maximum_size(800)
+        clamp.set_tightening_threshold(600)
+
+        # Scrolled window
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_vexpand(True)
-        scrolled.set_hexpand(True)
-
-        # Device list container
-        self.device_list_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        self.device_list_box.set_margin_top(24)
-        self.device_list_box.set_margin_bottom(24)
-        self.device_list_box.set_margin_start(32)
-        self.device_list_box.set_margin_end(32)
-
-        # Title label
-        devices_label = Gtk.Label()
-        devices_label.set_markup('<span size="large" weight="bold">Paired Devices</span>')
-        devices_label.set_halign(Gtk.Align.START)
-        devices_label.set_margin_bottom(12)
-        self.device_list_box.append(devices_label)
-
-        scrolled.set_child(self.device_list_box)
+        scrolled.set_child(clamp)
         main_box.append(scrolled)
 
-        self.set_content(main_box)
+        # Device list container (PreferencesGroup style)
+        self.device_list_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=24)
+        self.device_list_box.set_margin_top(24)
+        self.device_list_box.set_margin_bottom(24)
+        self.device_list_box.set_margin_start(12)
+        self.device_list_box.set_margin_end(12)
+
+        clamp.set_child(self.device_list_box)
 
         # Load initial device list
         self._refresh_device_list()
@@ -219,14 +187,13 @@ class AurynkWindow(Adw.ApplicationWindow):
     def _refresh_device_list(self):
         """Refresh the device list from storage and sync tray."""
         if not hasattr(self, "device_list_box") or self.device_list_box is None:
-            # UI template not loaded yet, skip
             return
 
-        # Force reload from file to get latest changes from other windows/processes
+        # Force reload from file
         self.adb_controller.device_store.reload()
         devices = self.adb_controller.load_paired_devices()
 
-        # Update device monitor with current paired devices and start monitoring
+        # Update device monitor
         app = self.get_application()
         if app and hasattr(app, "device_monitor"):
             app.device_monitor.set_paired_devices(devices)
@@ -240,70 +207,35 @@ class AurynkWindow(Adw.ApplicationWindow):
             self.device_list_box.remove(child)
             child = next_child
 
-        # Add device rows
         if devices:
+            # Create a PreferencesGroup for the list
+            group = Adw.PreferencesGroup()
+            group.set_title("Paired Devices")
+
             for device in devices:
-                device_row = self._create_device_row(device)
-                self.device_list_box.append(device_row)
+                row = self._create_device_row(device)
+                group.add(row)
+
+            self.device_list_box.append(group)
         else:
-            # Show empty state with image and text
-            empty_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-            empty_box.set_valign(Gtk.Align.CENTER)
-            empty_box.set_halign(Gtk.Align.CENTER)
-            empty_box.set_hexpand(True)
-            empty_box.set_vexpand(True)
-            # Use Gtk.Image with EventControllerMotion for pointer cursor and scaling
-            empty_image = Gtk.Image.new_from_resource(
-                "/io/github/IshuSinghSE/aurynk/icons/io.github.IshuSinghSE.aurynk.add-device.png"
-            )
-            empty_image.set_pixel_size(120)
-            empty_image.set_halign(Gtk.Align.CENTER)
-            empty_image.set_valign(Gtk.Align.CENTER)
-            empty_image.add_css_class("clickable-image")
-            empty_image.set_tooltip_text("Click to add a device")
+            # Empty state using Adw.StatusPage
+            status_page = Adw.StatusPage()
+            status_page.set_icon_name("io.github.IshuSinghSE.aurynk")
+            status_page.set_title("No Devices Paired")
+            status_page.set_description("Scan a QR code to wirelessly connect your Android device.")
+            status_page.set_vexpand(True)
 
-            # Add scaling and pointer cursor on hover
-            def on_enter(controller, x, y, image):
-                image.add_css_class("hovered-image")
-                image.set_cursor_from_name("pointer")
+            # Add CTA button to status page
+            cta_btn = Gtk.Button()
+            cta_btn.set_label("Add Device")
+            cta_btn.set_icon_name("list-add-symbolic")
+            cta_btn.add_css_class("pill")
+            cta_btn.add_css_class("suggested-action")
+            cta_btn.set_halign(Gtk.Align.CENTER)
+            cta_btn.connect("clicked", self._on_add_device_clicked)
+            status_page.set_child(cta_btn)
 
-            def on_leave(controller, image):
-                image.remove_css_class("hovered-image")
-                image.set_cursor_from_name(None)
-
-            motion_controller = Gtk.EventControllerMotion.new()
-            motion_controller.connect("enter", on_enter, empty_image)
-            motion_controller.connect("leave", on_leave, empty_image)
-            empty_image.add_controller(motion_controller)
-
-            # Click gesture
-            gesture = Gtk.GestureClick.new()
-            gesture.connect(
-                "released", lambda gesture, n, x, y: self._on_add_device_clicked(empty_image)
-            )
-            empty_image.add_controller(gesture)
-
-            # Load CSS for scaling effect from external file if not already loaded
-            css_provider = Gtk.CssProvider()
-            css_path = "/io/github/IshuSinghSE/aurynk/styles/aurynk.css"
-            try:
-                css_provider.load_from_resource(css_path)
-                Gtk.StyleContext.add_provider_for_display(
-                    Gdk.Display.get_default(), css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-                )
-            except Exception as e:
-                logger.warning(f"Could not load CSS from {css_path}: {e}")
-
-            empty_box.append(empty_image)
-
-            empty_label = Gtk.Label()
-            empty_label.set_markup('<span alpha="50%" >Click "Add Device" to get started</span>')
-            empty_label.set_justify(Gtk.Justification.CENTER)
-            empty_label.set_margin_bottom(64)
-            empty_label.set_halign(Gtk.Align.CENTER)
-            empty_box.append(empty_label)
-
-            self.device_list_box.append(empty_box)
+            self.device_list_box.append(status_page)
 
         # Always sync tray after device list changes
         app = self.get_application()
@@ -311,105 +243,75 @@ class AurynkWindow(Adw.ApplicationWindow):
             app.send_status_to_tray()
 
     def _create_device_row(self, device):
-        """Create a row widget for a device."""
-        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        row.set_margin_start(24)
-        row.set_margin_end(24)
+        """Create an Adw.ActionRow for a device."""
+        row = Adw.ActionRow()
+        row.set_selectable(False)
 
-        # Add CSS classes for styling
-        row.add_css_class("card")
+        # Device name and subtitle
+        dev_name = device.get("name", "Unknown Device")
+        row.set_title(dev_name)
 
-        # Device icon
-        # Use permanent location for screenshots
+        details = []
+        if device.get("model"):
+            details.append(device["model"])
+        if device.get("android_version"):
+            details.append(f"Android {device['android_version']}")
+        row.set_subtitle(" • ".join(details) if details else "Unknown Model")
+
+        # Icon prefix
         screenshot_path = device.get("thumbnail")
         if screenshot_path and not os.path.isabs(screenshot_path):
             screenshot_path = os.path.expanduser(
                 os.path.join("~/.local/share/aurynk/screenshots", screenshot_path)
             )
-        if not screenshot_path or not os.path.exists(screenshot_path):
-            # Use Flatpak-compliant GResource path for fallback icon
-            icon = Gtk.Image.new_from_resource(
-                "/io/github/IshuSinghSE/aurynk/icons/io.github.IshuSinghSE.aurynk.device.png"
-            )
+
+        if screenshot_path and os.path.exists(screenshot_path):
+            icon_paintable = Gtk.Image.new_from_file(screenshot_path).get_paintable()
+            row.add_prefix(Gtk.Image.new_from_paintable(icon_paintable))
         else:
-            icon = Gtk.Image.new_from_file(screenshot_path)
-        icon.set_margin_top(4)
-        icon.set_margin_bottom(4)
+             row.add_prefix(Gtk.Image.new_from_icon_name("smartphone-symbolic"))
 
-        icon.set_pixel_size(56)
-        row.append(icon)
-
-        # Device info
-        info_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        info_box.set_margin_top(12)
-        info_box.set_margin_bottom(8)
-        info_box.set_hexpand(True)
-
-        # Device name
-        name_label = Gtk.Label()
-        dev_name = device.get("name", "Unknown Device")
-        name_label.set_markup(f'<span size="large" weight="bold">{dev_name}</span>')
-        name_label.set_halign(Gtk.Align.START)
-        info_box.append(name_label)
-
-        # Device details
-        details = []
-        if device.get("manufacturer"):
-            details.append(device["manufacturer"])
-        if device.get("model"):
-            details.append(device["model"])
-        if device.get("android_version"):
-            details.append(f"Android {device['android_version']}")
-
-        if details:
-            details_label = Gtk.Label(label=" • ".join(details))
-            details_label.set_halign(Gtk.Align.START)
-            details_label.add_css_class("dim-label")
-            info_box.append(details_label)
-
-        row.append(info_box)
-
-        # Status and actions
-        status_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        status_box.set_margin_end(12)
-        status_btn = Gtk.Button()
+        # Connection Status & Actions
         address = device.get("address")
         connect_port = device.get("connect_port")
         connected = False
         if address and connect_port:
             connected = is_device_connected(address, connect_port)
+
+        # Action Box (Suffix)
+        actions_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        actions_box.set_valign(Gtk.Align.CENTER)
+
+        # Mirror Button
+        mirror_btn = Gtk.Button()
+        mirror_btn.set_icon_name("screen-shared-symbolic")
+        mirror_btn.set_tooltip_text("Screen Mirror")
+        mirror_btn.add_css_class("flat")
+        mirror_btn.set_sensitive(connected)
+        mirror_btn.connect("clicked", self._on_mirror_clicked, device)
+        actions_box.append(mirror_btn)
+
+        # Details Button
+        details_btn = Gtk.Button()
+        details_btn.set_icon_name("preferences-system-details-symbolic")
+        details_btn.set_tooltip_text("Device Details")
+        details_btn.add_css_class("flat")
+        details_btn.connect("clicked", self._on_device_details_clicked, device)
+        actions_box.append(details_btn)
+
+        # Connect/Disconnect Button
+        status_btn = Gtk.Button()
         if connected:
             status_btn.set_label("Disconnect")
             status_btn.add_css_class("destructive-action")
         else:
             status_btn.set_label("Connect")
             status_btn.add_css_class("suggested-action")
-        status_btn.set_valign(Gtk.Align.CENTER)
         status_btn.connect("clicked", self._on_status_clicked, device, connected)
-        status_box.append(status_btn)
 
-        # Mirror button
-        mirror_btn = Gtk.Button()
-        mirror_btn.set_icon_name("screen-shared-symbolic")
-        mirror_btn.set_tooltip_text("Screen Mirror")
-        mirror_btn.set_sensitive(connected)
-        mirror_btn.set_valign(Gtk.Align.CENTER)
-        if connected:
-            mirror_btn.add_css_class("suggested-action")
-        else:
-            mirror_btn.add_css_class("destructive-action")
-        mirror_btn.connect("clicked", self._on_mirror_clicked, device)
-        status_box.append(mirror_btn)
+        actions_box.append(status_btn)
 
-        # Details button
-        details_btn = Gtk.Button()
-        details_btn.set_icon_name("preferences-system-details-symbolic")
-        details_btn.set_tooltip_text("Details")
-        details_btn.set_valign(Gtk.Align.CENTER)
-        details_btn.connect("clicked", self._on_device_details_clicked, device)
-        status_box.append(details_btn)
-
-        row.append(status_box)
+        row.add_suffix(actions_box)
         return row
 
     def _on_status_clicked(self, button, device, connected):

@@ -1,12 +1,10 @@
 
-.image-button {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    outline: none;
-    padding: 0;
-}
 /* Aurynk GTK custom styles */
+
+/* Colors from branding */
+@define-color branding_orange #fd8a61;
+@define-color branding_pink #fa5995;
+@define-color branding_gradient linear-gradient(to right, #fd8a61, #fa5995);
 
 .clickable-image {
     transition: all 150ms ease;
@@ -17,4 +15,39 @@
 
 .qr-image {
     border-radius: 16px;
+}
+
+/* Suggested Action with Gradient */
+.suggested-action {
+    background-image: var(--branding_gradient);
+    border-color: transparent;
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: opacity 200ms ease;
+}
+
+.suggested-action:hover {
+    opacity: 0.9;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.suggested-action:active {
+    opacity: 0.7;
+}
+
+/* Destructive Action (re-styled to fit theme if needed, or stick to standard red) */
+.destructive-action {
+    font-weight: bold;
+}
+
+/* Dim label style */
+.dim-label {
+    opacity: 0.7;
+    font-size: 0.9em;
+}
+
+/* Card Styling for ListBox / PreferencesGroup */
+list > row {
+   padding: 12px;
 }

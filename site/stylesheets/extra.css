@@ -1,0 +1,10 @@
+:root {
+  --md-primary-fg-color:        #fd8a61;
+  --md-primary-fg-color--light: #ffbb93;
+  --md-primary-fg-color--dark:  #c65b32;
+  --md-accent-fg-color:         #fa5995;
+}
+
+.md-typeset h1 {
+    font-weight: 300;
+}
