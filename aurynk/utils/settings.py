@@ -43,7 +43,7 @@ class SettingsManager:
             "window_borderless": False,
             "max_size": 0,
             "rotation": 0,
-            "stay_awake": True,
+            "stay_awake": False,
             "enable_audio": False,
             "video_codec": "h264",
             "video_bitrate": 8,

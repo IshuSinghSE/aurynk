@@ -670,7 +670,9 @@ class SettingsWindow(Adw.PreferencesWindow):
         # Enable Audio
         enable_audio = Adw.SwitchRow()
         enable_audio.set_title("Enable Audio")
-        enable_audio.set_subtitle("Stream device audio to PC.")
+        enable_audio.set_subtitle(
+            "Stream device audio to PC (experimental, may not work over wireless connection)."
+        )
         enable_audio.set_active(not self.settings.get("scrcpy", "no_audio", False))
 
         def on_enable_audio_changed(switch, _):
@@ -681,8 +683,10 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Audio Source
         audio_source_row = Adw.ComboRow()
-        audio_source_row.set_title("Audio Source")
-        audio_source_row.set_subtitle("Choose between device output or mic.")
+        audio_source_row.set_title("Audio Source (experimental)")
+        audio_source_row.set_subtitle(
+            "Choose between device output or mic (experimental, may not work over wireless connection)."
+        )
         audio_source_options = ["default", "output", "mic"]
         audio_source_model = Gtk.StringList.new(audio_source_options)
         audio_source_row.set_model(audio_source_model)
@@ -736,12 +740,18 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Keep Device Screen On
         stay_awake = Adw.SwitchRow()
-        stay_awake.set_title("Keep Device Screen On")
-        stay_awake.set_subtitle("Keep device screen on during mirroring.")
+        stay_awake.set_title("Keep Device Screen On (experimental)")
+        stay_awake.set_subtitle(
+            "Keep device screen on during mirroring (experimental, may not work on all devices or wireless mode)."
+        )
         stay_awake.set_active(self.settings.get("scrcpy", "stay_awake", True))
 
         def on_stay_awake_changed(switch, _):
             self.settings.set("scrcpy", "stay_awake", switch.get_active())
+            # Mutually exclusive: turning on disables turn_screen_off
+            if switch.get_active():
+                self.settings.set("scrcpy", "turn_screen_off", False)
+                turn_screen_off.set_active(False)
 
         stay_awake.connect("notify::active", on_stay_awake_changed)
         audio_group.add(stay_awake)
@@ -754,13 +764,17 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         def on_turn_screen_off_changed(switch, _):
             self.settings.set("scrcpy", "turn_screen_off", switch.get_active())
+            # Mutually exclusive: turning on disables stay_awake
+            if switch.get_active():
+                self.settings.set("scrcpy", "stay_awake", False)
+                stay_awake.set_active(False)
 
         turn_screen_off.connect("notify::active", on_turn_screen_off_changed)
         audio_group.add(turn_screen_off)
 
         # Read-only Mode
         readonly_mode = Adw.SwitchRow()
-        readonly_mode.set_title("Read-only Mode")
+        readonly_mode.set_title("View-only Mode")
         readonly_mode.set_subtitle("Disable device control (view only)")
         readonly_mode.set_active(self.settings.get("scrcpy", "no_control", False))
 

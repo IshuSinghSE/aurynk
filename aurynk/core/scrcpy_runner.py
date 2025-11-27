@@ -132,12 +132,20 @@ class ScrcpyManager:
             if rotation > 0:
                 cmd.extend(["--rotation", str(rotation)])
 
-            if settings.get("scrcpy", "stay_awake"):
+            if settings.get("scrcpy", "stay_awake", True):
                 cmd.append("--stay-awake")
 
             # Audio/Video settings
             if not settings.get("scrcpy", "enable_audio", False):
                 cmd.append("--no-audio")
+
+            # Audio source selection (output, mic, default)
+            audio_source = settings.get("scrcpy", "audio_source", "default")
+            if audio_source == "output":
+                cmd.extend(["--audio-source", "output"])
+            elif audio_source == "mic":
+                cmd.extend(["--audio-source", "mic"])
+            # If 'default', do not add the flag (let scrcpy use its default)
 
             video_codec = settings.get("scrcpy", "video_codec", "h264")
             cmd.extend(["--video-codec", video_codec])
@@ -175,8 +183,12 @@ class ScrcpyManager:
             except Exception as e:
                 logger.warning(f"Failed to set show_touches via adb: {e}")
 
-            if settings.get("scrcpy", "turn_screen_off"):
+            if settings.get("scrcpy", "turn_screen_off", False):
                 cmd.append("--turn-screen-off")
+
+            # Read-only mode
+            if settings.get("scrcpy", "no_control", False):
+                cmd.append("--no-control")
 
             logger.info(f"Starting scrcpy with command: {' '.join(cmd)}")
 
