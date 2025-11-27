@@ -1,7 +1,7 @@
 # Welcome to Aurynk
 
 <p align="center">
-  <img src="assets/logo.png" alt="Aurynk Logo" width="128"/>
+  <img src="https://raw.githubusercontent.com/IshuSinghSE/aurynk/main/data/icons/io.github.IshuSinghSE.aurynk.png" alt="Aurynk Logo" width="128"/>
 </p>
 
 <p align="center">
