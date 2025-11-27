@@ -38,7 +38,7 @@ class SettingsManager:
             "keep_alive_interval": 0,
         },
         "scrcpy": {
-            "always_on_top": True,
+            "always_on_top": False,
             "fullscreen": False,
             "window_borderless": False,
             "max_size": 0,
