@@ -417,11 +417,51 @@ class AurynkWindow(Adw.ApplicationWindow):
         connect_port = device.get("connect_port")
         if not address or not connect_port:
             return
+        from aurynk.utils.settings import SettingsManager
+
+        settings = SettingsManager()
+        auto_unpair = settings.get("adb", "auto_unpair_on_disconnect", False)
+        require_confirm = settings.get("adb", "require_confirmation_for_unpair", True)
         if connected:
             # Disconnect logic
             import subprocess
 
             subprocess.run(["adb", "disconnect", f"{address}:{connect_port}"])
+            # Immediately trigger unpair/confirmation if auto-unpair is enabled
+            if auto_unpair:
+                if require_confirm:
+                    from gi.repository import Adw
+
+                    dialog = Adw.MessageDialog.new(self)
+                    dialog.set_heading("Remove Device?")
+                    body_text = f"Are you sure you want to remove\n{address} ?"
+                    dialog.set_body(body_text)
+                    dialog.set_default_size(340, 120)
+                    body_label = (
+                        dialog.get_body_label() if hasattr(dialog, "get_body_label") else None
+                    )
+                    if body_label:
+                        body_label.set_line_wrap(True)
+                        body_label.set_max_width_chars(40)
+                    dialog.add_response("cancel", "Cancel")
+                    dialog.add_response("remove", "Remove")
+                    dialog.set_response_appearance("remove", Adw.ResponseAppearance.DESTRUCTIVE)
+
+                    def on_response(dlg, response):
+                        if response == "remove":
+                            from aurynk.core.adb_manager import ADBController
+
+                            ADBController().remove_device(address)
+                            self._refresh_device_list()
+                        dlg.destroy()
+
+                    dialog.connect("response", on_response)
+                    dialog.present()
+                else:
+                    from aurynk.core.adb_manager import ADBController
+
+                    ADBController().remove_device(address)
+                    self._refresh_device_list()
         else:
             # Connect logic with loading indicator - run in thread to not block UI
             def do_connection():
@@ -611,3 +651,18 @@ class AurynkWindow(Adw.ApplicationWindow):
         app = self.get_application()
         if hasattr(app, "send_status_to_tray"):
             app.send_status_to_tray()
+
+    def show_unpair_confirmation_dialog(address):
+        """Show a confirmation dialog before unpairing a device. Returns True if confirmed, False otherwise."""
+        # This is a blocking dialog for simplicity; can be made async if needed
+        dialog = Gtk.MessageDialog(
+            transient_for=None,
+            flags=0,
+            message_type=Gtk.MessageType.QUESTION,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text="Unpair Device?",
+        )
+        dialog.format_secondary_text(f"Are you sure you want to unpair device {address}?")
+        response = dialog.run()
+        dialog.destroy()
+        return response == Gtk.ResponseType.YES

@@ -4,6 +4,7 @@
 import os
 import subprocess
 import threading
+import time
 
 from aurynk.utils.logger import get_logger
 from aurynk.utils.settings import SettingsManager
@@ -76,42 +77,44 @@ class ScrcpyManager:
 
             # --- Monitor geometry logic ---
             window_geom = settings.get("scrcpy", "window_geometry", "")
-            width, height, x, y = 800, 600, -1, -1
-            try:
-                if window_geom:
+            if window_geom:
+                width, height, x, y = 800, 600, -1, -1
+                try:
                     parts = [int(v) for v in window_geom.split(",")]
                     if len(parts) == 4:
                         width, height, x, y = parts
-            except Exception:
-                pass
-
-            # Get monitor size using Gdk if available
-            screen_width, screen_height = 1920, 1080
-            if Gdk is not None:
-                try:
-                    display = Gdk.Display.get_default()
-                    if display:
-                        monitor = display.get_primary_monitor()
-                        if monitor:
-                            geometry = monitor.get_geometry()
-                            screen_width = geometry.width
-                            screen_height = geometry.height
                 except Exception:
                     pass
 
-            # Clamp window size to monitor
-            width = min(width, screen_width)
-            height = min(height, screen_height)
+                # Get monitor size using Gdk if available
+                screen_width, screen_height = 1920, 1080
+                if Gdk is not None:
+                    try:
+                        display = Gdk.Display.get_default()
+                        if display:
+                            monitor = display.get_primary_monitor()
+                            if monitor:
+                                geometry = monitor.get_geometry()
+                                screen_width = geometry.width
+                                screen_height = geometry.height
+                    except Exception:
+                        pass
 
-            # Set window position if not fullscreen
-            if not settings.get("scrcpy", "fullscreen"):
-                cmd.extend(["--window-width", str(width), "--window-height", str(height)])
-                # Only set position if x/y are not -1 (center)
-                if x != -1 and y != -1:
-                    # Clamp position to monitor
-                    x = min(max(0, x), screen_width - width)
-                    y = min(max(0, y), screen_height - height)
-                    cmd.extend(["--window-x", str(x), "--window-y", str(y)])
+                # Clamp window size to monitor
+                width = min(width, screen_width)
+                height = min(height, screen_height)
+
+                # Set window position if not fullscreen
+                if not settings.get("scrcpy", "fullscreen"):
+                    # Only pass --window-height to maintain aspect ratio
+                    cmd.extend(["--window-height", str(height)])
+                    # Only set position if x/y are not -1 (center)
+                    if x != -1 and y != -1:
+                        # Clamp position to monitor
+                        x = min(max(0, x), screen_width - width)
+                        y = min(max(0, y), screen_height - height)
+                        cmd.extend(["--window-x", str(x), "--window-y", str(y)])
+            # If window_geom is empty, do not add any window size/position args (let scrcpy use its defaults)
 
             # Display settings
             if settings.get("scrcpy", "always_on_top"):
@@ -129,12 +132,20 @@ class ScrcpyManager:
             if rotation > 0:
                 cmd.extend(["--rotation", str(rotation)])
 
-            if settings.get("scrcpy", "stay_awake"):
+            if settings.get("scrcpy", "stay_awake", True):
                 cmd.append("--stay-awake")
 
             # Audio/Video settings
             if not settings.get("scrcpy", "enable_audio", False):
                 cmd.append("--no-audio")
+
+            # Audio source selection (output, mic, default)
+            audio_source = settings.get("scrcpy", "audio_source", "default")
+            if audio_source == "output":
+                cmd.extend(["--audio-source", "output"])
+            elif audio_source == "mic":
+                cmd.extend(["--audio-source", "mic"])
+            # If 'default', do not add the flag (let scrcpy use its default)
 
             video_codec = settings.get("scrcpy", "video_codec", "h264")
             cmd.extend(["--video-codec", video_codec])
@@ -146,11 +157,64 @@ class ScrcpyManager:
             if max_fps > 0:
                 cmd.extend(["--max-fps", str(max_fps)])
 
+            # Recording options
+            record_enabled = settings.get("scrcpy", "record", False)
+            record_path = settings.get("scrcpy", "record_path", "~/Videos/Aurynk")
+            record_format = settings.get("scrcpy", "record_format", "mp4")
+
+            if record_enabled:
+                from pathlib import Path
+
+                # Expand ~ and ensure directory exists
+                record_dir = Path(record_path).expanduser()
+                record_dir.mkdir(parents=True, exist_ok=True)
+                # Generate a unique filename with timestamp
+                import datetime
+
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                # Format device name for filename: lowercase, spaces to underscores, alphanum/underscore only
+                safe_device_name = device_name or serial
+                safe_device_name = safe_device_name.lower().replace(" ", "_")
+                # Remove any non-alphanumeric or underscore chars
+                import re
+
+                safe_device_name = re.sub(r"[^a-z0-9_]+", "", safe_device_name)
+                filename = f"aurynk_record_{safe_device_name}_{timestamp}.{record_format}"
+                full_path = str(record_dir / filename)
+                cmd.extend(["--record", full_path, "--record-format", record_format])
+
             # Input settings
-            if settings.get("scrcpy", "show_touches"):
-                cmd.append("--show-touches")
-            if settings.get("scrcpy", "turn_screen_off"):
+            # Use adb to set show_touches before starting scrcpy, with serial and delay
+            show_touches = settings.get("scrcpy", "show_touches")
+            try:
+                adb_path = settings.get("adb", "adb_path", "adb")
+                value = "1" if show_touches else "0"
+                # Use the correct device serial
+                subprocess.run(
+                    [
+                        adb_path,
+                        "-s",
+                        serial,
+                        "shell",
+                        "settings",
+                        "put",
+                        "system",
+                        "show_touches",
+                        value,
+                    ],
+                    check=False,
+                )
+                # Wait a short time to ensure the setting is applied
+                time.sleep(0.3)
+            except Exception as e:
+                logger.warning(f"Failed to set show_touches via adb: {e}")
+
+            if settings.get("scrcpy", "turn_screen_off", False):
                 cmd.append("--turn-screen-off")
+
+            # Read-only mode
+            if settings.get("scrcpy", "no_control", False):
+                cmd.append("--no-control")
 
             logger.info(f"Starting scrcpy with command: {' '.join(cmd)}")
 

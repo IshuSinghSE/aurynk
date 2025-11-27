@@ -226,8 +226,8 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Keep alive interval
         keep_alive = Adw.SpinRow()
-        keep_alive.set_title("Keep Alive Interval")
-        keep_alive.set_subtitle("Send keep-alive packets (0 to disable)")
+        keep_alive.set_title("Keep Alive Connection Interval")
+        keep_alive.set_subtitle("Keep the connection alive (0 to disable)")
         adjustment = Gtk.Adjustment(
             value=self.settings.get("adb", "keep_alive_interval", 0),
             lower=0,
@@ -670,7 +670,9 @@ class SettingsWindow(Adw.PreferencesWindow):
         # Enable Audio
         enable_audio = Adw.SwitchRow()
         enable_audio.set_title("Enable Audio")
-        enable_audio.set_subtitle("Stream device audio to PC.")
+        enable_audio.set_subtitle(
+            "Stream device audio to PC (experimental, may not work over wireless connection)."
+        )
         enable_audio.set_active(not self.settings.get("scrcpy", "no_audio", False))
 
         def on_enable_audio_changed(switch, _):
@@ -681,8 +683,10 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Audio Source
         audio_source_row = Adw.ComboRow()
-        audio_source_row.set_title("Audio Source")
-        audio_source_row.set_subtitle("Choose between device output or mic.")
+        audio_source_row.set_title("Audio Source (experimental)")
+        audio_source_row.set_subtitle(
+            "Choose between device output or mic (experimental, may not work over wireless connection)."
+        )
         audio_source_options = ["default", "output", "mic"]
         audio_source_model = Gtk.StringList.new(audio_source_options)
         audio_source_row.set_model(audio_source_model)
@@ -704,23 +708,50 @@ class SettingsWindow(Adw.PreferencesWindow):
         # Show Touches
         show_touches = Adw.SwitchRow()
         show_touches.set_title("Show Touches")
-        show_touches.set_subtitle("Visual feedback for touches.")
+        show_touches.set_subtitle(
+            "Visual feedback for touches (only works for physical device input)."
+        )
         show_touches.set_active(self.settings.get("scrcpy", "show_touches", False))
 
         def on_show_touches_changed(switch, _):
             self.settings.set("scrcpy", "show_touches", switch.get_active())
+            # Immediately update device setting via adb
+            try:
+                import subprocess
+
+                adb_path = self.settings.get("adb", "adb_path", None)
+                if not adb_path:
+                    adb_path = "adb"
+                value = "1" if switch.get_active() else "0"
+                import logging
+
+                logging.info(f"Using adb path: {adb_path} for show_touches toggle")
+                subprocess.run(
+                    [adb_path, "shell", "settings", "put", "system", "show_touches", value],
+                    check=False,
+                )
+            except Exception as e:
+                import logging
+
+                logging.warning(f"Failed to set show_touches via adb from settings: {e}")
 
         show_touches.connect("notify::active", on_show_touches_changed)
         audio_group.add(show_touches)
 
         # Keep Device Screen On
         stay_awake = Adw.SwitchRow()
-        stay_awake.set_title("Keep Device Screen On")
-        stay_awake.set_subtitle("Keep device screen on during mirroring.")
-        stay_awake.set_active(self.settings.get("scrcpy", "stay_awake", True))
+        stay_awake.set_title("Keep Device Screen On (experimental)")
+        stay_awake.set_subtitle(
+            "Keep device screen on during mirroring (may not work on all devices or wireless mode)."
+        )
+        stay_awake.set_active(self.settings.get("scrcpy", "stay_awake", False))
 
         def on_stay_awake_changed(switch, _):
             self.settings.set("scrcpy", "stay_awake", switch.get_active())
+            # Mutually exclusive: turning on disables turn_screen_off
+            if switch.get_active():
+                self.settings.set("scrcpy", "turn_screen_off", False)
+                turn_screen_off.set_active(False)
 
         stay_awake.connect("notify::active", on_stay_awake_changed)
         audio_group.add(stay_awake)
@@ -733,13 +764,17 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         def on_turn_screen_off_changed(switch, _):
             self.settings.set("scrcpy", "turn_screen_off", switch.get_active())
+            # Mutually exclusive: turning on disables stay_awake
+            if switch.get_active():
+                self.settings.set("scrcpy", "stay_awake", False)
+                stay_awake.set_active(False)
 
         turn_screen_off.connect("notify::active", on_turn_screen_off_changed)
         audio_group.add(turn_screen_off)
 
         # Read-only Mode
         readonly_mode = Adw.SwitchRow()
-        readonly_mode.set_title("Read-only Mode")
+        readonly_mode.set_title("View-only Mode")
         readonly_mode.set_subtitle("Disable device control (view only)")
         readonly_mode.set_active(self.settings.get("scrcpy", "no_control", False))
 
@@ -751,7 +786,7 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Use Keyboard & Mouse via OTG
         otg_row = Adw.ComboRow()
-        otg_row.set_title("Keyboard/Mouse via OTG")
+        otg_row.set_title("Keyboard/Mouse via OTG (experimental)")
         otg_row.set_subtitle("Control device using OTG keyboard/mouse")
         otg_options = ["None", "Keyboard (uhid)", "Mouse (uhid)", "Keyboard (aoa)", "Mouse (aoa)"]
         otg_model = Gtk.StringList.new(otg_options)
@@ -789,7 +824,7 @@ class SettingsWindow(Adw.PreferencesWindow):
         # Record Format
         record_format_row = Adw.ComboRow()
         record_format_row.set_title("Record Format")
-        record_format_row.set_subtitle("Select recording format/container.")
+        record_format_row.set_subtitle("Select recording format.")
         record_format_options = ["mp4", "mkv", "m4a", "mka", "opus"]
         record_format_model = Gtk.StringList.new(record_format_options)
         record_format_row.set_model(record_format_model)
@@ -850,7 +885,7 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # --- Advanced ---
         advanced_group = Adw.PreferencesGroup()
-        advanced_group.set_title("Advanced")
+        advanced_group.set_title("Advanced Options (experimental)")
 
         # Hardware Acceleration
         hwaccel_row = Adw.ComboRow()
