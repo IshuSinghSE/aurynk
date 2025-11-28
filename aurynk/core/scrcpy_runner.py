@@ -22,11 +22,22 @@ logger = get_logger("ScrcpyManager")
 
 
 class ScrcpyManager:
-    """Handles scrcpy process management for device mirroring."""
+    """
+    Handles scrcpy process management for device mirroring.
+
+    This class manages the lifecycle of scrcpy processes, including starting, stopping,
+    and monitoring them. It implements a singleton pattern to ensure centralized control.
+    """
 
     _instance = None
 
     def __new__(cls):
+        """
+        Create or return the singleton instance of ScrcpyManager.
+
+        Returns:
+            ScrcpyManager: The singleton instance.
+        """
         if cls._instance is None:
             cls._instance = super(ScrcpyManager, cls).__new__(cls)
             cls._instance.processes = {}
@@ -34,16 +45,35 @@ class ScrcpyManager:
         return cls._instance
 
     def __init__(self):
+        """Initialize the ScrcpyManager."""
         # Init handled in __new__ to ensure singleton properties
         pass
 
     def add_stop_callback(self, callback):
-        """Register a callback to be called when a mirroring process stops."""
+        """
+        Register a callback to be called when a mirroring process stops.
+
+        Args:
+            callback (Callable[[str], None]): The function to call when a process stops.
+                It receives the serial number as an argument.
+        """
         if callback not in self.stop_callbacks:
             self.stop_callbacks.append(callback)
 
     def start_mirror(self, address: str, port: int, device_name: str = None) -> bool:
-        """Start scrcpy for the given device address and port. Returns True if started. Optionally set window title to device name."""
+        """
+        Start scrcpy for the given device address and port.
+
+        Optionally sets the window title to the device name.
+
+        Args:
+            address (str): Device IP address.
+            port (int): Device connection port.
+            device_name (str, optional): Name of the device to display in the window title.
+
+        Returns:
+            bool: True if started successfully or already running, False otherwise.
+        """
         serial = f"{address}:{port}"
 
         # Check if already running and clean up dead processes
@@ -233,7 +263,16 @@ class ScrcpyManager:
             return False
 
     def stop_mirror(self, address: str, port: int) -> bool:
-        """Stop scrcpy for the given device."""
+        """
+        Stop scrcpy for the given device.
+
+        Args:
+            address (str): Device IP address.
+            port (int): Device connection port.
+
+        Returns:
+            bool: True if stopped or not running, False if error.
+        """
         serial = f"{address}:{port}"
         proc = self.processes.get(serial)
         if proc:
@@ -252,7 +291,16 @@ class ScrcpyManager:
         return False
 
     def is_mirroring(self, address: str, port: int) -> bool:
-        """Check if scrcpy is running for the device."""
+        """
+        Check if scrcpy is running for the device.
+
+        Args:
+            address (str): Device IP address.
+            port (int): Device connection port.
+
+        Returns:
+            bool: True if running, False otherwise.
+        """
         serial = f"{address}:{port}"
         proc = self.processes.get(serial)
         if proc:
@@ -265,7 +313,13 @@ class ScrcpyManager:
         return False
 
     def _monitor_process(self, serial: str, proc: subprocess.Popen):
-        """Monitor the process and clean up when it exits."""
+        """
+        Monitor the process and clean up when it exits.
+
+        Args:
+            serial (str): Device serial identifier.
+            proc (subprocess.Popen): The process object.
+        """
         try:
             proc.wait()
         except Exception as e:
