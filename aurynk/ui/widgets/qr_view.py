@@ -37,7 +37,7 @@ def create_qr_widget(data: str, size: int = 200) -> Gtk.Box:
 
     if qrcode is None:
         # Fallback if qrcode library is not available
-        error_label = Gtk.Label(label="QR code library not available")
+        error_label = Gtk.Label(label=_("QR code library not available"))
         error_label.add_css_class("dim-label")
         qr_box.append(error_label)
         return qr_box
@@ -77,7 +77,7 @@ def create_qr_widget(data: str, size: int = 200) -> Gtk.Box:
 
     except Exception as e:
         logger.error(f"Error generating QR code: {e}")
-        error_label = Gtk.Label(label=f"Error: {e}")
+        error_label = Gtk.Label(label=_("Error: {}").format(e))
         error_label.add_css_class("dim-label")
         qr_box.append(error_label)
 

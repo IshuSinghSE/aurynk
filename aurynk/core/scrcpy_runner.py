@@ -61,7 +61,7 @@ class ScrcpyManager:
 
         window_title = settings.get("scrcpy", "window_title")
         if not window_title:
-            window_title = f"{device_name}" if device_name else f"Aurynk: {serial}"
+            window_title = f"{device_name}" if device_name else _("Aurynk: {}").format(serial)
 
         try:
             # Suppress snap launcher notices

@@ -43,7 +43,7 @@ class AurynkWindow(Adw.ApplicationWindow):
         # Load custom CSS for outlined button
         self._load_custom_css()
         # Window properties
-        self.set_title("Aurynk")
+        self.set_title(_("Aurynk"))
         self.set_icon_name("io.github.IshuSinghSE.aurynk")
         self.set_default_size(700, 520)
         # Store window position when hiding
@@ -159,15 +159,15 @@ class AurynkWindow(Adw.ApplicationWindow):
         # Add menu button with settings (following GNOME HIG)
         menu_button = Gtk.MenuButton()
         menu_button.set_icon_name("open-menu-symbolic")
-        menu_button.set_tooltip_text("Main Menu")
+        menu_button.set_tooltip_text(_("Main Menu"))
         menu = Gio.Menu()
 
         # Primary menu section
-        menu.append("Preferences", "win.preferences")
+        menu.append(_("Preferences"), "win.preferences")
 
         # About section (separated as per GNOME HIG)
         about_section = Gio.Menu()
-        about_section.append("About Aurynk", "win.about")
+        about_section.append(_("About Aurynk"), "win.about")
         menu.append_section(None, about_section)
 
         menu_button.set_menu_model(menu)
@@ -178,7 +178,7 @@ class AurynkWindow(Adw.ApplicationWindow):
 
         # Add Device button
         add_device_btn = Gtk.Button()
-        add_device_btn.set_label("Add Device")
+        add_device_btn.set_label(_("Add Device"))
         add_device_btn.set_icon_name("list-add-symbolic")
         add_device_btn.border_width = 2
         add_device_btn.connect("clicked", self._on_add_device_clicked)
@@ -203,7 +203,7 @@ class AurynkWindow(Adw.ApplicationWindow):
 
         # Title label
         devices_label = Gtk.Label()
-        devices_label.set_markup('<span size="large" weight="bold">Paired Devices</span>')
+        devices_label.set_markup(f'<span size="large" weight="bold">{_("Paired Devices")}</span>')
         devices_label.set_halign(Gtk.Align.START)
         devices_label.set_margin_bottom(12)
         self.device_list_box.append(devices_label)
@@ -260,7 +260,7 @@ class AurynkWindow(Adw.ApplicationWindow):
             empty_image.set_halign(Gtk.Align.CENTER)
             empty_image.set_valign(Gtk.Align.CENTER)
             empty_image.add_css_class("clickable-image")
-            empty_image.set_tooltip_text("Click to add a device")
+            empty_image.set_tooltip_text(_("Click to add a device"))
 
             # Add scaling and pointer cursor on hover
             def on_enter(controller, x, y, image):
@@ -297,7 +297,7 @@ class AurynkWindow(Adw.ApplicationWindow):
             empty_box.append(empty_image)
 
             empty_label = Gtk.Label()
-            empty_label.set_markup('<span alpha="50%" >Click "Add Device" to get started</span>')
+            empty_label.set_markup(f'<span alpha="50%" >{_("Click \"Add Device\" to get started")}</span>')
             empty_label.set_justify(Gtk.Justification.CENTER)
             empty_label.set_margin_bottom(64)
             empty_label.set_halign(Gtk.Align.CENTER)
@@ -347,7 +347,7 @@ class AurynkWindow(Adw.ApplicationWindow):
 
         # Device name
         name_label = Gtk.Label()
-        dev_name = device.get("name", "Unknown Device")
+        dev_name = device.get("name", _("Unknown Device"))
         name_label.set_markup(f'<span size="large" weight="bold">{dev_name}</span>')
         name_label.set_halign(Gtk.Align.START)
         info_box.append(name_label)
@@ -379,10 +379,10 @@ class AurynkWindow(Adw.ApplicationWindow):
         if address and connect_port:
             connected = is_device_connected(address, connect_port)
         if connected:
-            status_btn.set_label("Disconnect")
+            status_btn.set_label(_("Disconnect"))
             status_btn.add_css_class("destructive-action")
         else:
-            status_btn.set_label("Connect")
+            status_btn.set_label(_("Connect"))
             status_btn.add_css_class("suggested-action")
         status_btn.set_valign(Gtk.Align.CENTER)
         status_btn.connect("clicked", self._on_status_clicked, device, connected)
@@ -391,7 +391,7 @@ class AurynkWindow(Adw.ApplicationWindow):
         # Mirror button
         mirror_btn = Gtk.Button()
         mirror_btn.set_icon_name("screen-shared-symbolic")
-        mirror_btn.set_tooltip_text("Screen Mirror")
+        mirror_btn.set_tooltip_text(_("Screen Mirror"))
         mirror_btn.set_sensitive(connected)
         mirror_btn.set_valign(Gtk.Align.CENTER)
         if connected:
@@ -404,7 +404,7 @@ class AurynkWindow(Adw.ApplicationWindow):
         # Details button
         details_btn = Gtk.Button()
         details_btn.set_icon_name("preferences-system-details-symbolic")
-        details_btn.set_tooltip_text("Details")
+        details_btn.set_tooltip_text(_("Details"))
         details_btn.set_valign(Gtk.Align.CENTER)
         details_btn.connect("clicked", self._on_device_details_clicked, device)
         status_box.append(details_btn)
@@ -433,8 +433,8 @@ class AurynkWindow(Adw.ApplicationWindow):
                     from gi.repository import Adw
 
                     dialog = Adw.MessageDialog.new(self)
-                    dialog.set_heading("Remove Device?")
-                    body_text = f"Are you sure you want to remove\n{address} ?"
+                    dialog.set_heading(_("Remove Device?"))
+                    body_text = _("Are you sure you want to remove\n{} ?").format(address)
                     dialog.set_body(body_text)
                     dialog.set_default_size(340, 120)
                     body_label = (
@@ -443,8 +443,8 @@ class AurynkWindow(Adw.ApplicationWindow):
                     if body_label:
                         body_label.set_line_wrap(True)
                         body_label.set_max_width_chars(40)
-                    dialog.add_response("cancel", "Cancel")
-                    dialog.add_response("remove", "Remove")
+                    dialog.add_response("cancel", _("Cancel"))
+                    dialog.add_response("remove", _("Remove"))
                     dialog.set_response_appearance("remove", Adw.ResponseAppearance.DESTRUCTIVE)
 
                     def on_response(dlg, response):
@@ -583,7 +583,11 @@ class AurynkWindow(Adw.ApplicationWindow):
                 return False  # Stop the animation
 
             dots = "." * (self._animation_counter % 4)
-            button.set_label(f"Connecting{dots}")
+            # connecting is a status message, we can wrap it, but it has dynamic dots.
+            # "Connecting" should be translated.
+            base_label = _("Connecting")
+            dots = "." * (self._animation_counter % 4)
+            button.set_label(f"{base_label}{dots}")
             self._animation_counter += 1
             return True  # Continue animation
 
@@ -660,9 +664,9 @@ class AurynkWindow(Adw.ApplicationWindow):
             flags=0,
             message_type=Gtk.MessageType.QUESTION,
             buttons=Gtk.ButtonsType.YES_NO,
-            text="Unpair Device?",
+            text=_("Unpair Device?"),
         )
-        dialog.format_secondary_text(f"Are you sure you want to unpair device {address}?")
+        dialog.format_secondary_text(_("Are you sure you want to unpair device {}?").format(address))
         response = dialog.run()
         dialog.destroy()
         return response == Gtk.ResponseType.YES

@@ -28,7 +28,7 @@ class SettingsWindow(Adw.PreferencesWindow):
         self.settings = SettingsManager()
 
         # Window properties
-        self.set_title("Settings")
+        self.set_title(_("Settings"))
         self.set_default_size(560, 640)
         self.set_modal(False)  # Allow independent window movement
         self.set_hide_on_close(True)
@@ -63,19 +63,19 @@ class SettingsWindow(Adw.PreferencesWindow):
     def _create_app_page(self):
         """Create the Application settings page."""
         page = Adw.PreferencesPage()
-        page.set_title("Application")
+        page.set_title(_("Application"))
         page.set_icon_name("applications-system-symbolic")
 
         # Appearance group
         appearance_group = Adw.PreferencesGroup()
-        appearance_group.set_title("Appearance")
+        appearance_group.set_title(_("Appearance"))
 
         # Theme selector
         theme_row = Adw.ComboRow()
-        theme_row.set_title("Theme")
-        theme_row.set_subtitle("Choose the application theme")
+        theme_row.set_title(_("Theme"))
+        theme_row.set_subtitle(_("Choose the application theme"))
 
-        theme_model = Gtk.StringList.new(["System", "Light", "Dark"])
+        theme_model = Gtk.StringList.new([_("System"), _("Light"), _("Dark")])
         theme_row.set_model(theme_model)
 
         # Set current theme
@@ -89,29 +89,29 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # General group
         general_group = Adw.PreferencesGroup()
-        general_group.set_title("General")
-        general_group.set_description("Application behavior settings")
+        general_group.set_title(_("General"))
+        general_group.set_description(_("Application behavior settings"))
 
         # Auto-connect switch
         auto_connect = Adw.SwitchRow()
-        auto_connect.set_title("Auto Connect")
-        auto_connect.set_subtitle("Automatically connect to devices when detected")
+        auto_connect.set_title(_("Auto Connect"))
+        auto_connect.set_subtitle(_("Automatically connect to devices when detected"))
         auto_connect.set_active(self.settings.get("app", "auto_connect", True))
         auto_connect.connect("notify::active", self._on_auto_connect_changed)
         general_group.add(auto_connect)
 
         # Show notifications switch
         show_notifications = Adw.SwitchRow()
-        show_notifications.set_title("Show Notifications")
-        show_notifications.set_subtitle("Display system notifications for device events")
+        show_notifications.set_title(_("Show Notifications"))
+        show_notifications.set_subtitle(_("Display system notifications for device events"))
         show_notifications.set_active(self.settings.get("app", "show_notifications", True))
         show_notifications.connect("notify::active", self._on_show_notifications_changed)
         general_group.add(show_notifications)
 
         # Monitor interval
         monitor_interval = Adw.SpinRow()
-        monitor_interval.set_title("Monitor Interval")
-        monitor_interval.set_subtitle("Device monitoring interval in seconds")
+        monitor_interval.set_title(_("Monitor Interval"))
+        monitor_interval.set_subtitle(_("Device monitoring interval in seconds"))
         adjustment = Gtk.Adjustment(
             value=self.settings.get("app", "monitor_interval", 5),
             lower=1,
@@ -128,28 +128,28 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # System tray group
         tray_group = Adw.PreferencesGroup()
-        tray_group.set_title("Behavior")
+        tray_group.set_title(_("Behavior"))
 
         # Close to tray switch
         self.close_to_tray = Adw.SwitchRow()
-        self.close_to_tray.set_title("Close to Tray")
-        self.close_to_tray.set_subtitle("Hide window to system tray when closing (X)")
+        self.close_to_tray.set_title(_("Close to Tray"))
+        self.close_to_tray.set_subtitle(_("Hide window to system tray when closing (X)"))
         self.close_to_tray.set_active(self.settings.get("app", "close_to_tray", True))
         self.close_to_tray.connect("notify::active", self._on_close_to_tray_changed)
         tray_group.add(self.close_to_tray)
 
         # Start minimized switch
         start_minimized = Adw.SwitchRow()
-        start_minimized.set_title("Start Minimized")
-        start_minimized.set_subtitle("Start application minimized to tray")
+        start_minimized.set_title(_("Start Minimized"))
+        start_minimized.set_subtitle(_("Start application minimized to tray"))
         start_minimized.set_active(self.settings.get("app", "start_minimized", False))
         start_minimized.connect("notify::active", self._on_start_minimized_changed)
         tray_group.add(start_minimized)
 
         # Start on system startup switch
         start_on_startup = Adw.SwitchRow()
-        start_on_startup.set_title("Start on System Startup")
-        start_on_startup.set_subtitle("Automatically start Aurynk when you log in")
+        start_on_startup.set_title(_("Start on System Startup"))
+        start_on_startup.set_subtitle(_("Automatically start Aurynk when you log in"))
         start_on_startup.set_active(self.settings.get("app", "start_on_startup", False))
         start_on_startup.connect("notify::active", self._on_start_on_startup_changed)
         tray_group.add(start_on_startup)
@@ -160,18 +160,18 @@ class SettingsWindow(Adw.PreferencesWindow):
     def _create_adb_page(self):
         """Create the ADB settings page."""
         page = Adw.PreferencesPage()
-        page.set_title("Device")
+        page.set_title(_("Device"))
         page.set_icon_name("smartphone-symbolic")
 
         # Connection group
         connection_group = Adw.PreferencesGroup()
-        connection_group.set_title("Connection")
-        connection_group.set_description("ADB connection settings")
+        connection_group.set_title(_("Connection"))
+        connection_group.set_description(_("ADB connection settings"))
 
         # ADB Path row
         adb_path_row = Adw.ActionRow()
-        adb_path_row.set_title("ADB Path")
-        adb_path_row.set_subtitle("Path to adb (leave blank for system default)")
+        adb_path_row.set_title(_("ADB Path"))
+        adb_path_row.set_subtitle(_("Path to adb (leave blank for system default)"))
 
         adb_path_entry = Gtk.Entry()
         adb_path_entry.set_hexpand(True)
@@ -192,8 +192,8 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Connection timeout
         connection_timeout = Adw.SpinRow()
-        connection_timeout.set_title("Connection Timeout")
-        connection_timeout.set_subtitle("Timeout for ADB connections in seconds")
+        connection_timeout.set_title(_("Connection Timeout"))
+        connection_timeout.set_subtitle(_("Timeout for ADB connections in seconds"))
         adjustment = Gtk.Adjustment(
             value=self.settings.get("adb", "connection_timeout", 10),
             lower=1,
@@ -208,8 +208,8 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Max retry attempts
         max_retry = Adw.SpinRow()
-        max_retry.set_title("Max Retry Attempts")
-        max_retry.set_subtitle("Maximum number of connection retry attempts")
+        max_retry.set_title(_("Max Retry Attempts"))
+        max_retry.set_subtitle(_("Maximum number of connection retry attempts"))
         adjustment = Gtk.Adjustment(
             value=self.settings.get("adb", "max_retry_attempts", 5),
             lower=0,
@@ -226,8 +226,8 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Keep alive interval
         keep_alive = Adw.SpinRow()
-        keep_alive.set_title("Keep Alive Connection Interval")
-        keep_alive.set_subtitle("Keep the connection alive (0 to disable)")
+        keep_alive.set_title(_("Keep Alive Connection Interval"))
+        keep_alive.set_subtitle(_("Keep the connection alive (0 to disable)"))
         adjustment = Gtk.Adjustment(
             value=self.settings.get("adb", "keep_alive_interval", 0),
             lower=0,
@@ -242,20 +242,20 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Security group
         security_group = Adw.PreferencesGroup()
-        security_group.set_title("Security")
+        security_group.set_title(_("Security"))
 
         # Auto-unpair on disconnect
         auto_unpair = Adw.SwitchRow()
-        auto_unpair.set_title("Auto-unpair on Disconnect")
-        auto_unpair.set_subtitle("Remove device from paired list when disconnected")
+        auto_unpair.set_title(_("Auto-unpair on Disconnect"))
+        auto_unpair.set_subtitle(_("Remove device from paired list when disconnected"))
         auto_unpair.set_active(self.settings.get("adb", "auto_unpair_on_disconnect", False))
         auto_unpair.connect("notify::active", self._on_auto_unpair_changed)
         security_group.add(auto_unpair)
 
         # Require confirmation for unpair
         require_confirm = Adw.SwitchRow()
-        require_confirm.set_title("Require Confirmation for Unpair")
-        require_confirm.set_subtitle("Show confirmation dialog before unpairing a device")
+        require_confirm.set_title(_("Require Confirmation for Unpair"))
+        require_confirm.set_subtitle(_("Show confirmation dialog before unpairing a device"))
         require_confirm.set_active(
             self.settings.get("adb", "require_confirmation_for_unpair", True)
         )
@@ -266,12 +266,12 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Power management group
         power_group = Adw.PreferencesGroup()
-        power_group.set_title("Power Management")
+        power_group.set_title(_("Power Management"))
 
         # Auto disconnect on sleep
         auto_disconnect = Adw.SwitchRow()
-        auto_disconnect.set_title("Auto Disconnect on Sleep")
-        auto_disconnect.set_subtitle("Disconnect devices when system goes to sleep")
+        auto_disconnect.set_title(_("Auto Disconnect on Sleep"))
+        auto_disconnect.set_subtitle(_("Disconnect devices when system goes to sleep"))
         auto_disconnect.set_active(self.settings.get("adb", "auto_disconnect_on_sleep", False))
         auto_disconnect.connect("notify::active", self._on_auto_disconnect_changed)
         power_group.add(auto_disconnect)
@@ -289,17 +289,17 @@ class SettingsWindow(Adw.PreferencesWindow):
     def _create_scrcpy_page(self):
         """Create the Scrcpy settings dashboard page with all features."""
         page = Adw.PreferencesPage()
-        page.set_title("Mirroring")
+        page.set_title(_("Mirroring"))
         page.set_icon_name("video-display-symbolic")
 
         # --- General/Session Options ---
         session_group = Adw.PreferencesGroup()
-        session_group.set_title("Session Options")
+        session_group.set_title(_("Session Options"))
 
         # Scrcpy Path (modern: entry + file picker button)
         scrcpy_path_row = Adw.ActionRow()
-        scrcpy_path_row.set_title("Scrcpy Path")
-        scrcpy_path_row.set_subtitle("Path to scrcpy binary (leave blank for system default)")
+        scrcpy_path_row.set_title(_("Scrcpy Path"))
+        scrcpy_path_row.set_subtitle(_("Path to scrcpy binary (leave blank for system default)"))
         scrcpy_path_entry = Gtk.Entry()
         scrcpy_path_entry.set_hexpand(True)
         scrcpy_path_entry.set_placeholder_text("/usr/bin/scrcpy")
@@ -314,10 +314,10 @@ class SettingsWindow(Adw.PreferencesWindow):
             from gi.repository import Gio
 
             dialog = Gtk.FileDialog()
-            dialog.set_title("Select scrcpy Binary")
+            dialog.set_title(_("Select scrcpy Binary"))
             dialog.set_modal(True)
             filter_exec = Gtk.FileFilter()
-            filter_exec.set_name("Executable files")
+            filter_exec.set_name(_("Executable files"))
             filter_exec.add_pattern("*")
             filters = Gio.ListStore.new(Gtk.FileFilter)
             filters.append(filter_exec)
@@ -347,37 +347,37 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Always on Top
         always_on_top = Adw.SwitchRow()
-        always_on_top.set_title("Always on Top")
-        always_on_top.set_subtitle("Keep mirror window above others.")
+        always_on_top.set_title(_("Always on Top"))
+        always_on_top.set_subtitle(_("Keep mirror window above others."))
         always_on_top.set_active(self.settings.get("scrcpy", "always_on_top", False))
         always_on_top.connect("notify::active", self._on_always_on_top_changed)
         session_group.add(always_on_top)
 
         # Fullscreen
         fullscreen = Adw.SwitchRow()
-        fullscreen.set_title("Fullscreen")
-        fullscreen.set_subtitle("Start in fullscreen mode.")
+        fullscreen.set_title(_("Fullscreen"))
+        fullscreen.set_subtitle(_("Start in fullscreen mode."))
         fullscreen.set_active(self.settings.get("scrcpy", "fullscreen", False))
         fullscreen.connect("notify::active", self._on_fullscreen_changed)
         session_group.add(fullscreen)
 
         # Borderless
         borderless = Adw.SwitchRow()
-        borderless.set_title("Borderless Window")
-        borderless.set_subtitle("Remove window decorations.")
+        borderless.set_title(_("Borderless Window"))
+        borderless.set_subtitle(_("Remove window decorations."))
         borderless.set_active(self.settings.get("scrcpy", "window_borderless", False))
         borderless.connect("notify::active", self._on_borderless_changed)
         session_group.add(borderless)
 
         # --- Window Size ---
         size_presets = [
-            ("Default", None),
+            (_("Default"), None),
             ("360 x 640", (360, 640)),
             ("720 x 1280", (720, 1280)),
             ("1080 x 1920", (1080, 1920)),
             ("1440 x 2560", (1440, 2560)),
             ("1440 x 3200", (1440, 3200)),
-            ("Custom...", "custom"),
+            (_("Custom..."), "custom"),
         ]
         geom = self.settings.get("scrcpy", "window_geometry", "")
         try:
@@ -395,7 +395,7 @@ class SettingsWindow(Adw.PreferencesWindow):
             return len(size_presets) - 1  # Custom
 
         size_combo = Adw.ComboRow()
-        size_combo.set_title("Window Initial Size")
+        size_combo.set_title(_("Window Initial Size"))
         size_model = Gtk.StringList.new([label for label, _ in size_presets])
         size_combo.set_model(size_model)
         size_combo.set_selected(get_size_preset_idx())
@@ -404,16 +404,16 @@ class SettingsWindow(Adw.PreferencesWindow):
         width_adj = Gtk.Adjustment(value=width, lower=100, upper=3840, step_increment=10)
         height_adj = Gtk.Adjustment(value=height, lower=100, upper=2160, step_increment=10)
         width_spin = Gtk.SpinButton(adjustment=width_adj, digits=0)
-        width_spin.set_tooltip_text("Width")
+        width_spin.set_tooltip_text(_("Width"))
         height_spin = Gtk.SpinButton(adjustment=height_adj, digits=0)
-        height_spin.set_tooltip_text("Height")
+        height_spin.set_tooltip_text(_("Height"))
         wh_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        wh_box.append(Gtk.Label(label="Width", xalign=0))
+        wh_box.append(Gtk.Label(label=_("Width"), xalign=0))
         wh_box.append(width_spin)
-        wh_box.append(Gtk.Label(label="Height", xalign=0))
+        wh_box.append(Gtk.Label(label=_("Height"), xalign=0))
         wh_box.append(height_spin)
         wh_row = Adw.ActionRow()
-        wh_row.set_title("Custom Size")
+        wh_row.set_title(_("Custom Size"))
         wh_row.set_activatable(False)
         wh_row.add_suffix(wh_box)
         wh_row.set_visible(get_size_preset_idx() == len(size_presets) - 1)
@@ -422,10 +422,10 @@ class SettingsWindow(Adw.PreferencesWindow):
             idx = size_combo.get_selected()
             wh_row.set_visible(idx == len(size_presets) - 1)
             if idx == 0:
-                size_combo.set_subtitle("Let scrcpy decide")
+                size_combo.set_subtitle(_("Let scrcpy decide"))
             elif idx == len(size_presets) - 1:
                 size_combo.set_subtitle(
-                    f"Width: {width_spin.get_value_as_int()}  Height: {height_spin.get_value_as_int()}"
+                    f"{_('Width')}: {width_spin.get_value_as_int()}  {_('Height')}: {height_spin.get_value_as_int()}"
                 )
             else:
                 w, h = size_presets[idx][1]
@@ -466,18 +466,18 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # --- Window Position ---
         window_pos_row = Adw.ComboRow()
-        window_pos_row.set_title("Window Initial Position")
+        window_pos_row.set_title(_("Window Initial Position"))
         pos_labels = [
-            "Center",
-            "Top Left",
-            "Top Center",
-            "Top Right",
-            "Center Left",
-            "Center Right",
-            "Bottom Left",
-            "Bottom Center",
-            "Bottom Right",
-            "Custom...",
+            _("Center"),
+            _("Top Left"),
+            _("Top Center"),
+            _("Top Right"),
+            _("Center Left"),
+            _("Center Right"),
+            _("Bottom Left"),
+            _("Bottom Center"),
+            _("Bottom Right"),
+            _("Custom..."),
         ]
         pos_values = [
             (-1, -1),  # Center
@@ -504,16 +504,16 @@ class SettingsWindow(Adw.PreferencesWindow):
         x_adj = Gtk.Adjustment(value=x, lower=0, upper=3840, step_increment=10)
         y_adj = Gtk.Adjustment(value=y, lower=0, upper=2160, step_increment=10)
         x_spin = Gtk.SpinButton(adjustment=x_adj, digits=0)
-        x_spin.set_tooltip_text("X Position")
+        x_spin.set_tooltip_text(_("X Position"))
         y_spin = Gtk.SpinButton(adjustment=y_adj, digits=0)
-        y_spin.set_tooltip_text("Y Position")
+        y_spin.set_tooltip_text(_("Y Position"))
         xy_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         xy_box.append(Gtk.Label(label="X", xalign=0))
         xy_box.append(x_spin)
         xy_box.append(Gtk.Label(label="Y", xalign=0))
         xy_box.append(y_spin)
         xy_row = Adw.ActionRow()
-        xy_row.set_title("Custom Position")
+        xy_row.set_title(_("Custom Position"))
         xy_row.set_activatable(False)
         xy_row.add_suffix(xy_box)
         xy_row.set_visible(idx == len(pos_labels) - 1)
@@ -555,8 +555,8 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Disable Screensaver
         disable_screensaver = Adw.SwitchRow()
-        disable_screensaver.set_title("Disable Screensaver")
-        disable_screensaver.set_subtitle("Prevent computer screensaver during mirroring.")
+        disable_screensaver.set_title(_("Disable Screensaver"))
+        disable_screensaver.set_subtitle(_("Prevent computer screensaver during mirroring."))
         disable_screensaver.set_active(self.settings.get("scrcpy", "disable_screensaver", False))
         disable_screensaver.connect("notify::active", self._on_disable_screensaver_changed)
         session_group.add(disable_screensaver)
@@ -565,13 +565,13 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # --- Stream Quality ---
         quality_group = Adw.PreferencesGroup()
-        quality_group.set_title("Stream Quality")
+        quality_group.set_title(_("Stream Quality"))
 
         # Resolution Limit
         resolution_row = Adw.ComboRow()
-        resolution_row.set_title("Resolution Limit")
-        resolution_row.set_subtitle("Limit the maximum dimension of the video stream.")
-        res_options = ["Native (Max)", "1080p", "720p"]
+        resolution_row.set_title(_("Resolution Limit"))
+        resolution_row.set_subtitle(_("Limit the maximum dimension of the video stream."))
+        res_options = [_("Native (Max)"), "1080p", "720p"]
         res_model = Gtk.StringList.new(res_options)
         resolution_row.set_model(res_model)
         current_max = self.settings.get("scrcpy", "max_size", 0)
@@ -596,15 +596,15 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Video Bitrate
         bitrate_row = Adw.ActionRow()
-        bitrate_row.set_title("Video Bitrate (Mbps)")
-        bitrate_row.set_subtitle("Higher is better quality but uses more bandwidth.")
+        bitrate_row.set_title(_("Video Bitrate (Mbps)"))
+        bitrate_row.set_subtitle(_("Higher is better quality but uses more bandwidth."))
         bitrate_scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 2, 16, 1)
         bitrate_scale.set_value(self.settings.get("scrcpy", "video_bitrate", 8))
         bitrate_scale.set_digits(0)
         bitrate_scale.set_hexpand(True)
         bitrate_scale.set_draw_value(True)
         bitrate_scale.set_value_pos(Gtk.PositionType.RIGHT)
-        bitrate_scale.set_tooltip_text("Video bitrate in Mbps")
+        bitrate_scale.set_tooltip_text(_("Video bitrate in Mbps"))
 
         def on_bitrate_changed(scale):
             self.settings.set("scrcpy", "video_bitrate", int(scale.get_value()))
@@ -615,9 +615,9 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Frame Rate Cap
         fps_row = Adw.ComboRow()
-        fps_row.set_title("Frame Rate Cap")
-        fps_row.set_subtitle("Limit the frame rate to save resources.")
-        fps_options = ["Max", "60 FPS", "30 FPS"]
+        fps_row.set_title(_("Frame Rate Cap"))
+        fps_row.set_subtitle(_("Limit the frame rate to save resources."))
+        fps_options = [_("Max"), "60 FPS", "30 FPS"]
         fps_model = Gtk.StringList.new(fps_options)
         fps_row.set_model(fps_model)
         current_fps = self.settings.get("scrcpy", "max_fps", 0)
@@ -642,8 +642,8 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Video Codec
         codec_row = Adw.ComboRow()
-        codec_row.set_title("Video Codec")
-        codec_row.set_subtitle("Codec for video encoding.")
+        codec_row.set_title(_("Video Codec"))
+        codec_row.set_subtitle(_("Codec for video encoding."))
         codec_options = ["h264", "h265", "av1"]
         codec_model = Gtk.StringList.new(codec_options)
         codec_row.set_model(codec_model)
@@ -665,13 +665,13 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # --- Audio & Input ---
         audio_group = Adw.PreferencesGroup()
-        audio_group.set_title("Audio Input")
+        audio_group.set_title(_("Audio Input"))
 
         # Enable Audio
         enable_audio = Adw.SwitchRow()
-        enable_audio.set_title("Enable Audio")
+        enable_audio.set_title(_("Enable Audio"))
         enable_audio.set_subtitle(
-            "Stream device audio to PC (experimental, may not work over wireless connection)."
+            _("Stream device audio to PC (experimental, may not work over wireless connection).")
         )
         enable_audio.set_active(not self.settings.get("scrcpy", "no_audio", False))
 
@@ -683,11 +683,11 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Audio Source
         audio_source_row = Adw.ComboRow()
-        audio_source_row.set_title("Audio Source (experimental)")
+        audio_source_row.set_title(_("Audio Source (experimental)"))
         audio_source_row.set_subtitle(
-            "Choose between device output or mic (experimental, may not work over wireless connection)."
+            _("Choose between device output or mic (experimental, may not work over wireless connection).")
         )
-        audio_source_options = ["default", "output", "mic"]
+        audio_source_options = [_("default"), _("output"), _("mic")]
         audio_source_model = Gtk.StringList.new(audio_source_options)
         audio_source_row.set_model(audio_source_model)
         current_audio_source = self.settings.get("scrcpy", "audio_source", "default")
@@ -707,9 +707,9 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Show Touches
         show_touches = Adw.SwitchRow()
-        show_touches.set_title("Show Touches")
+        show_touches.set_title(_("Show Touches"))
         show_touches.set_subtitle(
-            "Visual feedback for touches (only works for physical device input)."
+            _("Visual feedback for touches (only works for physical device input).")
         )
         show_touches.set_active(self.settings.get("scrcpy", "show_touches", False))
 
@@ -740,9 +740,9 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Keep Device Screen On
         stay_awake = Adw.SwitchRow()
-        stay_awake.set_title("Keep Device Screen On (experimental)")
+        stay_awake.set_title(_("Keep Device Screen On (experimental)"))
         stay_awake.set_subtitle(
-            "Keep device screen on during mirroring (may not work on all devices or wireless mode)."
+            _("Keep device screen on during mirroring (may not work on all devices or wireless mode).")
         )
         stay_awake.set_active(self.settings.get("scrcpy", "stay_awake", False))
 
@@ -758,8 +758,8 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Turn Device Screen Off
         turn_screen_off = Adw.SwitchRow()
-        turn_screen_off.set_title("Turn Device Screen Off")
-        turn_screen_off.set_subtitle("Mirror with device screen off.")
+        turn_screen_off.set_title(_("Turn Device Screen Off"))
+        turn_screen_off.set_subtitle(_("Mirror with device screen off."))
         turn_screen_off.set_active(self.settings.get("scrcpy", "turn_screen_off", False))
 
         def on_turn_screen_off_changed(switch, _):
@@ -774,8 +774,8 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Read-only Mode
         readonly_mode = Adw.SwitchRow()
-        readonly_mode.set_title("View-only Mode")
-        readonly_mode.set_subtitle("Disable device control (view only)")
+        readonly_mode.set_title(_("View-only Mode"))
+        readonly_mode.set_subtitle(_("Disable device control (view only)"))
         readonly_mode.set_active(self.settings.get("scrcpy", "no_control", False))
 
         def on_readonly_mode_changed(switch, _):
@@ -786,9 +786,9 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Use Keyboard & Mouse via OTG
         otg_row = Adw.ComboRow()
-        otg_row.set_title("Keyboard/Mouse via OTG (experimental)")
-        otg_row.set_subtitle("Control device using OTG keyboard/mouse")
-        otg_options = ["None", "Keyboard (uhid)", "Mouse (uhid)", "Keyboard (aoa)", "Mouse (aoa)"]
+        otg_row.set_title(_("Keyboard/Mouse via OTG (experimental)"))
+        otg_row.set_subtitle(_("Control device using OTG keyboard/mouse"))
+        otg_options = [_("None"), _("Keyboard (uhid)"), _("Mouse (uhid)"), _("Keyboard (aoa)"), _("Mouse (aoa)")]
         otg_model = Gtk.StringList.new(otg_options)
         otg_row.set_model(otg_model)
         current_otg = self.settings.get("scrcpy", "otg_mode", "None")
@@ -807,12 +807,12 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # --- Recording ---
         recording_group = Adw.PreferencesGroup()
-        recording_group.set_title("Recording")
+        recording_group.set_title(_("Recording"))
 
         # Record Mirroring
         record_session = Adw.SwitchRow()
-        record_session.set_title("Record Mirroring")
-        record_session.set_subtitle("Enable/disable recording of mirroring session.")
+        record_session.set_title(_("Record Mirroring"))
+        record_session.set_subtitle(_("Enable/disable recording of mirroring session."))
         record_session.set_active(self.settings.get("scrcpy", "record", False))
 
         def on_record_session_changed(switch, _):
@@ -823,8 +823,8 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Record Format
         record_format_row = Adw.ComboRow()
-        record_format_row.set_title("Record Format")
-        record_format_row.set_subtitle("Select recording format.")
+        record_format_row.set_title(_("Record Format"))
+        record_format_row.set_subtitle(_("Select recording format."))
         record_format_options = ["mp4", "mkv", "m4a", "mka", "opus"]
         record_format_model = Gtk.StringList.new(record_format_options)
         record_format_row.set_model(record_format_model)
@@ -845,7 +845,7 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Recording Path
         record_path_row = Adw.ActionRow()
-        record_path_row.set_title("Recording Path")
+        record_path_row.set_title(_("Recording Path"))
         record_path_row.set_subtitle(
             str(self.settings.get("scrcpy", "record_path", "~/Videos/Aurynk"))
         )
@@ -860,7 +860,7 @@ class SettingsWindow(Adw.PreferencesWindow):
             from gi.repository import Gtk as GtkLocal
 
             dialog = GtkLocal.FileDialog()
-            dialog.set_title("Choose Recording Directory")
+            dialog.set_title(_("Choose Recording Directory"))
             dialog.set_modal(True)
             Path(self.settings.get("scrcpy", "record_path", "~/Videos/Aurynk")).expanduser()
 
@@ -885,13 +885,13 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # --- Advanced ---
         advanced_group = Adw.PreferencesGroup()
-        advanced_group.set_title("Advanced Options (experimental)")
+        advanced_group.set_title(_("Advanced Options (experimental)"))
 
         # Hardware Acceleration
         hwaccel_row = Adw.ComboRow()
-        hwaccel_row.set_title("Hardware Acceleration")
-        hwaccel_row.set_subtitle("Use GPU for encoding.")
-        hwaccel_options = ["Default", "h264", "h265", "av1"]
+        hwaccel_row.set_title(_("Hardware Acceleration"))
+        hwaccel_row.set_subtitle(_("Use GPU for encoding."))
+        hwaccel_options = [_("Default"), "h264", "h265", "av1"]
         hwaccel_model = Gtk.StringList.new(hwaccel_options)
         hwaccel_row.set_model(hwaccel_model)
         current_hwaccel = self.settings.get("scrcpy", "video_encoder", "Default")
@@ -909,8 +909,8 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # No Window
         no_window = Adw.SwitchRow()
-        no_window.set_title("No Window")
-        no_window.set_subtitle("Run without a window (background only)")
+        no_window.set_title(_("No Window"))
+        no_window.set_subtitle(_("Run without a window (background only)"))
         no_window.set_active(self.settings.get("scrcpy", "no_window", False))
 
         def on_no_window_changed(switch, _):
@@ -921,8 +921,8 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # No Video
         no_video = Adw.SwitchRow()
-        no_video.set_title("No Video")
-        no_video.set_subtitle("Audio/control only (no video stream)")
+        no_video.set_title(_("No Video"))
+        no_video.set_subtitle(_("Audio/control only (no video stream)"))
         no_video.set_active(self.settings.get("scrcpy", "no_video", False))
 
         def on_no_video_changed(switch, _):
@@ -933,8 +933,8 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # No Audio
         no_audio = Adw.SwitchRow()
-        no_audio.set_title("No Audio")
-        no_audio.set_subtitle("Video/control only (no audio stream)")
+        no_audio.set_title(_("No Audio"))
+        no_audio.set_subtitle(_("Video/control only (no audio stream)"))
         no_audio.set_active(self.settings.get("scrcpy", "no_audio", False))
 
         def on_no_audio_changed(switch, _):
@@ -945,8 +945,8 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # No Control
         no_control = Adw.SwitchRow()
-        no_control.set_title("No Control")
-        no_control.set_subtitle("Mirror only, no input")
+        no_control.set_title(_("No Control"))
+        no_control.set_subtitle(_("Mirror only, no input"))
         no_control.set_active(self.settings.get("scrcpy", "no_control", False))
 
         def on_no_control_changed(switch, _):
@@ -1030,10 +1030,10 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         path = entry.get_text().strip()
         if path and (not os.path.isfile(path) or not os.access(path, os.X_OK)):
-            row.set_subtitle("Invalid path or not executable")
+            row.set_subtitle(_("Invalid path or not executable"))
             entry.get_style_context().add_class("error")
         else:
-            row.set_subtitle("Path to adb binary (leave blank for system default)")
+            row.set_subtitle(_("Path to adb binary (leave blank for system default)"))
             entry.get_style_context().remove_class("error")
             self.settings.set("adb", "adb_path", path)
 
@@ -1042,13 +1042,13 @@ class SettingsWindow(Adw.PreferencesWindow):
         from gi.repository import Gio
 
         dialog = Gtk.FileDialog()
-        dialog.set_title("Select ADB Binary")
+        dialog.set_title(_("Select ADB Binary"))
         dialog.set_modal(True)
         # Only allow single file selection (not folders or multiple files)
         # dialog.select_folder(False)
         # Create a filter for executable files (show all, validate on select)
         filter_exec = Gtk.FileFilter()
-        filter_exec.set_name("Executable files")
+        filter_exec.set_name(_("Executable files"))
         filter_exec.add_pattern("*")
         filters = Gio.ListStore.new(Gtk.FileFilter)
         filters.append(filter_exec)

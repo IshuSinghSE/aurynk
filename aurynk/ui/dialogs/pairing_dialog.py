@@ -17,7 +17,7 @@ class PairingDialog(Gtk.Dialog):
     """Dialog for pairing new Android devices."""
 
     def __init__(self, parent):
-        super().__init__(title="Pair New Device", transient_for=parent, modal=True)
+        super().__init__(title=_("Pair New Device"), transient_for=parent, modal=True)
 
         self.adb_controller = ADBController()
         self.zeroconf = None
@@ -43,7 +43,7 @@ class PairingDialog(Gtk.Dialog):
 
         # Title (centered, bold, large)
         title = Gtk.Label()
-        title.set_markup('<span size="xx-large" weight="bold">How to Pair New Device</span>')
+        title.set_markup(f'<span size="xx-large" weight="bold">{_("How to Pair New Device")}</span>')
         title.set_halign(Gtk.Align.CENTER)
         title.set_margin_bottom(8)
         content.append(title)
@@ -55,13 +55,13 @@ class PairingDialog(Gtk.Dialog):
 
         instr1 = Gtk.Label()
         instr1.set_markup(
-            '<span size="medium">1. On your phone, go to <b>Developer Options → Wireless Debugging</b></span>'
+            f'<span size="medium">{_("1. On your phone, go to <b>Developer Options → Wireless Debugging</b>")}</span>'
         )
         instr1.set_halign(Gtk.Align.CENTER)
         instr1.get_style_context().add_class("dim-label")
         instr2 = Gtk.Label()
         instr2.set_markup(
-            '<span size="medium">2. Tap <b>Pair device with QR code</b> and scan below</span>'
+            f'<span size="medium">{_("2. Tap <b>Pair device with QR code</b> and scan below")}</span>'
         )
         instr2.set_halign(Gtk.Align.CENTER)
         instr2.get_style_context().add_class("dim-label")
@@ -82,14 +82,14 @@ class PairingDialog(Gtk.Dialog):
         self.spinner.start()
 
         # Status label (centered, subtle)
-        self.status_label = Gtk.Label(label="Generating QR code...")
+        self.status_label = Gtk.Label(label=_("Generating QR code..."))
         self.status_label.set_halign(Gtk.Align.CENTER)
         self.status_label.set_margin_top(8)
         self.status_label.get_style_context().add_class("dim-label")
 
         # Action button (dynamically changes between Cancel and Try Again)
         self.action_btn = Gtk.Button()
-        self.action_btn.set_label("Cancel")
+        self.action_btn.set_label(_("Cancel"))
         self.action_btn.add_css_class("destructive-action")
         self.action_btn.connect("clicked", self._on_cancel)
         self.action_btn.set_halign(Gtk.Align.CENTER)
@@ -116,7 +116,7 @@ class PairingDialog(Gtk.Dialog):
         self.qr_container.append(self.spinner)
         self.qr_container.append(self.status_label)
 
-        self.status_label.set_text("Scan the QR code with your phone")
+        self.status_label.set_text(_("Scan the QR code with your phone"))
         self.spinner.start()
 
         # Start mDNS discovery in background thread
@@ -139,11 +139,11 @@ class PairingDialog(Gtk.Dialog):
                 on_device_found, self.network_name, self.password
             )
         except Exception as e:
-            GLib.idle_add(self._update_status, f"Error: {e}")
+            GLib.idle_add(self._update_status, _("Error: {}").format(e))
 
     def _on_device_found(self, address, pair_port, connect_port, password):
         """Handle device discovery."""
-        self._update_status(f"Device found: {address}")
+        self._update_status(_("Device found: {}").format(address))
 
         # Start pairing in background thread
         def pair():
@@ -162,7 +162,7 @@ class PairingDialog(Gtk.Dialog):
     def _on_pairing_complete(self):
         """Handle successful pairing."""
         self.spinner.stop()
-        self._update_status("✓ Device paired successfully!")
+        self._update_status(_("✓ Device paired successfully!"))
         # Close dialog after a short delay
         from aurynk.utils.device_events import notify_device_changed
 
@@ -179,9 +179,9 @@ class PairingDialog(Gtk.Dialog):
     def _on_qr_expired(self):
         """Handle QR code expiry."""
         self.spinner.stop()
-        self.status_label.set_text("QR code expired. Try again.")
+        self.status_label.set_text(_("QR code expired. Try again."))
         # Change action button to Try Again
-        self.action_btn.set_label("Try Again")
+        self.action_btn.set_label(_("Try Again"))
         self.action_btn.remove_css_class("destructive-action")
         self.action_btn.add_css_class("suggested-action")
         self.action_btn.disconnect_by_func(self._on_cancel)
@@ -200,7 +200,7 @@ class PairingDialog(Gtk.Dialog):
     def _on_try_again(self, button):
         """Handle Try Again button click."""
         # Change action button back to Cancel
-        self.action_btn.set_label("Cancel")
+        self.action_btn.set_label(_("Cancel"))
         self.action_btn.remove_css_class("suggested-action")
         self.action_btn.add_css_class("destructive-action")
         self.action_btn.disconnect_by_func(self._on_try_again)

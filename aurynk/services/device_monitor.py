@@ -104,7 +104,7 @@ class DeviceMonitor:
             if address:
                 # Store by address for quick lookup
                 self._paired_devices[address] = {
-                    "name": device.get("name", "Unknown"),
+                    "name": device.get("name", _("Unknown")),
                     "model": device.get("model"),
                     "connect_port": device.get("connect_port"),
                     "pair_port": device.get("pair_port"),
@@ -380,7 +380,7 @@ class DeviceMonitor:
         # If all attempts fail, notify user
         try:
             notify_device_event(
-                "error", device=device_name, extra="Unlock device to auto-connect", error=True
+                "error", device=device_name, extra=_("Unlock device to auto-connect"), error=True
             )
         except Exception:
             pass
@@ -451,10 +451,8 @@ class DeviceMonitor:
                                                     break
                                         if require_confirm and main_window:
                                             dialog = Adw.MessageDialog.new(main_window)
-                                            dialog.set_heading("Remove Device?")
-                                            body_text = (
-                                                f"Are you sure you want to remove\n{address} ?"
-                                            )
+                                            dialog.set_heading(_("Remove Device?"))
+                                            body_text = _("Are you sure you want to remove\n{} ?").format(address)
                                             dialog.set_body(body_text)
                                             dialog.set_default_size(340, 120)
                                             body_label = (
@@ -465,8 +463,8 @@ class DeviceMonitor:
                                             if body_label:
                                                 body_label.set_line_wrap(True)
                                                 body_label.set_max_width_chars(40)
-                                            dialog.add_response("cancel", "Cancel")
-                                            dialog.add_response("remove", "Remove")
+                                            dialog.add_response("cancel", _("Cancel"))
+                                            dialog.add_response("remove", _("Remove"))
                                             dialog.set_response_appearance(
                                                 "remove", Adw.ResponseAppearance.DESTRUCTIVE
                                             )

@@ -23,13 +23,13 @@ def notify_device_event(event: str, device: str = "", extra: str = "", error: bo
         return
     try:
         if event == "connected":
-            show_notification(title="Device Connected", body=f"{device} is now connected.")
+            show_notification(title=_("Device Connected"), body=_("{} is now connected.").format(device))
         elif event == "disconnected":
-            show_notification(title="Device Disconnected", body=f"{device} is now disconnected.")
+            show_notification(title=_("Device Disconnected"), body=_("{} is now disconnected.").format(device))
         elif event == "error":
-            show_notification(title="Device Error", body=f"{device}: {extra}", icon=None)
+            show_notification(title=_("Device Error"), body=_("{}: {}").format(device, extra), icon=None)
         else:
-            show_notification(title="Device Event", body=f"{event}: {device} {extra}")
+            show_notification(title=_("Device Event"), body=f"{event}: {device} {extra}")
     except Exception as e:
         logger.error(f"Exception in notify_device_event: {e}")
 

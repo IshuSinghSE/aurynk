@@ -126,7 +126,7 @@ class ADBController:
 
         # Step 4: Save device
         self.save_paired_device(device_info)
-        log(f"✓ Device saved: {device_info.get('name', 'Unknown')}")
+        log(_("✓ Device saved: {}").format(device_info.get('name', _('Unknown'))))
 
         return True
 
@@ -258,7 +258,7 @@ class ADBController:
         manufacturer = get_prop("ro.product.manufacturer")
         android_version = get_prop("ro.build.version.release")
 
-        device_info["name"] = f"{marketname}" if marketname else (model or "Unknown")
+        device_info["name"] = f"{marketname}" if marketname else (model or _("Unknown"))
         device_info["model"] = model
         device_info["manufacturer"] = manufacturer
         device_info["android_version"] = android_version

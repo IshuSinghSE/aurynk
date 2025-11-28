@@ -27,7 +27,7 @@ class AboutWindow:
         """
         about = Adw.AboutWindow(
             transient_for=parent,
-            application_name="Aurynk",
+            application_name=_("Aurynk"),
             application_icon="io.github.IshuSinghSE.aurynk",
             developer_name="Ishu Singh",
             version=__version__,
@@ -35,17 +35,17 @@ class AboutWindow:
             issue_url="https://github.com/IshuSinghSE/aurynk/issues",
             developers=["IshuSinghSE <ishu.111636@yahoo.com>"],
             artists=["IshuSinghSE"],
-            comments="Android Device Manager for Linux with wireless pairing and mirroring support",
+            comments=_("Android Device Manager for Linux with wireless pairing and mirroring support"),
         )
 
         # Add useful links
-        about.add_link("Documentation", "https://github.com/IshuSinghSE/aurynk/wiki")
-        about.add_link("Source Code", "https://github.com/IshuSinghSE/aurynk")
-        about.add_link("Donate", "https://github.com/sponsors/IshuSinghSE")
+        about.add_link(_("Documentation"), "https://github.com/IshuSinghSE/aurynk/wiki")
+        about.add_link(_("Source Code"), "https://github.com/IshuSinghSE/aurynk")
+        about.add_link(_("Donate"), "https://github.com/sponsors/IshuSinghSE")
 
         # Credits for technologies used
         about.add_credit_section(
-            "Built with",
+            _("Built with"),
             [
                 "GTK4 https://gtk.org",
                 "Libadwaita https://gnome.pages.gitlab.gnome.org/libadwaita/",
@@ -56,7 +56,7 @@ class AboutWindow:
 
         # Credits for Python dependencies
         about.add_credit_section(
-            "Python Libraries",
+            _("Python Libraries"),
             [
                 "PyGObject",
                 "Zeroconf (mDNS discovery)",
@@ -67,7 +67,7 @@ class AboutWindow:
 
         # Additional acknowledgments
         about.add_acknowledgement_section(
-            "Special Thanks",
+            _("Special Thanks"),
             [
                 "GNOME Community",
                 "Scrcpy developers",

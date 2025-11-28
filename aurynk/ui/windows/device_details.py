@@ -23,7 +23,7 @@ class DeviceDetailsWindow(Adw.Window):
         self.device = device
         self.adb_controller = ADBController()
 
-        self.set_title(f"Device: {device.get('name', 'Unknown')}")
+        self.set_title(_("Device: {}").format(device.get('name', _('Unknown'))))
         self.set_default_size(900, 600)
 
         self._setup_ui()
@@ -58,7 +58,7 @@ class DeviceDetailsWindow(Adw.Window):
         left_box.set_valign(Gtk.Align.START)
 
         screenshot_label = Gtk.Label()
-        screenshot_label.set_markup('<span size="x-large" weight="bold">Preview</span>')
+        screenshot_label.set_markup(f'<span size="x-large" weight="bold">{_("Preview")}</span>')
         screenshot_label.set_halign(Gtk.Align.CENTER)
         left_box.append(screenshot_label)
 
@@ -89,7 +89,7 @@ class DeviceDetailsWindow(Adw.Window):
         # Refresh screenshot button (icon only)
         refresh_screenshot_btn = Gtk.Button()
         refresh_screenshot_btn.set_icon_name("view-refresh-symbolic")
-        refresh_screenshot_btn.set_tooltip_text("Refresh Screenshot")
+        refresh_screenshot_btn.set_tooltip_text(_("Refresh Screenshot"))
         refresh_screenshot_btn.add_css_class("suggested-action")
         refresh_screenshot_btn.connect("clicked", self._on_refresh_screenshot)
         actions_box.append(refresh_screenshot_btn)
@@ -97,14 +97,14 @@ class DeviceDetailsWindow(Adw.Window):
         # Refresh all data button (icon only)
         refresh_btn = Gtk.Button()
         refresh_btn.set_icon_name("system-reboot-symbolic")
-        refresh_btn.set_tooltip_text("Refresh All Device Data")
+        refresh_btn.set_tooltip_text(_("Refresh All Device Data"))
         refresh_btn.connect("clicked", self._on_refresh_all)
         actions_box.append(refresh_btn)
 
         # Remove device button (icon only)
         remove_btn = Gtk.Button()
         remove_btn.set_icon_name("user-trash-symbolic")
-        remove_btn.set_tooltip_text("Remove Device")
+        remove_btn.set_tooltip_text(_("Remove Device"))
         remove_btn.add_css_class("destructive-action")
         remove_btn.connect("clicked", self._on_remove_device)
         actions_box.append(remove_btn)
@@ -119,28 +119,28 @@ class DeviceDetailsWindow(Adw.Window):
 
         # Basic info section
         basic_group = Adw.PreferencesGroup()
-        basic_group.set_title("Basic Information")
+        basic_group.set_title(_("Basic Information"))
 
-        self._add_info_row(basic_group, "Device Name", self.device.get("name", "Unknown"))
-        self._add_info_row(basic_group, "Manufacturer", self.device.get("manufacturer", "Unknown"))
+        self._add_info_row(basic_group, _("Device Name"), self.device.get("name", _("Unknown")))
+        self._add_info_row(basic_group, _("Manufacturer"), self.device.get("manufacturer", _("Unknown")))
         self._add_info_row(
-            basic_group, "Android Version", self.device.get("android_version", "Unknown")
+            basic_group, _("Android Version"), self.device.get("android_version", _("Unknown"))
         )
-        self._add_info_row(basic_group, "IP Address", self.device.get("address", "Unknown"))
+        self._add_info_row(basic_group, _("IP Address"), self.device.get("address", _("Unknown")))
 
         right_box.append(basic_group)
 
         # Specifications section
         specs_group = Adw.PreferencesGroup()
-        specs_group.set_title("Specifications")
+        specs_group.set_title(_("Specifications"))
 
         spec = self.device.get("spec", {})
-        self.ram_row = self._add_info_row(specs_group, "RAM", spec.get("ram", "Loading..."))
+        self.ram_row = self._add_info_row(specs_group, _("RAM"), spec.get("ram", _("Loading...")))
         self.storage_row = self._add_info_row(
-            specs_group, "Storage", spec.get("storage", "Loading...")
+            specs_group, _("Storage"), spec.get("storage", _("Loading..."))
         )
         self.battery_row = self._add_info_row(
-            specs_group, "Battery", spec.get("battery", "Loading...")
+            specs_group, _("Battery"), spec.get("battery", _("Loading..."))
         )
 
         right_box.append(specs_group)
@@ -180,14 +180,14 @@ class DeviceDetailsWindow(Adw.Window):
 
     def _update_specs_ui(self, specs):
         """Update specifications UI."""
-        self.ram_row.set_subtitle(specs.get("ram", "Unknown"))
-        self.storage_row.set_subtitle(specs.get("storage", "Unknown"))
-        self.battery_row.set_subtitle(specs.get("battery", "Unknown"))
+        self.ram_row.set_subtitle(specs.get("ram", _("Unknown")))
+        self.storage_row.set_subtitle(specs.get("storage", _("Unknown")))
+        self.battery_row.set_subtitle(specs.get("battery", _("Unknown")))
 
     def _on_refresh_screenshot(self, button):
         """Handle refresh screenshot button click."""
         button.set_sensitive(False)
-        button.set_label("Refreshing...")
+        button.set_label(_("Refreshing..."))
 
         def capture():
             screenshot_path = self.adb_controller.capture_screenshot(
@@ -251,9 +251,9 @@ class DeviceDetailsWindow(Adw.Window):
         """Handle remove device button click."""
         # Show confirmation dialog with improved layout
         dialog = Adw.MessageDialog.new(self)
-        dialog.set_heading("Remove Device?")
+        dialog.set_heading(_("Remove Device?"))
         # Use line break and wrapping for the body label
-        body_text = f"Are you sure you want to remove \n {self.device.get('name', 'this device')} ?"
+        body_text = _("Are you sure you want to remove \n {} ?").format(self.device.get('name', _('this device')))
         dialog.set_body(body_text)
         # Set minimum width for dialog
         dialog.set_default_size(340, 120)
@@ -262,8 +262,8 @@ class DeviceDetailsWindow(Adw.Window):
         if body_label:
             body_label.set_line_wrap(True)
             body_label.set_max_width_chars(40)
-        dialog.add_response("cancel", "Cancel")
-        dialog.add_response("remove", "Remove")
+        dialog.add_response("cancel", _("Cancel"))
+        dialog.add_response("remove", _("Remove"))
         dialog.set_response_appearance("remove", Adw.ResponseAppearance.DESTRUCTIVE)
         dialog.connect("response", self._on_remove_confirmed)
         dialog.present()

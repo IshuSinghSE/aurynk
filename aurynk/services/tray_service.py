@@ -38,7 +38,7 @@ def send_status_to_tray(app, status: str = None):
                 mirroring = scrcpy.is_mirroring(address, connect_port)
             device_status.append(
                 {
-                    "name": d.get("name", "Unknown Device"),
+                    "name": d.get("name", _("Unknown Device")),
                     "address": address,
                     "connected": connected,
                     "mirroring": mirroring,
@@ -100,7 +100,7 @@ def send_devices_to_tray(devices):
                 connected = False
         device_status.append(
             {
-                "name": d.get("name", "Unknown Device"),
+                "name": d.get("name", _("Unknown Device")),
                 "address": address,
                 "connected": connected,
                 "mirroring": mirroring,
