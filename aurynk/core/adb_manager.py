@@ -37,7 +37,7 @@ DEVICE_STORE_PATH = os.path.join(DEVICE_STORE_DIR, "paired_devices.json")
 class ADBController:
     """Handles all ADB and device management operations."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the ADB controller."""
         self.device_store = DeviceStore(DEVICE_STORE_PATH)
 
@@ -70,7 +70,7 @@ class ADBController:
         """
         import time
 
-        def log(msg: str):
+        def log(msg: str) -> None:
             logger.info(msg)
             if status_callback:
                 status_callback(msg)
@@ -135,7 +135,7 @@ class ADBController:
         on_device_found: Callable[[str, int, int, str], None],
         network_name: str,
         password: str,
-    ):
+    ) -> Any:
         """
         Start mDNS discovery for ADB devices.
 
@@ -147,9 +147,9 @@ class ADBController:
         zeroconf = Zeroconf(ip_version=IPVersion.V4Only)
 
         # We'll collect discovered services by address
-        discovered = {}
+        discovered: Dict[str, Dict[str, int]] = {}
 
-        def handle_found(address, service_type, port):
+        def handle_found(address: Optional[str], service_type: str, port: int) -> None:
             if not address:
                 return
             if address not in discovered:
@@ -166,9 +166,15 @@ class ADBController:
                 # Optionally, remove to avoid duplicate callbacks
                 del discovered[address]
 
-        def make_handler(expected_service_type):
+        def make_handler(expected_service_type: str) -> Callable:
             # Handler must match zeroconf's expected signature: (zeroconf, service_type, name, state_change)
-            def on_service_state_change(zeroconf, service_type, name, state_change, **kwargs):
+            def on_service_state_change(
+                zeroconf: Zeroconf,
+                service_type: str,
+                name: str,
+                state_change: ServiceStateChange,
+                **kwargs: Any,
+            ) -> None:
                 if (
                     state_change is ServiceStateChange.Added
                     and service_type == expected_service_type
@@ -177,7 +183,8 @@ class ADBController:
                     if info:
                         address = ".".join(map(str, info.addresses[0])) if info.addresses else None
                         port = info.port
-                        handle_found(address, service_type, port)
+                        if port is not None:
+                            handle_found(address, service_type, port)
 
             return on_service_state_change
 
@@ -195,7 +202,7 @@ class ADBController:
 
         return zeroconf, (browser_pair, browser_connect)
 
-    def get_current_ports(self, address: str, timeout: int = 3) -> Optional[Dict[str, int]]:
+    def get_current_ports(self, address: str, timeout: int = 3) -> Optional[Dict[str, Optional[int]]]:
         """Try to get current ports for a device via mDNS discovery.
 
         Returns:
@@ -424,10 +431,10 @@ class ADBController:
         """Get paired devices from in-memory store."""
         return self.device_store.get_devices()
 
-    def save_paired_device(self, device_info: Dict[str, Any]):
+    def save_paired_device(self, device_info: Dict[str, Any]) -> None:
         """Save or update a paired device."""
         self.device_store.add_or_update_device(device_info)
 
-    def remove_device(self, address: str):
+    def remove_device(self, address: str) -> None:
         """Remove a device from storage."""
         self.device_store.remove_device(address)

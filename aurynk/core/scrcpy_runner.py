@@ -5,6 +5,7 @@ import os
 import subprocess
 import threading
 import time
+from typing import Callable, Optional
 
 from aurynk.utils.logger import get_logger
 from aurynk.utils.settings import SettingsManager
@@ -33,16 +34,16 @@ class ScrcpyManager:
             cls._instance.stop_callbacks = []
         return cls._instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Init handled in __new__ to ensure singleton properties
         pass
 
-    def add_stop_callback(self, callback):
+    def add_stop_callback(self, callback: Callable[[str], None]) -> None:
         """Register a callback to be called when a mirroring process stops."""
         if callback not in self.stop_callbacks:
             self.stop_callbacks.append(callback)
 
-    def start_mirror(self, address: str, port: int, device_name: str = None) -> bool:
+    def start_mirror(self, address: str, port: int, device_name: Optional[str] = None) -> bool:
         """Start scrcpy for the given device address and port. Returns True if started. Optionally set window title to device name."""
         serial = f"{address}:{port}"
 
@@ -264,7 +265,7 @@ class ScrcpyManager:
                 del self.processes[serial]
         return False
 
-    def _monitor_process(self, serial: str, proc: subprocess.Popen):
+    def _monitor_process(self, serial: str, proc: subprocess.Popen) -> None:
         """Monitor the process and clean up when it exits."""
         try:
             proc.wait()

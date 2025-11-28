@@ -4,7 +4,7 @@
 import subprocess
 import threading
 import time
-from typing import Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from zeroconf import IPVersion, ServiceBrowser, ServiceStateChange, Zeroconf
 
@@ -28,7 +28,7 @@ class DeviceMonitor:
                     cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the device monitor singleton."""
         if self._initialized:
             return
@@ -73,29 +73,29 @@ class DeviceMonitor:
             "adb", "keep_alive_interval", self._on_keep_alive_interval_changed
         )
 
-    def _on_auto_connect_retries_changed(self, new_value):
+    def _on_auto_connect_retries_changed(self, new_value: int) -> None:
         self._auto_connect_retries = new_value
         logger.info(f"Auto-connect retries set to {new_value}")
 
-    def _on_auto_connect_retry_delay_changed(self, new_value):
+    def _on_auto_connect_retry_delay_changed(self, new_value: int) -> None:
         self._auto_connect_retry_delay = new_value
         logger.info(f"Auto-connect retry delay set to {new_value} seconds")
 
-    def _on_keep_alive_interval_changed(self, new_value, old_value):
+    def _on_keep_alive_interval_changed(self, new_value: int, old_value: int) -> None:
         self._keep_alive_interval = new_value
         logger.info(f"ADB keep-alive interval set to {new_value} seconds")
 
-    def _on_auto_connect_changed(self, new_value):
+    def _on_auto_connect_changed(self, new_value: bool) -> None:
         """Handle auto_connect setting change."""
         self._auto_connect_enabled = new_value
         logger.info(f"Auto-connect {'enabled' if new_value else 'disabled'}")
 
-    def _on_monitor_interval_changed(self, new_value):
+    def _on_monitor_interval_changed(self, new_value: int) -> None:
         """Handle monitor_interval setting change."""
         self._monitor_interval = new_value
         logger.info(f"Monitor interval set to {new_value} seconds")
 
-    def set_paired_devices(self, devices: list):
+    def set_paired_devices(self, devices: list) -> None:
         """Update the list of paired devices to monitor."""
         self._paired_devices.clear()
         self._device_by_address.clear()
@@ -111,7 +111,7 @@ class DeviceMonitor:
                 }
         logger.debug(f"Monitoring {len(self._paired_devices)} paired devices")
 
-    def start(self):
+    def start(self) -> None:
         """Start monitoring for devices."""
         if self._running:
             logger.debug("Monitor already running")
@@ -129,7 +129,7 @@ class DeviceMonitor:
 
         logger.info("Device monitor started")
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop monitoring."""
         if not self._running:
             return
@@ -155,13 +155,15 @@ class DeviceMonitor:
 
         logger.info("Device monitor stopped")
 
-    def _start_mdns_discovery(self):
+    def _start_mdns_discovery(self) -> None:
         """Start mDNS service discovery for ADB devices."""
         try:
             self._zeroconf = Zeroconf(ip_version=IPVersion.V4Only)
 
             # Handler for connect services (these are the ones we want to auto-connect to)
-            def on_connect_service_change(zeroconf, service_type, name, state_change):
+            def on_connect_service_change(
+                zeroconf: Zeroconf, service_type: str, name: str, state_change: ServiceStateChange
+            ) -> None:
                 if state_change == ServiceStateChange.Added:
                     info = zeroconf.get_service_info(service_type, name)
                     if info and info.addresses:
@@ -169,7 +171,8 @@ class DeviceMonitor:
                         port = info.port
                         # Extract device model from service name (format: "adb-<model>-<random>._adb-tls-connect._tcp.local.")
                         model = self._extract_model_from_service_name(name)
-                        self._handle_device_discovered(address, port, "connect", model)
+                        if port is not None:
+                            self._handle_device_discovered(address, port, "connect", model)
                 elif state_change == ServiceStateChange.Removed:
                     info = zeroconf.get_service_info(service_type, name)
                     if info and info.addresses:
@@ -177,14 +180,17 @@ class DeviceMonitor:
                         self._handle_device_lost(address)
 
             # Handler for pairing services
-            def on_pair_service_change(zeroconf, service_type, name, state_change):
+            def on_pair_service_change(
+                zeroconf: Zeroconf, service_type: str, name: str, state_change: ServiceStateChange
+            ) -> None:
                 if state_change == ServiceStateChange.Added:
                     info = zeroconf.get_service_info(service_type, name)
                     if info and info.addresses:
                         address = ".".join(map(str, info.addresses[0]))
                         port = info.port
                         model = self._extract_model_from_service_name(name)
-                        self._handle_device_discovered(address, port, "pair", model)
+                        if port is not None:
+                            self._handle_device_discovered(address, port, "pair", model)
 
             # Browse for both service types
             browser_connect = ServiceBrowser(
@@ -231,7 +237,7 @@ class DeviceMonitor:
 
     def _handle_device_discovered(
         self, address: str, port: int, service_type: str, model: str = ""
-    ):
+    ) -> None:
         """Handle a device discovered via mDNS."""
         logger.debug(f"Discovered {service_type} service: {address}:{port}")
 
@@ -277,7 +283,7 @@ class DeviceMonitor:
                     self._update_device_address(paired_device.get("model"), address, port)
                 self._auto_connect_to_device(address, port)
 
-    def _update_device_address(self, model: str, new_address: str, new_port: int):
+    def _update_device_address(self, model: str, new_address: str, new_port: int) -> None:
         """Update device address in storage when IP changes."""
         try:
             # Import here to avoid circular dependencies
@@ -296,7 +302,7 @@ class DeviceMonitor:
         except Exception as e:
             logger.error(f"Failed to update device address in storage: {e}")
 
-    def _handle_device_lost(self, address: str):
+    def _handle_device_lost(self, address: str) -> None:
         """Handle a device that went offline."""
         logger.debug(f"Device lost: {address}")
 
@@ -325,7 +331,7 @@ class DeviceMonitor:
             except Exception as e:
                 logger.error(f"Error in device lost callback: {e}")
 
-    def _auto_connect_to_device(self, address: str, port: int):
+    def _auto_connect_to_device(self, address: str, port: int) -> None:
         """Automatically connect to a paired device with retry logic."""
         paired_info = self._paired_devices.get(address)
         if not paired_info:
@@ -388,7 +394,7 @@ class DeviceMonitor:
             f"Auto-connect failed after {self._auto_connect_retries} attempts. User notified."
         )
 
-    def _monitor_connections(self):
+    def _monitor_connections(self) -> None:
         """Background thread to monitor ADB connection status and send keep-alive if enabled."""
         previous_connected = set()
         last_keep_alive = time.time()
@@ -557,7 +563,7 @@ class DeviceMonitor:
             # Sleep before next check - use setting value
             time.sleep(self._monitor_interval)
 
-    def register_callback(self, event: str, callback: Callable):
+    def register_callback(self, event: str, callback: Callable) -> None:
         """Register a callback for device events.
 
         Events:
@@ -572,16 +578,16 @@ class DeviceMonitor:
         """Check if a device is currently connected."""
         return address in self._connected_devices
 
-    def get_discovered_device(self, address: str) -> Optional[Dict]:
+    def get_discovered_device(self, address: str) -> Optional[Dict[str, Any]]:
         """Get discovered service info for a device."""
         return self._discovered_services.get(address)
 
-    def set_auto_connect(self, enabled: bool):
+    def set_auto_connect(self, enabled: bool) -> None:
         """Enable or disable auto-connect."""
         self._auto_connect_enabled = enabled
         logger.info(f"Auto-connect {'enabled' if enabled else 'disabled'}")
 
-    def remove_device(self, address: str):
+    def remove_device(self, address: str) -> None:
         """Remove a paired device by address."""
         if address in self._paired_devices:
             del self._paired_devices[address]

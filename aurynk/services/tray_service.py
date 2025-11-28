@@ -1,6 +1,7 @@
 import os
 import socket
 import time
+from typing import Any, Dict, List, Optional
 
 from gi.repository import GLib
 
@@ -14,7 +15,7 @@ TRAY_SOCKET = "/tmp/aurynk_tray.sock"
 APP_SOCKET = "/tmp/aurynk_app.sock"
 
 
-def send_status_to_tray(app, status: str = None):
+def send_status_to_tray(app: Any, status: Optional[str] = None) -> None:
     """Send a status update for all devices to the tray helper via its socket."""
     import json
 
@@ -65,7 +66,7 @@ def send_status_to_tray(app, status: str = None):
     logger.warning("Tray helper socket not available after retries.")
 
 
-def send_devices_to_tray(devices):
+def send_devices_to_tray(devices: List[Dict[str, Any]]) -> None:
     """Send a list of device dicts directly to the tray helper socket.
 
     This is a low-level helper used by code paths that don't have an
@@ -79,7 +80,7 @@ def send_devices_to_tray(devices):
         from aurynk.utils.adb_utils import is_device_connected
     except Exception:
         # If import fails, fallback to assuming devices are disconnected
-        def is_device_connected(a, p):
+        def is_device_connected(a: str, p: int) -> bool:
             return False
 
     from aurynk.core.scrcpy_runner import ScrcpyManager
@@ -126,7 +127,7 @@ def send_devices_to_tray(devices):
     logger.warning("Tray helper socket not available after retries.")
 
 
-def tray_command_listener(app):
+def tray_command_listener(app: Any) -> None:
     """Listen for commands from the tray helper (e.g., show, quit, pair_new, per-device actions)."""
     if os.path.exists(APP_SOCKET):
         try:
@@ -197,7 +198,7 @@ def tray_command_listener(app):
             pass
 
 
-def tray_connect_device(app, address):
+def tray_connect_device(app: Any, address: str) -> None:
     win = app.props.active_window
     if not win:
         win = AurynkWindow(application=app)
@@ -213,7 +214,7 @@ def tray_connect_device(app, address):
         send_status_to_tray(app)
 
 
-def tray_disconnect_device(app, address):
+def tray_disconnect_device(app: Any, address: str) -> None:
     win = app.props.active_window
     if not win:
         win = AurynkWindow(application=app)
@@ -229,7 +230,7 @@ def tray_disconnect_device(app, address):
         send_status_to_tray(app)
 
 
-def tray_mirror_device(app, address):
+def tray_mirror_device(app: Any, address: str) -> None:
     win = app.props.active_window
     if not win:
         win = AurynkWindow(application=app)
@@ -248,7 +249,7 @@ def tray_mirror_device(app, address):
         send_status_to_tray(app)
 
 
-def tray_unpair_device(app, address):
+def tray_unpair_device(app: Any, address: str) -> None:
     win = app.props.active_window
     if not win:
         win = AurynkWindow(application=app)

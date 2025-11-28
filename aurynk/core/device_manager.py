@@ -10,12 +10,12 @@ logger = get_logger("DeviceStore")
 class DeviceStore:
     """Manages in-memory device list and syncs with JSON file."""
 
-    def __init__(self, path: str):
+    def __init__(self, path: str) -> None:
         self.path = path
         self._devices: List[Dict[str, Any]] = []
         self._load_from_file()
 
-    def _load_from_file(self):
+    def _load_from_file(self) -> None:
         if not os.path.exists(self.path):
             self._devices = []
             return
@@ -30,7 +30,7 @@ class DeviceStore:
     def get_devices(self) -> List[Dict[str, Any]]:
         return self._devices.copy()
 
-    def add_or_update_device(self, device_info: Dict[str, Any]):
+    def add_or_update_device(self, device_info: Dict[str, Any]) -> None:
         from aurynk.utils.device_events import notify_device_changed
         from aurynk.utils.notify import show_notification
 
@@ -54,7 +54,7 @@ class DeviceStore:
         except Exception:
             pass
 
-    def remove_device(self, address: str):
+    def remove_device(self, address: str) -> None:
         import subprocess
 
         from aurynk.utils.device_events import notify_device_changed
@@ -88,7 +88,7 @@ class DeviceStore:
         except Exception:
             pass
 
-    def _save_to_file(self):
+    def _save_to_file(self) -> None:
         os.makedirs(os.path.dirname(self.path), exist_ok=True)
         try:
             with open(self.path, "w") as f:
@@ -102,7 +102,7 @@ class DeviceStore:
             try:
                 import threading
 
-                def _notify():
+                def _notify() -> None:
                     try:
                         # Import locally to avoid import cycles at module import time
                         from aurynk.services.tray_service import send_devices_to_tray
@@ -116,10 +116,10 @@ class DeviceStore:
             except Exception:
                 pass
 
-    def reload(self):
+    def reload(self) -> None:
         """Reload device list from file (if changed externally)."""
         self._load_from_file()
 
-    def clear(self):
+    def clear(self) -> None:
         self._devices = []
         self._save_to_file()
