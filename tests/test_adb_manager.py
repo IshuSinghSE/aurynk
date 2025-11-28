@@ -10,53 +10,6 @@ class TestADBController(unittest.TestCase):
         self.mock_device_store = mock_device_store
         self.adb_controller = ADBController()
 
-    def test_parse_device_list_success(self):
-        output = """List of devices attached
-emulator-5554          device product:sdk_gphone_x86_64 model:sdk_gphone_x86_64 device:generic_x86_64 transport_id:1
-192.168.1.5:5555       device product:bramble model:Pixel_4a__5G_ device:bramble transport_id:2
-"""
-        devices = self.adb_controller.parse_device_list(output)
-        self.assertEqual(len(devices), 2)
-
-        self.assertEqual(devices[0]["serial"], "emulator-5554")
-        self.assertEqual(devices[0]["state"], "device")
-        self.assertEqual(devices[0]["product"], "sdk_gphone_x86_64")
-        self.assertEqual(devices[0]["model"], "sdk_gphone_x86_64")
-        self.assertEqual(devices[0]["device"], "generic_x86_64")
-        self.assertEqual(devices[0]["transport_id"], "1")
-
-        self.assertEqual(devices[1]["serial"], "192.168.1.5:5555")
-        self.assertEqual(devices[1]["state"], "device")
-        self.assertEqual(devices[1]["product"], "bramble")
-        self.assertEqual(devices[1]["model"], "Pixel_4a__5G_")
-        self.assertEqual(devices[1]["device"], "bramble")
-        self.assertEqual(devices[1]["transport_id"], "2")
-
-    def test_parse_device_list_empty(self):
-        output = "List of devices attached\n\n"
-        devices = self.adb_controller.parse_device_list(output)
-        self.assertEqual(len(devices), 0)
-
-    def test_parse_device_list_unauthorized(self):
-        output = """List of devices attached
-192.168.1.5:5555       unauthorized transport_id:3
-"""
-        devices = self.adb_controller.parse_device_list(output)
-        self.assertEqual(len(devices), 1)
-        self.assertEqual(devices[0]["serial"], "192.168.1.5:5555")
-        self.assertEqual(devices[0]["state"], "unauthorized")
-        self.assertEqual(devices[0]["transport_id"], "3")
-
-    def test_parse_device_list_malformed(self):
-        output = """List of devices attached
-malformed_line
-valid_device   device
-"""
-        devices = self.adb_controller.parse_device_list(output)
-        self.assertEqual(len(devices), 1)
-        self.assertEqual(devices[0]["serial"], "valid_device")
-        self.assertEqual(devices[0]["state"], "device")
-
     def test_generate_code(self):
         code = self.adb_controller.generate_code(10)
         self.assertEqual(len(code), 10)

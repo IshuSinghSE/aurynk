@@ -43,39 +43,6 @@ class ADBController:
 
     # ===== Device Pairing =====
 
-    def parse_device_list(self, output: str) -> List[Dict[str, str]]:
-        """
-        Parse the output of `adb devices -l`.
-
-        Args:
-            output: The stdout from `adb devices -l`
-
-        Returns:
-            A list of dictionaries containing device info.
-        """
-        devices = []
-        for line in output.splitlines():
-            line = line.strip()
-            if not line or line.startswith("List of devices attached"):
-                continue
-
-            parts = line.split()
-            if len(parts) < 2:
-                continue
-
-            serial = parts[0]
-            state = parts[1]
-            info = {"serial": serial, "state": state}
-
-            # Parse extra fields like product:..., model:..., device:..., transport_id:...
-            for part in parts[2:]:
-                if ":" in part:
-                    key, value = part.split(":", 1)
-                    info[key] = value
-
-            devices.append(info)
-        return devices
-
     def generate_code(self, length: int = 5) -> str:
         """Generate a random code for pairing."""
         return "".join(random.choices(string.ascii_letters, k=length))
