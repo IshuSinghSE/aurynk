@@ -11,11 +11,18 @@ class DeviceStore:
     """Manages in-memory device list and syncs with JSON file."""
 
     def __init__(self, path: str):
+        """
+        Initialize the DeviceStore.
+
+        Args:
+            path (str): Path to the JSON file where devices are stored.
+        """
         self.path = path
         self._devices: List[Dict[str, Any]] = []
         self._load_from_file()
 
     def _load_from_file(self):
+        """Load devices from the JSON file."""
         if not os.path.exists(self.path):
             self._devices = []
             return
@@ -28,9 +35,21 @@ class DeviceStore:
             self._devices = []
 
     def get_devices(self) -> List[Dict[str, Any]]:
+        """
+        Get a copy of the list of devices.
+
+        Returns:
+            List[Dict[str, Any]]: A list of device dictionaries.
+        """
         return self._devices.copy()
 
     def add_or_update_device(self, device_info: Dict[str, Any]):
+        """
+        Add a new device or update an existing one.
+
+        Args:
+            device_info (Dict[str, Any]): Dictionary containing device information.
+        """
         from aurynk.utils.device_events import notify_device_changed
         from aurynk.utils.notify import show_notification
 
@@ -55,6 +74,12 @@ class DeviceStore:
             pass
 
     def remove_device(self, address: str):
+        """
+        Remove a device from the store and disconnect if connected.
+
+        Args:
+            address (str): The IP address of the device to remove.
+        """
         import subprocess
 
         from aurynk.utils.device_events import notify_device_changed
@@ -89,6 +114,7 @@ class DeviceStore:
             pass
 
     def _save_to_file(self):
+        """Save the current list of devices to the JSON file."""
         os.makedirs(os.path.dirname(self.path), exist_ok=True)
         try:
             with open(self.path, "w") as f:
@@ -121,5 +147,6 @@ class DeviceStore:
         self._load_from_file()
 
     def clear(self):
+        """Clear all devices from the store and save."""
         self._devices = []
         self._save_to_file()

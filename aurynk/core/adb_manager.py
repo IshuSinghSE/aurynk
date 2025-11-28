@@ -35,7 +35,12 @@ DEVICE_STORE_PATH = os.path.join(DEVICE_STORE_DIR, "paired_devices.json")
 
 
 class ADBController:
-    """Handles all ADB and device management operations."""
+    """
+    Handles all ADB and device management operations.
+
+    This class provides methods to pair, connect, and manage Android devices via ADB.
+    It handles mDNS discovery, device information retrieval, and screenshot capture.
+    """
 
     def __init__(self):
         """Initialize the ADB controller."""
@@ -44,7 +49,15 @@ class ADBController:
     # ===== Device Pairing =====
 
     def generate_code(self, length: int = 5) -> str:
-        """Generate a random code for pairing."""
+        """
+        Generate a random code for pairing.
+
+        Args:
+            length (int): Length of the code to generate. Defaults to 5.
+
+        Returns:
+            str: A random string of the specified length.
+        """
         return "".join(random.choices(string.ascii_letters, k=length))
 
     def pair_device(
@@ -59,14 +72,14 @@ class ADBController:
         Pair and connect to a device, then fetch device details.
 
         Args:
-            address: Device IP address
-            pair_port: Port for pairing
-            connect_port: Port for connection (may differ from pair_port)
-            password: Pairing password
-            status_callback: Optional callback for status updates
+            address (str): Device IP address.
+            pair_port (int): Port for pairing.
+            connect_port (int): Port for connection (may differ from pair_port).
+            password (str): Pairing password.
+            status_callback (Optional[Callable[[str], None]]): Optional callback for status updates.
 
         Returns:
-            True if successful, False otherwise
+            bool: True if successful, False otherwise.
         """
         import time
 
@@ -140,9 +153,13 @@ class ADBController:
         Start mDNS discovery for ADB devices.
 
         Args:
-            on_device_found: Callback when a device is found (address, pair_port, connect_port, password)
-            network_name: Expected network SSID
-            password: Pairing password
+            on_device_found (Callable[[str, int, int, str], None]): Callback when a device is found
+                (address, pair_port, connect_port, password).
+            network_name (str): Expected network SSID.
+            password (str): Pairing password.
+
+        Returns:
+            tuple: A tuple containing the Zeroconf instance and a tuple of ServiceBrowsers.
         """
         zeroconf = Zeroconf(ip_version=IPVersion.V4Only)
 
@@ -196,10 +213,15 @@ class ADBController:
         return zeroconf, (browser_pair, browser_connect)
 
     def get_current_ports(self, address: str, timeout: int = 3) -> Optional[Dict[str, int]]:
-        """Try to get current ports for a device via mDNS discovery.
+        """
+        Try to get current ports for a device via mDNS discovery.
+
+        Args:
+            address (str): The device IP address to look for.
+            timeout (int): Timeout in seconds for the mDNS query. Defaults to 3.
 
         Returns:
-            Dict with 'pair_port' and 'connect_port' if found, None otherwise
+            Optional[Dict[str, int]]: Dict with 'pair_port' and 'connect_port' if found, None otherwise.
         """
 
         # Try using adb mdns services first (faster)
@@ -234,7 +256,16 @@ class ADBController:
     # ===== Device Information =====
 
     def _fetch_device_info(self, address: str, connect_port: int) -> Dict[str, Any]:
-        """Fetch detailed device information via ADB."""
+        """
+        Fetch detailed device information via ADB.
+
+        Args:
+            address (str): Device IP address.
+            connect_port (int): Port used for the connection.
+
+        Returns:
+            Dict[str, Any]: A dictionary containing device information like name, model, manufacturer, etc.
+        """
         serial = f"{address}:{connect_port}"
         device_info = {}
 
@@ -267,7 +298,16 @@ class ADBController:
         return device_info
 
     def fetch_device_specs(self, address: str, connect_port: int) -> Dict[str, str]:
-        """Fetch device specifications (RAM, storage, battery)."""
+        """
+        Fetch device specifications (RAM, storage, battery).
+
+        Args:
+            address (str): Device IP address.
+            connect_port (int): Port used for the connection.
+
+        Returns:
+            Dict[str, str]: A dictionary containing RAM, storage, and battery info.
+        """
         serial = f"{address}:{connect_port}"
         specs = {"ram": "", "storage": "", "battery": ""}
 
@@ -320,7 +360,20 @@ class ADBController:
         return specs
 
     def capture_screenshot(self, address: str, connect_port: int) -> Optional[str]:
-        """Capture device screenshot and return local path. If locked or screen off, use old image. Otherwise, go to home, take screenshot, return to previous app. Screenshots are stored in ~/.local/share/aurynk/screenshots/."""
+        """
+        Capture device screenshot and return local path.
+
+        If locked or screen off, use old image. Otherwise, go to home,
+        take screenshot, return to previous app. Screenshots are stored
+        in ~/.local/share/aurynk/screenshots/.
+
+        Args:
+            address (str): Device IP address.
+            connect_port (int): Port used for the connection.
+
+        Returns:
+            Optional[str]: Path to the screenshot file if successful, None otherwise.
+        """
         serial = f"{address}:{connect_port}"
         screenshot_dir = os.path.join(DEVICE_STORE_DIR, "screenshots")
         os.makedirs(screenshot_dir, exist_ok=True)
@@ -421,13 +474,28 @@ class ADBController:
     # ===== Device Storage =====
 
     def load_paired_devices(self) -> List[Dict[str, Any]]:
-        """Get paired devices from in-memory store."""
+        """
+        Get paired devices from in-memory store.
+
+        Returns:
+            List[Dict[str, Any]]: A list of dictionaries, each representing a paired device.
+        """
         return self.device_store.get_devices()
 
     def save_paired_device(self, device_info: Dict[str, Any]):
-        """Save or update a paired device."""
+        """
+        Save or update a paired device.
+
+        Args:
+            device_info (Dict[str, Any]): Dictionary containing device information to save.
+        """
         self.device_store.add_or_update_device(device_info)
 
     def remove_device(self, address: str):
-        """Remove a device from storage."""
+        """
+        Remove a device from storage.
+
+        Args:
+            address (str): The IP address of the device to remove.
+        """
         self.device_store.remove_device(address)
