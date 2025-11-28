@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Main entry point for Aurynk application."""
 
-import sys
 import gettext
 import os
+import sys
 
 # Install gettext globally so _() is available everywhere
 # This assumes locale files are in /usr/share/locale or similar, or relative to the app

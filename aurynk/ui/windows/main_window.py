@@ -297,7 +297,9 @@ class AurynkWindow(Adw.ApplicationWindow):
             empty_box.append(empty_image)
 
             empty_label = Gtk.Label()
-            empty_label.set_markup(f'<span alpha="50%" >{_("Click \"Add Device\" to get started")}</span>')
+            # use intermediate variable to avoid f-string escaping issues in older python
+            click_msg = _('Click "Add Device" to get started')
+            empty_label.set_markup(f'<span alpha="50%" >{click_msg}</span>')
             empty_label.set_justify(Gtk.Justification.CENTER)
             empty_label.set_margin_bottom(64)
             empty_label.set_halign(Gtk.Align.CENTER)

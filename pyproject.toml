@@ -55,8 +55,11 @@ aurynk = ["*.py"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+builtins = ["_"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
 ignore = ["E501", "E402"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["aurynk"]
