@@ -452,7 +452,9 @@ class DeviceMonitor:
                                         if require_confirm and main_window:
                                             dialog = Adw.MessageDialog.new(main_window)
                                             dialog.set_heading(_("Remove Device?"))
-                                            body_text = _("Are you sure you want to remove\n{} ?").format(address)
+                                            body_text = _(
+                                                "Are you sure you want to remove\n{} ?"
+                                            ).format(address)
                                             dialog.set_body(body_text)
                                             dialog.set_default_size(340, 120)
                                             body_label = (

@@ -23,7 +23,7 @@ class DeviceDetailsWindow(Adw.Window):
         self.device = device
         self.adb_controller = ADBController()
 
-        self.set_title(_("Device: {}").format(device.get('name', _('Unknown'))))
+        self.set_title(_("Device: {}").format(device.get("name", _("Unknown"))))
         self.set_default_size(900, 600)
 
         self._setup_ui()
@@ -122,7 +122,9 @@ class DeviceDetailsWindow(Adw.Window):
         basic_group.set_title(_("Basic Information"))
 
         self._add_info_row(basic_group, _("Device Name"), self.device.get("name", _("Unknown")))
-        self._add_info_row(basic_group, _("Manufacturer"), self.device.get("manufacturer", _("Unknown")))
+        self._add_info_row(
+            basic_group, _("Manufacturer"), self.device.get("manufacturer", _("Unknown"))
+        )
         self._add_info_row(
             basic_group, _("Android Version"), self.device.get("android_version", _("Unknown"))
         )
@@ -253,7 +255,9 @@ class DeviceDetailsWindow(Adw.Window):
         dialog = Adw.MessageDialog.new(self)
         dialog.set_heading(_("Remove Device?"))
         # Use line break and wrapping for the body label
-        body_text = _("Are you sure you want to remove \n {} ?").format(self.device.get('name', _('this device')))
+        body_text = _("Are you sure you want to remove \n {} ?").format(
+            self.device.get("name", _("this device"))
+        )
         dialog.set_body(body_text)
         # Set minimum width for dialog
         dialog.set_default_size(340, 120)

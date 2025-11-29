@@ -43,7 +43,9 @@ class PairingDialog(Gtk.Dialog):
 
         # Title (centered, bold, large)
         title = Gtk.Label()
-        title.set_markup(f'<span size="xx-large" weight="bold">{_("How to Pair New Device")}</span>')
+        title.set_markup(
+            f'<span size="xx-large" weight="bold">{_("How to Pair New Device")}</span>'
+        )
         title.set_halign(Gtk.Align.CENTER)
         title.set_margin_bottom(8)
         content.append(title)

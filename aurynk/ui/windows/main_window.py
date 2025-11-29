@@ -668,7 +668,9 @@ class AurynkWindow(Adw.ApplicationWindow):
             buttons=Gtk.ButtonsType.YES_NO,
             text=_("Unpair Device?"),
         )
-        dialog.format_secondary_text(_("Are you sure you want to unpair device {}?").format(address))
+        dialog.format_secondary_text(
+            _("Are you sure you want to unpair device {}?").format(address)
+        )
         response = dialog.run()
         dialog.destroy()
         return response == Gtk.ResponseType.YES

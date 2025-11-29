@@ -126,7 +126,7 @@ class ADBController:
 
         # Step 4: Save device
         self.save_paired_device(device_info)
-        log(_("✓ Device saved: {}").format(device_info.get('name', _('Unknown'))))
+        log(_("✓ Device saved: {}").format(device_info.get("name", _("Unknown"))))
 
         return True
 

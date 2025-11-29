@@ -35,7 +35,9 @@ class AboutWindow:
             issue_url="https://github.com/IshuSinghSE/aurynk/issues",
             developers=["IshuSinghSE <ishu.111636@yahoo.com>"],
             artists=["IshuSinghSE"],
-            comments=_("Android Device Manager for Linux with wireless pairing and mirroring support"),
+            comments=_(
+                "Android Device Manager for Linux with wireless pairing and mirroring support"
+            ),
         )
 
         # Add useful links

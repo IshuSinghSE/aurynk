@@ -685,7 +685,9 @@ class SettingsWindow(Adw.PreferencesWindow):
         audio_source_row = Adw.ComboRow()
         audio_source_row.set_title(_("Audio Source (experimental)"))
         audio_source_row.set_subtitle(
-            _("Choose between device output or mic (experimental, may not work over wireless connection).")
+            _(
+                "Choose between device output or mic (experimental, may not work over wireless connection)."
+            )
         )
         audio_source_options = [_("default"), _("output"), _("mic")]
         audio_source_model = Gtk.StringList.new(audio_source_options)
@@ -742,7 +744,9 @@ class SettingsWindow(Adw.PreferencesWindow):
         stay_awake = Adw.SwitchRow()
         stay_awake.set_title(_("Keep Device Screen On (experimental)"))
         stay_awake.set_subtitle(
-            _("Keep device screen on during mirroring (may not work on all devices or wireless mode).")
+            _(
+                "Keep device screen on during mirroring (may not work on all devices or wireless mode)."
+            )
         )
         stay_awake.set_active(self.settings.get("scrcpy", "stay_awake", False))
 
@@ -788,7 +792,13 @@ class SettingsWindow(Adw.PreferencesWindow):
         otg_row = Adw.ComboRow()
         otg_row.set_title(_("Keyboard/Mouse via OTG (experimental)"))
         otg_row.set_subtitle(_("Control device using OTG keyboard/mouse"))
-        otg_options = [_("None"), _("Keyboard (uhid)"), _("Mouse (uhid)"), _("Keyboard (aoa)"), _("Mouse (aoa)")]
+        otg_options = [
+            _("None"),
+            _("Keyboard (uhid)"),
+            _("Mouse (uhid)"),
+            _("Keyboard (aoa)"),
+            _("Mouse (aoa)"),
+        ]
         otg_model = Gtk.StringList.new(otg_options)
         otg_row.set_model(otg_model)
         current_otg = self.settings.get("scrcpy", "otg_mode", "None")
