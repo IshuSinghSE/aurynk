@@ -1,3 +1,10 @@
+<div align="center">
+  
+[![Flathub Release](https://img.shields.io/flathub/v/io.github.IshuSinghSE.aurynk?logo=flathub&label=Flathub&color=4a90d9)](https://flathub.org/apps/io.github.IshuSinghSE.aurynk)
+[![GitHub Release](https://img.shields.io/github/v/release/IshuSinghSE/aurynk?logo=github&label=Latest&color=2ea44f)](https://github.com/IshuSinghSE/aurynk/releases)
+[![Translation status](https://hosted.weblate.org/widgets/aurynk/-/svg-badge.svg)](https://hosted.weblate.org/engage/aurynk/)
+</div>
+
 # 🚀 Aurynk - Your Android Device Manager for Linux
 
 <p align="center">
@@ -15,11 +22,35 @@
   <a href="#-troubleshooting">🔧 Help</a>
 </p>
 
----
 
 ## 🎯 What is Aurynk?
 
 Aurynk (Aura + Sync, pronounced “aw-rink”) makes managing your Android devices from Linux **simple and wireless**. No more cables, no more complicated setup - just scan a QR code and you're connected!
+
+## 🎨 Screenshots
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="data/screenshots/screenshot-1-main.png" alt="Main Dashboard showing connected devices list" width="250"/>
+        <br />
+        <strong>Main Dashboard</strong>
+      </td>
+      <td align="center">
+        <img src="data/screenshots/screenshot-2-pairing.png" alt="Pairing Dialog with QR Code scanner" width="250"/>
+        <br />
+        <strong>Wireless Pairing</strong>
+      </td>
+      <td align="center">
+        <img src="data/screenshots/screenshot-3-menu.png" alt="Device Context Menu with actions" width="250"/>
+        <br />
+        <strong>Device Controls</strong>
+      </td>
+    </tr>
+  </table>
+</div>
+
 
 Perfect for:
 - 📱 **Developers** testing apps on multiple devices
@@ -50,15 +81,8 @@ flatpak install flathub io.github.IshuSinghSE.aurynk
 
 ### Option 2: From GitHub Release
 
-1. **Download** the latest release from [GitHub Releases](https://github.com/IshuSinghSE/aurynk/releases)
-2. **Install** using your package manager:
-   ```bash
-   # For .deb files (Debian/Ubuntu):
-   sudo dpkg -i aurynk_*.deb
-   
-   # For .flatpak files:
-   flatpak install aurynk_*.flatpak
-   ```
+**Download** the latest release from [GitHub Releases](https://github.com/IshuSinghSE/aurynk/releases)
+
 
 ### Option 3: Build from Source
 
@@ -116,31 +140,6 @@ sudo dnf install android-tools
 # Arch:
 sudo pacman -S android-tools
 ```
-
-## 🎨 Screenshots
-
-<div align="center">
-  <table>
-    <tr>
-      <td align="center">
-        <img src="data/screenshots/screenshot-1-main.png" alt="Main Dashboard showing connected devices list" width="250"/>
-        <br />
-        <strong>Main Dashboard</strong>
-      </td>
-      <td align="center">
-        <img src="data/screenshots/screenshot-2-pairing.png" alt="Pairing Dialog with QR Code scanner" width="250"/>
-        <br />
-        <strong>Wireless Pairing</strong>
-      </td>
-      <td align="center">
-        <img src="data/screenshots/screenshot-3-menu.png" alt="Device Context Menu with actions" width="250"/>
-        <br />
-        <strong>Device Controls</strong>
-      </td>
-    </tr>
-  </table>
-</div>
-
 ### Still having issues?
 - 🐛 [Report a bug](https://github.com/IshuSinghSE/aurynk/issues)
 - 💬 [Ask for help](https://github.com/IshuSinghSE/aurynk/discussions)
@@ -152,6 +151,16 @@ Want to help make Aurynk better? Check out [CONTRIBUTING.md](CONTRIBUTING.md) fo
 - 🏗️ Building from source  
 - 📝 Code style guidelines
 - 🚀 How to submit changes
+
+## 🌍 Translations
+
+Aurynk is being translated into many languages, and we need your help!
+
+You can help translate Aurynk into your native language directly in your browser using Weblate. No coding knowledge is required.
+
+👉 **[Start Translating on Weblate](https://hosted.weblate.org/engage/aurynk/)**
+
+_This project uses Hosted [Weblate](https://www.google.com/search?q=https://hosted.weblate.org/) for translations._
 
 ## 📄 License
 
