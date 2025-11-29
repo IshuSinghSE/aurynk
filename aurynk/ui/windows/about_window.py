@@ -27,7 +27,7 @@ class AboutWindow:
         """
         about = Adw.AboutWindow(
             transient_for=parent,
-            application_name=_("Aurynk"),
+            application_name="Aurynk",
             application_icon="io.github.IshuSinghSE.aurynk",
             developer_name="Ishu Singh",
             version=__version__,
