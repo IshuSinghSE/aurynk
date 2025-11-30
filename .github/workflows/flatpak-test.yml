@@ -2,7 +2,7 @@ name: Test Flatpak Build
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
     paths:
       - 'flatpak/**'
       - 'aurynk/**'
@@ -18,19 +18,46 @@ jobs:
     container:
       image: bilelmoussaoui/flatpak-github-actions:gnome-47
       options: --privileged
-    
     steps:
       - uses: actions/checkout@v4
-      
-      # We need to install git to clone dependencies inside the container
+
       - name: Install build deps
         run: |
-          dnf install -y git
+          dnf install -y git rsync
+          flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install -y flathub org.gnome.Sdk//49 org.gnome.Platform//49
 
-      # We trust the community action to handle the complex setup
       - name: Build Flatpak
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
           bundle: aurynk.flatpak
           manifest-path: flatpak/io.github.IshuSinghSE.aurynk.yml
           cache-key: flatpak-builder-${{ github.sha }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aurynk-flatpak
+          path: aurynk.flatpak
+
+  notify:
+    needs: flatpak
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Comment with Install Command
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          comment_tag: flatpak_build
+          message: |
+            ### ✅ Flatpak Build Ready
+
+            To test this pull request, run the following command in your terminal:
+
+            ```bash
+            curl -L "https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/aurynk-flatpak.zip" -o app.zip && unzip -o app.zip && flatpak install --user --reinstall -y aurynk.flatpak && rm app.zip aurynk.flatpak
+            ```
+
+            _Built from commit ${{ github.sha }}_

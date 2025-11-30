@@ -1,9 +1,6 @@
-"""
-Settings Window for Aurynk
-Provides a preferences interface for configuring application, ADB, and Scrcpy settings.
-"""
-
 import gi
+
+from aurynk.i18n import _
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")

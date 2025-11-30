@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Sync CHANGELOG.md to metainfo.xml <releases> section for Flathub/AppStream.
 Usage: python3 changelog_to_metainfo.py <CHANGELOG.md> <metainfo.xml>

@@ -1,10 +1,9 @@
-#!/usr/bin/env python3
-"""Main window for Aurynk application."""
-
 import os
 import threading
 
 import gi
+
+from aurynk.i18n import _
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")

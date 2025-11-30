@@ -5,6 +5,7 @@ import time
 from gi.repository import GLib
 
 from aurynk.core.scrcpy_runner import ScrcpyManager
+from aurynk.i18n import _
 from aurynk.ui.windows.main_window import AurynkWindow
 from aurynk.utils.logger import get_logger
 

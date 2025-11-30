@@ -2,7 +2,8 @@ name: Nightly Repo
 
 on:
   push:
-    branches: [ "develop" ] # Builds on every push to develop
+    branches: [ "develop" ]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -18,7 +19,11 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Install dependencies
-        run: dnf install -y git
+        run: |
+          dnf install -y git rsync
+          # Manually install the GNOME 49 SDK required by your manifest
+          flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install -y flathub org.gnome.Sdk//49 org.gnome.Platform//49
 
       - name: Build Flatpak Repository
         run: |
@@ -27,6 +32,10 @@ jobs:
           
           # Generate static deltas for efficient updates
           flatpak build-update-repo --generate-static-deltas repo
+          
+      - name: Add Index Page Nightly
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/IshuSinghSE/scripts/refs/heads/master/nightly.html -o repo/index.html
 
       - name: Deploy to GitHub Pages (Nightly Subfolder)
         uses: JamesIves/github-pages-deploy-action@v4

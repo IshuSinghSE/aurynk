@@ -1,7 +1,8 @@
-#!/usr/bin/env python3
 """Pairing dialog for adding new devices."""
 
 import gi
+
+from aurynk.i18n import _
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")

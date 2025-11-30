@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """ADB/scrcpy controller for device management."""
 
 import os
@@ -12,6 +11,7 @@ from typing import Any, Callable, Dict, List, Optional
 from zeroconf import IPVersion, ServiceBrowser, ServiceStateChange, Zeroconf
 
 from aurynk.core.device_manager import DeviceStore
+from aurynk.i18n import _
 from aurynk.utils.adb_utils import get_adb_path
 from aurynk.utils.logger import get_logger
 from aurynk.utils.settings import SettingsManager

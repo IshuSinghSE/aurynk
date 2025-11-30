@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-"""Main entry point for Aurynk application."""
-
 import gettext
 import os
 import sys

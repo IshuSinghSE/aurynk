@@ -1,8 +1,3 @@
-"""
-Settings Manager for Aurynk
-Handles application configuration with persistence and change notifications.
-"""
-
 import json
 import os
 from pathlib import Path
