@@ -8,14 +8,16 @@ msgstr ""
 "Project-Id-Version: aurynk\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-11-30 00:18+0530\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2025-11-30 20:47+0000\n"
+"Last-Translator: Ishu <ishu.111636@gmail.com>\n"
+"Language-Team: French <https://hosted.weblate.org/projects/aurynk/glossary/"
+"fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 5.15-dev\n"
 
 #. Window properties
 #: aurynk/ui/windows/main_window.py:46
@@ -31,7 +33,7 @@ msgstr ""
 #. Primary menu section
 #: aurynk/ui/windows/main_window.py:166
 msgid "Preferences"
-msgstr ""
+msgstr "Préférences"
 
 #: aurynk/ui/windows/main_window.py:170
 msgid "About Aurynk"
@@ -39,33 +41,33 @@ msgstr ""
 
 #: aurynk/ui/windows/main_window.py:181
 msgid "Add Device"
-msgstr ""
+msgstr "Ajouter un appareil"
 
 #: aurynk/ui/windows/main_window.py:206
 msgid "Paired Devices"
-msgstr ""
+msgstr "Appareils paires"
 
 #: aurynk/ui/windows/main_window.py:263
 msgid "Click to add a device"
-msgstr ""
+msgstr "Cliquez pour ajouter un appareil"
 
 #. use intermediate variable to avoid f-string escaping issues in older python
 #: aurynk/ui/windows/main_window.py:301
 msgid "Click \"Add Device\" to get started"
-msgstr ""
+msgstr "Cliquez sur \"Ajouter un périphérique\" pour commencer"
 
 #: aurynk/ui/windows/main_window.py:352 aurynk/services/tray_service.py:41
 #: aurynk/services/tray_service.py:103
 msgid "Unknown Device"
-msgstr ""
+msgstr "Dispositif inconnu"
 
 #: aurynk/ui/windows/main_window.py:384
 msgid "Disconnect"
-msgstr ""
+msgstr "Déconnecter"
 
 #: aurynk/ui/windows/main_window.py:387
 msgid "Connect"
-msgstr ""
+msgstr "Connect"
 
 #: aurynk/ui/windows/main_window.py:396
 msgid "Screen Mirror"
@@ -92,7 +94,7 @@ msgstr ""
 #: aurynk/ui/dialogs/pairing_dialog.py:207
 #: aurynk/services/device_monitor.py:468
 msgid "Cancel"
-msgstr ""
+msgstr "Annuler"
 
 #: aurynk/ui/windows/main_window.py:449 aurynk/ui/windows/device_details.py:270
 #: aurynk/services/device_monitor.py:469
