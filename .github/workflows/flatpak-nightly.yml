@@ -19,7 +19,7 @@ jobs:
       
       - name: Install dependencies
         run: |
-          dnf install -y git
+          dnf install -y git rsync
           # Manually install the GNOME 49 SDK required by your manifest
           flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
           flatpak install -y flathub org.gnome.Sdk//49 org.gnome.Platform//49
