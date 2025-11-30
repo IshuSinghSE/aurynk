@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aurynk Nightly Builds</title>
+    <meta name="description" content="Bleeding edge Flatpak builds for Aurynk.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .code-block {
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+        }
+        .code-block::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+        .animate-blob {
+            animation: blob 10s infinite;
+        }
+        @keyframes blob {
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+            100% { transform: translate(0px, 0px) scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-[#0a0a0c] text-white min-h-screen flex flex-col antialiased selection:bg-pink-500 selection:text-white">
+
+    <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div class="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob"></div>
+        <div class="absolute top-0 right-1/4 w-96 h-96 bg-pink-600/20 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob" style="animation-delay: 2s"></div>
+        <div class="absolute -bottom-32 left-1/3 w-96 h-96 bg-blue-600/20 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob" style="animation-delay: 4s"></div>
+    </div>
+
+    <main class="flex-grow z-10 flex flex-col items-center justify-center px-4 py-8 relative">
+        
+        <div id="status-badge" class="mb-8 px-4 py-1.5 rounded-full border border-gray-800 bg-gray-900/50 backdrop-blur-sm flex items-center gap-2 text-sm font-medium text-gray-400 opacity-0 transition-opacity duration-700">
+            <span class="relative flex h-2.5 w-2.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-gray-500"></span>
+            </span>
+            Checking Repository Status...
+        </div>
+
+        <div class="text-center max-w-3xl mx-auto mb-12">
+            <h1 class="text-5xl md:text-7xl font-extrabold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 tracking-tight leading-tight" style="line-height:1.2;">
+                Aurynk Nightly
+            </h1>
+            <p class="text-xl text-gray-400 leading-relaxed">
+                Bleeding-edge builds for developers and testers.<br>
+                Updates automatically with every push to <code class="text-pink-400">develop</code>.
+            </p>
+        </div>
+
+        <div class="w-full max-w-2xl glass rounded-2xl p-1 shadow-2xl relative group">
+            <div class="absolute -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-2xl opacity-20 blur group-hover:opacity-40 transition duration-1000"></div>
+            <div class="relative bg-[#0f0f12] rounded-xl p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-gray-800 rounded-lg">
+                            <i data-lucide="terminal" class="w-6 h-6 text-pink-500"></i>
+                        </div>
+                        <h2 class="text-xl font-bold">Installation</h2>
+                    </div>
+                    <span class="text-xs font-mono text-gray-500 border border-gray-800 rounded px-2 py-1">Flatpak</span>
+                </div>
+
+                <div class="relative group/code">
+                    <div class="absolute right-4 top-4 opacity-0 group-hover/code:opacity-100 transition-opacity">
+                        <button onclick="copyCmd()" class="bg-gray-700 hover:bg-gray-600 text-white text-xs px-3 py-1.5 rounded flex items-center gap-1 transition-colors">
+                            <i data-lucide="copy" class="w-3 h-3"></i> Copy
+                        </button>
+                    </div>
+                    <pre class="bg-black/50 border border-gray-800 rounded-lg p-5 overflow-x-auto text-sm text-gray-300 leading-relaxed code-block" id="install-cmd">flatpak remote-add --user --if-not-exists --no-gpg-verify aurynk-nightly https://theishu.xyz/aurynk/nightly
+flatpak install --user aurynk-nightly io.github.IshuSinghSE.aurynk</pre>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-8 border-t border-gray-800">
+                    <div class="text-center">
+                        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Channel</p>
+                        <p class="font-bold text-white">Unstable</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Updated</p>
+                        <p id="last-updated" class="font-bold text-white">...</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Architecture</p>
+                        <p class="font-bold text-white">x86_64</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">GPG</p>
+                        <p class="font-bold text-yellow-500">Disabled</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8 flex items-start gap-3 max-w-lg text-sm text-gray-500 bg-yellow-500/5 border border-yellow-500/10 p-4 rounded-xl">
+            <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-600 shrink-0"></i>
+            <p>
+                These builds are automated and untested. They may contain bugs or break features. 
+                For daily use, please install the <a href="https://theishu.xyz/aurynk/" class="text-pink-500 hover:underline">Stable Version</a>.
+            </p>
+        </div>
+
+    </main>
+
+    <footer class="border-t border-gray-800 bg-black/20 py-8 text-center text-sm text-gray-600 relative z-10">
+        <p>© 2025 Aurynk Project.</p>
+        <div class="mt-2 flex items-center justify-center text-gray-500">
+            <a href="https://flathub.org/en/apps/io.github.IshuSinghSE.aurynk" class="hover:text-white transition-colors px-2">Flathub</a>
+            <span class="border-l border-gray-700 h-4 mx-1"></span>
+            <a href="https://ishusinghse.github.io/aurynk/" class="hover:text-white transition-colors px-2">Website</a>
+            <span class="border-l border-gray-700 h-4 mx-1"></span>
+            <a href="https://github.com/IshuSinghSE/aurynk" class="hover:text-white transition-colors px-2">GitHub</a>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
+
+        // Copy to Clipboard Function
+        function copyCmd() {
+            const cmd = document.getElementById('install-cmd').innerText;
+            navigator.clipboard.writeText(cmd).then(() => {
+                const btn = document.querySelector('button');
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<span class="text-green-400">Copied!</span>';
+                setTimeout(() => btn.innerHTML = originalHtml, 2000);
+            });
+        }
+
+        // Live Repo Status Checker
+        async function checkRepoStatus() {
+            const badge = document.getElementById('status-badge');
+            const updatedText = document.getElementById('last-updated');
+            
+            try {
+                // Fetch the 'config' file which must exist in a Flatpak repo
+                const response = await fetch('./config', { method: 'HEAD' });
+                
+                if (response.ok) {
+                    // Success State
+                    badge.innerHTML = `
+                        <span class="relative flex h-2.5 w-2.5">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+                        </span>
+                        <span class="text-green-400">Repository Online</span>
+                    `;
+                    badge.classList.replace('border-gray-800', 'border-green-500/20');
+                    badge.classList.replace('bg-gray-900/50', 'bg-green-500/5');
+
+                    // Get Last Modified Date
+                    const lastMod = response.headers.get('last-modified');
+                    if (lastMod) {
+                        const date = new Date(lastMod);
+                        updatedText.innerText = date.toLocaleDateString() + ' ' + date.getHours() + ':' + String(date.getMinutes()).padStart(2, '0');
+                    } else {
+                        updatedText.innerText = "Unknown";
+                    }
+                } else {
+                    throw new Error('Repo config not found');
+                }
+            } catch (error) {
+                // Error State
+                badge.innerHTML = `
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                    <span class="text-red-400">Repo Offline / Syncing</span>
+                `;
+                updatedText.innerText = "Offline";
+            }
+            badge.classList.remove('opacity-0');
+        }
+
+        // Run check on load
+        checkRepoStatus();
+    </script>
+</body>
+</html>
