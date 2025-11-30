@@ -1,0 +1,37 @@
+name: Nightly Repo
+
+on:
+  push:
+    branches: [ "develop" ] # Builds on every push to develop
+
+permissions:
+  contents: write
+
+jobs:
+  build-repo:
+    runs-on: ubuntu-latest
+    container:
+      image: bilelmoussaoui/flatpak-github-actions:gnome-47
+      options: --privileged
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: dnf install -y git
+
+      - name: Build Flatpak Repository
+        run: |
+          # Build into a local directory named 'repo'
+          flatpak-builder --repo=repo --force-clean build-dir flatpak/io.github.IshuSinghSE.aurynk.yml
+          
+          # Generate static deltas for efficient updates
+          flatpak build-update-repo --generate-static-deltas repo
+
+      - name: Deploy to GitHub Pages (Nightly Subfolder)
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: repo             # The local folder we just built
+          target-folder: nightly   # The subfolder on the website
+          clean: true              # Only cleans the 'nightly' folder, not the whole branch

@@ -1,0 +1,29 @@
+name: Deploy Website
+
+on:
+  push:
+    branches: [ "main" ] # Only deploy website from production code
+    paths: [ "web/**" ]  # Only run if website files change
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Website
+        working-directory: web
+        run: |
+          npm install
+          npm run build
+
+      - name: Deploy to GitHub Pages (Root)
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: web/dist
+          branch: gh-pages
+          clean: true
+          clean-exclude: nightly  # ⚠️ CRITICAL: Protects your Flatpak repo!
