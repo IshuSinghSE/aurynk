@@ -72,9 +72,9 @@ Perfect for:
 
 ## 📦 Installation
 
-### Option 1: Flatpak (Recommended) 🌟
+### Option 1: Flatpak [(Recommended)](https://flathub.org/en/apps/io.github.IshuSinghSE.aurynk) 🌟
 
-**Coming Soon!** Aurynk will be available on Flathub for easy installation:
+Now Aurynk is available on Flathub for easy installation:
 
 ```bash
 # Once published on Flathub:
@@ -86,14 +86,14 @@ flatpak install flathub io.github.IshuSinghSE.aurynk
 **Download** the latest release from [GitHub Releases](https://github.com/IshuSinghSE/aurynk/releases)
 
 
-### 🌙 Nightly Builds (Unstable)
+### 🌙 Nightly Builds [(Unstable)](https://ishusinghse.github.io/aurynk/nightly)
 To test the latest development features, add the nightly repository:
 
 ```bash
 flatpak remote-add --user --if-not-exists --no-gpg-verify aurynk-nightly https://theishu.xyz/aurynk/nightly
 flatpak install --user aurynk-nightly io.github.IshuSinghSE.aurynk
 ```
-Note: Nightly builds may be unstable and contain bugs.
+Note: Nightly builds may be unstable and contain bugs. (<a href="https://ishusinghse.github.io/aurynk/nightly">Unstable</a>)
 
 
 ## 🚀 Quick Start
