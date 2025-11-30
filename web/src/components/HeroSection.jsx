@@ -1,6 +1,6 @@
-import { motion as _motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { LINKS } from "../config";
-import screenshot from "../assets/screenshot.png";
+import screenshot from "../assets/screenshot.webp";
 import flathubIcon from "../assets/flathub-dark.svg";
 import GithubIcon from "../assets/github-light.svg";
 
@@ -8,7 +8,7 @@ export default function HeroSection({ version }) {
   return (
     <section className="relative flex flex-col items-center justify-center min-h-[70vh] pt-20 md:pt-24 pb-8 md:pb-12 w-full px-4 sm:px-6">
       {/* Badge */}
-      <_motion.a
+      <motion.a
         href={LINKS.flathub}
         target="_blank"
         rel="noopener noreferrer"
@@ -23,20 +23,20 @@ export default function HeroSection({ version }) {
         transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
       >
         {version ? `v${version} is now available 🚀` : "Loading version..."}
-      </_motion.a>
+      </motion.a>
 
       
       {/* Headline */}
-      <_motion.h1
+      <motion.h1
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
         className="text-3xl sm:text-4xl md:text-6xl font-extrabold text-center mb-4 bg-gradient-to-r from-pink-400 via-fuchsia-400 to-purple-500 bg-clip-text text-transparent drop-shadow-lg"
       >
         Your Android's Best Friend on Linux
-      </_motion.h1>
+      </motion.h1>
       {/* Subheadline */}
-      <_motion.p
+      <motion.p
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
@@ -44,22 +44,22 @@ export default function HeroSection({ version }) {
       >
         The definitive GTK4 application for seamless device management, wireless
         debugging, and low-latency screen mirroring.
-      </_motion.p>
+      </motion.p>
       {/* CTA Buttons */}
-      <_motion.div
+      <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
         className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8 md:mb-12 w-full max-w-xl"
       >
-        <_motion.a
+        <motion.a
           href={LINKS.flathub}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 px-5 sm:px-7 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold text-base sm:text-lg shadow-xl hover:scale-105 transition-transform"
         >
           <img src={flathubIcon} alt="Flathub Icon" className="w-7 h-7 sm:w-8 sm:h-8" /> Download on Flathub
-        </_motion.a>
+        </motion.a>
         <a
           href={LINKS.githubReleases}
           target="_blank"
@@ -68,7 +68,7 @@ export default function HeroSection({ version }) {
         >
           <img src={GithubIcon} alt="Github Icon" className="w-7 h-7 sm:w-8 sm:h-8" /> Get it Github Releases
         </a>
-      </_motion.div>
+      </motion.div>
       <motion.div
         initial={{ opacity: 0, scale: 0.96, rotate: 0 }}
         animate={{ opacity: 1, scale: 1, rotate: 0 }}

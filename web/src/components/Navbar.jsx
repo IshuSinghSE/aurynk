@@ -1,6 +1,6 @@
-import { motion as _motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Star } from "lucide-react";
-import logo from "../assets/logo.png";
+import logo from "../assets/logo.webp";
 
 const AmbientOrbs = () => {
   return (
@@ -14,7 +14,7 @@ const AmbientOrbs = () => {
 
 const Navbar = () => {
   return (
-    <_motion.nav
+    <motion.nav
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       className="fixed top-4 left-0 w-full z-50"
@@ -69,7 +69,7 @@ const Navbar = () => {
           </div>
         </div>
       </div>
-    </_motion.nav>
+    </motion.nav>
   );
 };
 export default Navbar;

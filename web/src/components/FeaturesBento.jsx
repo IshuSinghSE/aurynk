@@ -1,5 +1,5 @@
 import { GanttChart, Upload, Volume2, Wifi, Zap } from "lucide-react";
-import { motion as _motion } from "framer-motion";
+import { motion } from "framer-motion";
 
 const features = [
   {
@@ -42,7 +42,7 @@ export default function FeaturesBento() {
       </h2>
       <div className="hidden md:grid grid-cols-3 grid-rows-2 gap-6 auto-rows-[minmax(180px,1fr)]">
         {/* Main feature: large card, left column, spans 2 rows */}
-        <_motion.div
+          <motion.div
           key={features[0].title}
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -55,9 +55,9 @@ export default function FeaturesBento() {
           <div className="relative z-10 flex items-center mb-2">{features[0].icon}</div>
           <div className="relative z-10 font-bold text-xl md:text-2xl text-white mb-1">{features[0].title}</div>
           <div className="relative z-10 text-gray-300 text-base md:text-lg">{features[0].desc}</div>
-        </_motion.div>
+        </motion.div>
         {/* Top row, center and right */}
-        <_motion.div
+        <motion.div
           key={features[1].title}
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -68,8 +68,8 @@ export default function FeaturesBento() {
           <div className="flex items-center">{features[1].icon}</div>
           <div className="font-bold text-lg text-white mb-1">{features[1].title}</div>
           <div className="text-gray-300 text-base">{features[1].desc}</div>
-        </_motion.div>
-        <_motion.div
+        </motion.div>
+        <motion.div
           key={features[2].title}
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -80,9 +80,9 @@ export default function FeaturesBento() {
           <div className="flex items-center">{features[2].icon}</div>
           <div className="font-bold text-lg text-white mb-1">{features[2].title}</div>
           <div className="text-gray-300 text-base">{features[2].desc}</div>
-        </_motion.div>
+        </motion.div>
         {/* Bottom row, center and right */}
-        <_motion.div
+        <motion.div
           key={features[3].title}
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -93,8 +93,8 @@ export default function FeaturesBento() {
           <div className="flex items-center">{features[3].icon}</div>
           <div className="font-bold text-lg text-white mb-1">{features[3].title}</div>
           <div className="text-gray-300 text-base">{features[3].desc}</div>
-        </_motion.div>
-        <_motion.div
+        </motion.div>
+        <motion.div
           key={features[4].title}
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -105,12 +105,12 @@ export default function FeaturesBento() {
           <div className="flex items-center">{features[4].icon}</div>
           <div className="font-bold text-lg text-white mb-1">{features[4].title}</div>
           <div className="text-gray-300 text-base">{features[4].desc}</div>
-        </_motion.div>
+        </motion.div>
       </div>
       {/* Mobile/tablet: fallback to simple grid */}
       <div className="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-[minmax(160px,1fr)]">
         {features.map((f, i) => (
-          <_motion.div
+          <motion.div
             key={f.title}
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -121,7 +121,7 @@ export default function FeaturesBento() {
             <div className="flex items-center">{f.icon}</div>
             <div className="font-bold text-base sm:text-lg text-white mb-1">{f.title}</div>
             <div className="text-gray-300 text-sm sm:text-base">{f.desc}</div>
-          </_motion.div>
+          </motion.div>
         ))}
       </div>
     </section>

@@ -1,4 +1,4 @@
-import { motion as _motion } from "framer-motion";
+import { motion as motion } from "framer-motion";
 import { Laptop, Scan, Smartphone, ArrowRight } from "lucide-react";
 
 const steps = [
@@ -27,7 +27,7 @@ export default function HowItWorks() {
     <section id="how-it-works" className="relative px-4 py-16">
       <div className="max-w-6xl mx-auto">
         {/* Section Title */}
-        <_motion.div
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -43,7 +43,7 @@ export default function HowItWorks() {
           <p className="text-gray-400 text-lg">
             No complicated setup. Just three simple steps.
           </p>
-        </_motion.div>
+        </motion.div>
         {/* Steps */}
         <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
           {steps.map((step, index) => {
@@ -53,7 +53,7 @@ export default function HowItWorks() {
                 key={step.number}
                 className="flex items-center gap-4 md:gap-8"
               >
-                <_motion.div
+                <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true }}
@@ -76,10 +76,10 @@ export default function HowItWorks() {
                   <p className="text-gray-400 text-sm text-center">
                     {step.description}
                   </p>
-                </_motion.div>
+                </motion.div>
                 {/* Arrow connector */}
                 {index < steps.length - 1 && (
-                  <_motion.div
+                  <motion.div
                     initial={{ opacity: 0 }}
                     whileInView={{ opacity: 1 }}
                     viewport={{ once: true }}
@@ -87,7 +87,7 @@ export default function HowItWorks() {
                     className="hidden md:block"
                   >
                     <ArrowRight className="w-6 h-6 text-white/30" />
-                  </_motion.div>
+                  </motion.div>
                 )}
               </div>
             );
