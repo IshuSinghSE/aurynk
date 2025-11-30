@@ -2,6 +2,7 @@
   
 [![Flathub Release](https://img.shields.io/flathub/v/io.github.IshuSinghSE.aurynk?logo=flathub&label=Flathub&color=4a90d9)](https://flathub.org/apps/io.github.IshuSinghSE.aurynk)
 [![GitHub Release](https://img.shields.io/github/v/release/IshuSinghSE/aurynk?logo=github&label=Latest&color=2ea44f)](https://github.com/IshuSinghSE/aurynk/releases)
+[![Nightly Build](https://github.com/IshuSinghSE/aurynk/actions/workflows/flatpak-nightly.yml/badge.svg)](https://github.com/IshuSinghSE/aurynk/actions/workflows/flatpak-nightly.yml)
 [![Translation status](https://hosted.weblate.org/widgets/aurynk/-/svg-badge.svg)](https://hosted.weblate.org/engage/aurynk/)
 </div>
 
@@ -85,9 +86,15 @@ flatpak install flathub io.github.IshuSinghSE.aurynk
 **Download** the latest release from [GitHub Releases](https://github.com/IshuSinghSE/aurynk/releases)
 
 
-### Option 3: Build from Source
+### 🌙 Nightly Builds (Unstable)
+To test the latest development features, add the nightly repository:
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup instructions.
+```bash
+flatpak remote-add --user --if-not-exists --no-gpg-verify aurynk-nightly https://theishu.xyz/aurynk/nightly
+flatpak install --user aurynk-nightly io.github.IshuSinghSE.aurynk
+```
+Note: Nightly builds may be unstable and contain bugs.
+
 
 ## 🚀 Quick Start
 
