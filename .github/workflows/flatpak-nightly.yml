@@ -2,7 +2,7 @@ name: Nightly Repo
 
 on:
   push:
-    branches: [ "develop" ] # Builds on every push to develop
+    branches: [ "develop" ]
 
 permissions:
   contents: write
@@ -31,6 +31,10 @@ jobs:
           
           # Generate static deltas for efficient updates
           flatpak build-update-repo --generate-static-deltas repo
+          
+      - name: Add Index Page Nightly
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/IshuSinghSE/scripts/refs/heads/master/nightly.html -o repo/index.html
 
       - name: Deploy to GitHub Pages (Nightly Subfolder)
         uses: JamesIves/github-pages-deploy-action@v4
