@@ -23,6 +23,7 @@ classifiers = [
 dependencies = [
     "pillow>=12.0.0",
     "pygobject>=3.54.5",
+    "pyudev>=0.24.0",
     "qrcode>=8.2",
     "zeroconf>=0.148.0",
 ]
