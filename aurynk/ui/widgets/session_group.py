@@ -22,28 +22,53 @@ def create_session_group() -> Adw.PreferencesGroup:
     def dummy_handler(*args):
         pass
 
-    # Forward Audio
-    forward_audio_row = Adw.ActionRow()
-    forward_audio_row.set_title(_("Forward Audio"))
+    # Helper to add a switch row
+    def add_switch_row(title, subtitle=None):
+        row = Adw.ActionRow()
+        row.set_title(title)
+        if subtitle:
+            row.set_subtitle(subtitle)
 
-    forward_audio_switch = Gtk.Switch()
-    forward_audio_switch.set_valign(Gtk.Align.CENTER)
-    forward_audio_switch.connect("notify::active", dummy_handler)
+        switch = Gtk.Switch()
+        switch.set_valign(Gtk.Align.CENTER)
+        switch.connect("notify::active", dummy_handler)
 
-    forward_audio_row.add_suffix(forward_audio_switch)
-    forward_audio_row.set_activatable_widget(forward_audio_switch)
-    group.add(forward_audio_row)
+        row.add_suffix(switch)
+        row.set_activatable_widget(switch)
+        group.add(row)
 
-    # Turn Screen Off
-    turn_screen_off_row = Adw.ActionRow()
-    turn_screen_off_row.set_title(_("Turn Screen Off"))
+    # Helper to add an action button row
+    def add_button_row(title, icon_name, subtitle=None):
+        row = Adw.ActionRow()
+        row.set_title(title)
+        if subtitle:
+            row.set_subtitle(subtitle)
 
-    turn_screen_off_switch = Gtk.Switch()
-    turn_screen_off_switch.set_valign(Gtk.Align.CENTER)
-    turn_screen_off_switch.connect("notify::active", dummy_handler)
+        button = Gtk.Button()
+        button.set_icon_name(icon_name)
+        button.set_valign(Gtk.Align.CENTER)
+        button.add_css_class("flat")
+        button.connect("clicked", dummy_handler)
 
-    turn_screen_off_row.add_suffix(turn_screen_off_switch)
-    turn_screen_off_row.set_activatable_widget(turn_screen_off_switch)
-    group.add(turn_screen_off_row)
+        row.add_suffix(button)
+        # For buttons, we might not want the whole row to be activatable
+        # unless it triggers the button.
+        # But 'activatable_widget' is for switches/checks mostly.
+        # We can just leave it as is.
+        group.add(row)
+
+    # --- Toggles ---
+    add_switch_row(_("Forward Audio"))
+    add_switch_row(_("Turn Screen Off"))
+    add_switch_row(_("Stay Awake"), _("Keep device screen on"))
+    add_switch_row(_("Fullscreen"), _("Start in fullscreen mode"))
+    add_switch_row(_("Show Touches"), _("Visual feedback for touches"))
+    add_switch_row(_("Always on Top"), _("Keep window above others"))
+    add_switch_row(_("Record Session"), _("Record mirroring session"))
+
+    # --- Actions ---
+    add_button_row(_("Volume Up"), "audio-volume-high-symbolic", _("Increase device volume"))
+    add_button_row(_("Volume Down"), "audio-volume-low-symbolic", _("Decrease device volume"))
+    add_button_row(_("Take Screenshot"), "camera-photo-symbolic", _("Capture device screen"))
 
     return group
