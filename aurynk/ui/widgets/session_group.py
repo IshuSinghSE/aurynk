@@ -1,4 +1,5 @@
 import gi
+
 from aurynk.i18n import _
 
 gi.require_version("Gtk", "4.0")
