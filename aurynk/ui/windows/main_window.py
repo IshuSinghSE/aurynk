@@ -447,7 +447,11 @@ class AurynkWindow(Adw.ApplicationWindow):
         # It must be inside a GtkListBox to work correctly (e.g. for selection, focus).
         options_list = Gtk.ListBox()
         options_list.set_selection_mode(Gtk.SelectionMode.NONE)
-        options_list.add_css_class("navigation-sidebar") # styling hack or just empty
+        # 'boxed-list' gives it the rounded corners and separation typical of settings groups
+        options_list.add_css_class("boxed-list")
+        options_list.set_margin_bottom(12)
+        options_list.set_margin_start(12)
+        options_list.set_margin_end(12)
         options_list.append(session_expander)
 
         card.append(options_list)
