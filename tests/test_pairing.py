@@ -1,6 +1,7 @@
+import subprocess
 import unittest
 from unittest.mock import MagicMock, patch
-import subprocess
+
 from aurynk.core.pairing import PairingManager
 
 
@@ -54,6 +55,7 @@ class TestPairingManager(unittest.TestCase):
         """Test invalid port format."""
         result = self.pairing_manager.pair_with_code("192.168.1.5", "invalid", "123456")
         self.assertFalse(result)
+
 
 if __name__ == "__main__":
     unittest.main()

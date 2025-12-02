@@ -44,9 +44,7 @@ class PairingManager:
 
         try:
             # Using a default timeout of 10 seconds, similar to other parts of the app
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=10
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
 
             if result.returncode == 0:
                 logger.info(f"Successfully paired with {ip}:{port}")
