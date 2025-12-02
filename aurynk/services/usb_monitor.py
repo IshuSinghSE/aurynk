@@ -1,6 +1,5 @@
 """USB monitor service for detecting Android devices."""
 
-import logging
 from typing import Optional, Set
 
 import pyudev
@@ -10,23 +9,32 @@ from aurynk.utils.logger import get_logger
 # Import GObject and GLib, handling the case where they are not available (e.g., testing)
 try:
     import gi
+
     gi.require_version("GObject", "2.0")
     from gi.repository import GLib, GObject
 except (ImportError, ValueError):
     # Create dummy classes for testing/linting in environments without GObject
     class GObject:  # type: ignore
         class Object:
-            def __init__(self): pass
+            def __init__(self):
+                pass
+
         class SignalFlags:
             RUN_LAST = 1
-        def Signal(self, *args, **kwargs): pass
+
+        def Signal(self, *args, **kwargs):
+            pass
 
     class GLib:  # type: ignore
         IO_IN = 1
+
         @staticmethod
-        def io_add_watch(fd, condition, callback): return 1
+        def io_add_watch(fd, condition, callback):
+            return 1
+
         @staticmethod
-        def source_remove(id): pass
+        def source_remove(id):
+            pass
 
 
 logger = get_logger("USBMonitor")
@@ -77,9 +85,7 @@ class USBMonitor(GObject.Object):
 
         # Add watch to GLib main loop
         self._watch_id = GLib.io_add_watch(
-            self._monitor.fileno(),
-            GLib.IO_IN,
-            self._on_monitor_event
+            self._monitor.fileno(), GLib.IO_IN, self._on_monitor_event
         )
         self._running = True
         logger.info("USB Monitor started")
