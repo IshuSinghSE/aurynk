@@ -24,13 +24,22 @@ def create_ssl_context(
     context = ssl.create_default_context(
         ssl.Purpose.SERVER_AUTH if cafile else ssl.Purpose.CLIENT_AUTH
     )
-    # Disable older, insecure protocol versions
-    context.options |= ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1
-    try:
-        context.minimum_version = ssl.TLSVersion.TLSv1_2
-    except Exception:
-        # Older Python versions: minimum_version may not exist
-        pass
+    # Prefer setting a minimum version (Python 3.7+). Prefer TLSv1.3 when
+    # available, otherwise fall back to TLSv1.2. Only use the deprecated
+    # OP_NO_TLS* flags when `minimum_version` is not supported.
+    if hasattr(ssl, "TLSVersion") and hasattr(context, "minimum_version"):
+        try:
+            if hasattr(ssl.TLSVersion, "TLSv1_3"):
+                context.minimum_version = ssl.TLSVersion.TLSv1_3
+            else:
+                context.minimum_version = ssl.TLSVersion.TLSv1_2
+        except Exception:
+            # If setting minimum_version fails, fall back to disabling older
+            # TLS versions via options for compatibility.
+            context.options |= ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1
+    else:
+        # Older Python/OpenSSL: disable TLSv1 and TLSv1.1 using options
+        context.options |= ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1
 
     if certfile and keyfile:
         context.load_cert_chain(certfile=certfile, keyfile=keyfile)
