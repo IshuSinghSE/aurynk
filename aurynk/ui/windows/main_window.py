@@ -349,10 +349,11 @@ class AurynkWindow(Adw.ApplicationWindow):
 
     def _add_usb_device_row(self, device):
         serial = device.get("ID_SERIAL")
-        if not serial: return
+        if not serial:
+            return
 
         if serial in self.usb_rows:
-            return # Already added
+            return  # Already added
 
         # Create row data
         # Mapping pyudev attributes to dict
