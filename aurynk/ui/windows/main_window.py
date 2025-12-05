@@ -11,6 +11,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
 from aurynk.core.adb_manager import ADBController
 from aurynk.core.scrcpy_runner import ScrcpyManager
+from aurynk.services.usb_monitor import USBMonitor
 from aurynk.ui.windows.about_window import AboutWindow
 from aurynk.ui.windows.settings_window import SettingsWindow
 from aurynk.utils.adb_utils import is_device_connected
@@ -32,6 +33,15 @@ class AurynkWindow(Adw.ApplicationWindow):
         super().__init__(**kwargs)
         # Initialize ADB controller
         self.adb_controller = ADBController()
+
+        # Initialize USB Monitor
+        self.usb_monitor = USBMonitor()
+        self.usb_monitor.connect("device-connected", self._on_usb_device_connected)
+        self.usb_monitor.connect("device-disconnected", self._on_usb_device_disconnected)
+        self.usb_monitor.start()
+
+        # Track USB device rows: serial -> widget
+        self.usb_rows = {}
 
         # Register for device change events
         def safe_refresh():
@@ -80,6 +90,8 @@ class AurynkWindow(Adw.ApplicationWindow):
         AboutWindow.show(self)
 
     def do_close(self):
+        if hasattr(self, "usb_monitor"):
+            self.usb_monitor.stop()
         unregister_device_change_callback(self._device_change_callback)
         super().do_close()
 
@@ -127,11 +139,16 @@ class AurynkWindow(Adw.ApplicationWindow):
         if main_content:
             self.set_content(main_content)
             self.device_list_box = builder.get_object("device_list")
+
+            # Setup groups
+            self._setup_device_groups()
+
             add_device_btn = builder.get_object("add_device_button")
             if add_device_btn:
                 add_device_btn.connect("clicked", self._on_add_device_clicked)
             # No search entry, no app logo/name in template path
             self._refresh_device_list()
+            self._refresh_usb_list()
         else:
             raise Exception("Could not find main_content in UI template")
 
@@ -200,24 +217,37 @@ class AurynkWindow(Adw.ApplicationWindow):
         self.device_list_box.set_margin_start(32)
         self.device_list_box.set_margin_end(32)
 
-        # Title label
-        devices_label = Gtk.Label()
-        devices_label.set_markup(f'<span size="large" weight="bold">{_("Paired Devices")}</span>')
-        devices_label.set_halign(Gtk.Align.START)
-        devices_label.set_margin_bottom(12)
-        self.device_list_box.append(devices_label)
-
         scrolled.set_child(self.device_list_box)
         main_box.append(scrolled)
 
         self.set_content(main_box)
 
+        # Setup groups
+        self._setup_device_groups()
+
         # Load initial device list
         self._refresh_device_list()
+        self._refresh_usb_list()
+
+    def _setup_device_groups(self):
+        # Clear main box just in case
+        child = self.device_list_box.get_first_child()
+        while child:
+            next_child = child.get_next_sibling()
+            self.device_list_box.remove(child)
+            child = next_child
+
+        self.usb_group = Adw.PreferencesGroup(title=_("Connected via USB"))
+        self.usb_group.set_visible(False)
+        self.device_list_box.append(self.usb_group)
+
+        self.wireless_group = Adw.PreferencesGroup(title=_("Paired Wireless Devices"))
+        self.device_list_box.append(self.wireless_group)
+        self._wireless_rows = []
 
     def _refresh_device_list(self):
         """Refresh the device list from storage and sync tray."""
-        if not hasattr(self, "device_list_box") or self.device_list_box is None:
+        if not hasattr(self, "wireless_group") or self.wireless_group is None:
             # UI template not loaded yet, skip
             return
 
@@ -232,18 +262,18 @@ class AurynkWindow(Adw.ApplicationWindow):
             if not app.device_monitor._running:
                 app.device_monitor.start()
 
-        # Clear existing device rows
-        child = self.device_list_box.get_first_child()
-        while child:
-            next_child = child.get_next_sibling()
-            self.device_list_box.remove(child)
-            child = next_child
+        # Clear existing wireless rows
+        self._wireless_rows = getattr(self, "_wireless_rows", [])
+        for row in self._wireless_rows:
+            self.wireless_group.remove(row)
+        self._wireless_rows = []
 
         # Add device rows
         if devices:
             for device in devices:
                 device_row = self._create_device_row(device)
-                self.device_list_box.append(device_row)
+                self.wireless_group.add(device_row)
+                self._wireless_rows.append(device_row)
         else:
             # Show empty state with image and text
             empty_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
@@ -304,14 +334,59 @@ class AurynkWindow(Adw.ApplicationWindow):
             empty_label.set_halign(Gtk.Align.CENTER)
             empty_box.append(empty_label)
 
-            self.device_list_box.append(empty_box)
+            self.wireless_group.add(empty_box)
+            self._wireless_rows.append(empty_box)
 
         # Always sync tray after device list changes
         app = self.get_application()
         if hasattr(app, "send_status_to_tray"):
             app.send_status_to_tray()
 
-    def _create_device_row(self, device):
+    def _refresh_usb_list(self):
+        devices = self.usb_monitor.get_connected_devices()
+        for device in devices:
+            self._add_usb_device_row(device)
+
+    def _add_usb_device_row(self, device):
+        serial = device.get("ID_SERIAL")
+        if not serial: return
+
+        if serial in self.usb_rows:
+            return # Already added
+
+        # Create row data
+        # Mapping pyudev attributes to dict
+        dev_data = {
+            "name": device.get("ID_MODEL", "Unknown Model"),
+            "manufacturer": device.get("ID_VENDOR", "Unknown Vendor"),
+            "model": device.get("ID_MODEL"),
+            "serial": serial,
+            # No IP/port
+        }
+
+        row = self._create_device_row(dev_data, is_usb=True)
+        self.usb_group.add(row)
+        self.usb_rows[serial] = row
+        self.usb_group.set_visible(True)
+
+    def _on_usb_device_connected(self, monitor, device):
+        GLib.idle_add(self._add_usb_device_row, device)
+
+    def _on_usb_device_disconnected(self, monitor, device):
+        serial = device.get("ID_SERIAL")
+        if serial:
+            GLib.idle_add(self._remove_usb_device_row, serial)
+
+    def _remove_usb_device_row(self, serial):
+        if serial in self.usb_rows:
+            row = self.usb_rows[serial]
+            self.usb_group.remove(row)
+            del self.usb_rows[serial]
+
+        if not self.usb_rows:
+            self.usb_group.set_visible(False)
+
+    def _create_device_row(self, device, is_usb=False):
         """Create a row widget for a device."""
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         row.set_margin_start(24)
@@ -373,42 +448,49 @@ class AurynkWindow(Adw.ApplicationWindow):
         # Status and actions
         status_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         status_box.set_margin_end(12)
-        status_btn = Gtk.Button()
-        address = device.get("address")
-        connect_port = device.get("connect_port")
-        connected = False
-        if address and connect_port:
-            connected = is_device_connected(address, connect_port)
-        if connected:
-            status_btn.set_label(_("Disconnect"))
-            status_btn.add_css_class("destructive-action")
-        else:
-            status_btn.set_label(_("Connect"))
-            status_btn.add_css_class("suggested-action")
-        status_btn.set_valign(Gtk.Align.CENTER)
-        status_btn.connect("clicked", self._on_status_clicked, device, connected)
-        status_box.append(status_btn)
 
-        # Mirror button
-        mirror_btn = Gtk.Button()
-        mirror_btn.set_icon_name("screen-shared-symbolic")
-        mirror_btn.set_tooltip_text(_("Screen Mirror"))
-        mirror_btn.set_sensitive(connected)
-        mirror_btn.set_valign(Gtk.Align.CENTER)
-        if connected:
-            mirror_btn.add_css_class("suggested-action")
+        if is_usb:
+            # USB Status
+            status_label = Gtk.Label(label=_("Connected (USB)"))
+            status_label.add_css_class("dim-label")
+            status_box.append(status_label)
         else:
-            mirror_btn.add_css_class("destructive-action")
-        mirror_btn.connect("clicked", self._on_mirror_clicked, device)
-        status_box.append(mirror_btn)
+            status_btn = Gtk.Button()
+            address = device.get("address")
+            connect_port = device.get("connect_port")
+            connected = False
+            if address and connect_port:
+                connected = is_device_connected(address, connect_port)
+            if connected:
+                status_btn.set_label(_("Disconnect"))
+                status_btn.add_css_class("destructive-action")
+            else:
+                status_btn.set_label(_("Connect"))
+                status_btn.add_css_class("suggested-action")
+            status_btn.set_valign(Gtk.Align.CENTER)
+            status_btn.connect("clicked", self._on_status_clicked, device, connected)
+            status_box.append(status_btn)
 
-        # Details button
-        details_btn = Gtk.Button()
-        details_btn.set_icon_name("preferences-system-details-symbolic")
-        details_btn.set_tooltip_text(_("Details"))
-        details_btn.set_valign(Gtk.Align.CENTER)
-        details_btn.connect("clicked", self._on_device_details_clicked, device)
-        status_box.append(details_btn)
+            # Mirror button
+            mirror_btn = Gtk.Button()
+            mirror_btn.set_icon_name("screen-shared-symbolic")
+            mirror_btn.set_tooltip_text(_("Screen Mirror"))
+            mirror_btn.set_sensitive(connected)
+            mirror_btn.set_valign(Gtk.Align.CENTER)
+            if connected:
+                mirror_btn.add_css_class("suggested-action")
+            else:
+                mirror_btn.add_css_class("destructive-action")
+            mirror_btn.connect("clicked", self._on_mirror_clicked, device)
+            status_box.append(mirror_btn)
+
+            # Details button
+            details_btn = Gtk.Button()
+            details_btn.set_icon_name("preferences-system-details-symbolic")
+            details_btn.set_tooltip_text(_("Details"))
+            details_btn.set_valign(Gtk.Align.CENTER)
+            details_btn.connect("clicked", self._on_device_details_clicked, device)
+            status_box.append(details_btn)
 
         row.append(status_box)
         return row

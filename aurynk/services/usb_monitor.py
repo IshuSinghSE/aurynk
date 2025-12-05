@@ -90,6 +90,17 @@ class USBMonitor(GObject.Object):
         self._running = True
         logger.info("USB Monitor started")
 
+    def get_connected_devices(self) -> list[pyudev.Device]:
+        """Get currently connected Android devices."""
+        devices = []
+        try:
+            for device in self._context.list_devices(subsystem="usb"):
+                if self._is_android_device(device):
+                    devices.append(device)
+        except Exception as e:
+            logger.error(f"Error listing USB devices: {e}")
+        return devices
+
     def stop(self) -> None:
         """Stop monitoring."""
         if not self._running:
