@@ -316,6 +316,241 @@ class ScrcpyManager:
                 del self.processes[serial]
         return False
 
+    def is_mirroring_serial(self, serial: str) -> bool:
+        """
+        Check if scrcpy is running for the device by serial.
+
+        Args:
+            serial (str): Device serial number.
+
+        Returns:
+            bool: True if running, False otherwise.
+        """
+        proc = self.processes.get(serial)
+        if proc:
+            poll_status = proc.poll()
+            if poll_status is None:
+                return True
+            else:
+                # Process finished, clean up
+                del self.processes[serial]
+        return False
+
+    def stop_mirror_by_serial(self, serial: str) -> bool:
+        """
+        Stop scrcpy for the given device by serial.
+
+        Args:
+            serial (str): Device serial number.
+
+        Returns:
+            bool: True if stopped or not running, False if error.
+        """
+        proc = self.processes.get(serial)
+        if proc:
+            try:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+            except Exception as e:
+                logger.error(f"Error stopping process: {e}")
+            finally:
+                if serial in self.processes:
+                    del self.processes[serial]
+            return True
+        return False
+
+    def start_mirror_usb(self, serial: str, device_name: str = None) -> bool:
+        """
+        Start scrcpy for a USB-connected device.
+
+        Args:
+            serial (str): USB device serial number.
+            device_name (str, optional): Name of the device to display in the window title.
+
+        Returns:
+            bool: True if started successfully or already running, False otherwise.
+        """
+        # Check if already running and clean up dead processes
+        if serial in self.processes:
+            proc = self.processes[serial]
+            poll_status = proc.poll()
+            if poll_status is None:
+                return True  # Already running
+            else:
+                # Process finished, remove it
+                del self.processes[serial]
+
+        # Load scrcpy settings
+        settings = SettingsManager()
+
+        window_title = settings.get("scrcpy", "window_title")
+        if not window_title:
+            window_title = (
+                f"{device_name}"
+                if device_name
+                else _("Aurynk: {serial_number}").format(serial_number=serial)
+            )
+
+        try:
+            # Suppress snap launcher notices
+            env = os.environ.copy()
+            env["SNAP_LAUNCHER_NOTICE_ENABLED"] = "false"
+
+            # Build scrcpy command from settings
+            scrcpy_path = settings.get("scrcpy", "scrcpy_path", "").strip()
+            if scrcpy_path:
+                cmd = [scrcpy_path, "--serial", serial, "--window-title", window_title]
+            else:
+                cmd = ["scrcpy", "--serial", serial, "--window-title", window_title]
+
+            # Apply all the same settings as wireless devices
+            # (reusing the same settings logic from start_mirror)
+
+            # --- Monitor geometry logic ---
+            window_geom = settings.get("scrcpy", "window_geometry", "")
+            if window_geom:
+                width, height, x, y = 800, 600, -1, -1
+                try:
+                    parts = [int(v) for v in window_geom.split(",")]
+                    if len(parts) == 4:
+                        width, height, x, y = parts
+                except Exception:
+                    pass
+
+                # Get monitor size using Gdk if available
+                screen_width, screen_height = 1920, 1080
+                if Gdk is not None:
+                    try:
+                        display = Gdk.Display.get_default()
+                        if display:
+                            monitor = display.get_primary_monitor()
+                            if monitor:
+                                geometry = monitor.get_geometry()
+                                screen_width = geometry.width
+                                screen_height = geometry.height
+                    except Exception:
+                        pass
+
+                # Clamp window size to monitor
+                width = min(width, screen_width)
+                height = min(height, screen_height)
+
+                # Set window position if not fullscreen
+                if not settings.get("scrcpy", "fullscreen"):
+                    cmd.extend(["--window-height", str(height)])
+                    if x != -1 and y != -1:
+                        x = min(max(0, x), screen_width - width)
+                        y = min(max(0, y), screen_height - height)
+                        cmd.extend(["--window-x", str(x), "--window-y", str(y)])
+
+            # Display settings
+            if settings.get("scrcpy", "always_on_top"):
+                cmd.append("--always-on-top")
+            if settings.get("scrcpy", "fullscreen"):
+                cmd.append("--fullscreen")
+            if settings.get("scrcpy", "window_borderless"):
+                cmd.append("--window-borderless")
+
+            max_size = settings.get("scrcpy", "max_size", 0)
+            if max_size > 0:
+                cmd.extend(["--max-size", str(max_size)])
+
+            rotation = settings.get("scrcpy", "rotation", 0)
+            if rotation > 0:
+                cmd.extend(["--rotation", str(rotation)])
+
+            if settings.get("scrcpy", "stay_awake", True):
+                cmd.append("--stay-awake")
+
+            # Audio/Video settings
+            if not settings.get("scrcpy", "enable_audio", False):
+                cmd.append("--no-audio")
+
+            audio_source = settings.get("scrcpy", "audio_source", "default")
+            if audio_source == "output":
+                cmd.extend(["--audio-source", "output"])
+            elif audio_source == "mic":
+                cmd.extend(["--audio-source", "mic"])
+
+            video_codec = settings.get("scrcpy", "video_codec", "h264")
+            cmd.extend(["--video-codec", video_codec])
+
+            video_bitrate = settings.get("scrcpy", "video_bitrate", 8)
+            cmd.extend(["--video-bit-rate", f"{video_bitrate}M"])
+
+            max_fps = settings.get("scrcpy", "max_fps", 0)
+            if max_fps > 0:
+                cmd.extend(["--max-fps", str(max_fps)])
+
+            # Recording options
+            record_enabled = settings.get("scrcpy", "record", False)
+            record_path = settings.get("scrcpy", "record_path", "~/Videos/Aurynk")
+            record_format = settings.get("scrcpy", "record_format", "mp4")
+
+            if record_enabled:
+                from pathlib import Path
+
+                record_dir = Path(record_path).expanduser()
+                record_dir.mkdir(parents=True, exist_ok=True)
+                import datetime
+                import re
+
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                safe_device_name = device_name or serial
+                safe_device_name = safe_device_name.lower().replace(" ", "_")
+                safe_device_name = re.sub(r"[^a-z0-9_]+", "", safe_device_name)
+                filename = f"aurynk_record_{safe_device_name}_{timestamp}.{record_format}"
+                full_path = str(record_dir / filename)
+                cmd.extend(["--record", full_path, "--record-format", record_format])
+
+            # Input settings
+            show_touches = settings.get("scrcpy", "show_touches")
+            try:
+                adb_path = settings.get("adb", "adb_path", "adb")
+                value = "1" if show_touches else "0"
+                subprocess.run(
+                    [
+                        adb_path,
+                        "-s",
+                        serial,
+                        "shell",
+                        "settings",
+                        "put",
+                        "system",
+                        "show_touches",
+                        value,
+                    ],
+                    check=False,
+                )
+                time.sleep(0.3)
+            except Exception as e:
+                logger.warning(f"Failed to set show_touches via adb: {e}")
+
+            if settings.get("scrcpy", "turn_screen_off", False):
+                cmd.append("--turn-screen-off")
+
+            if settings.get("scrcpy", "no_control", False):
+                cmd.append("--no-control")
+
+            logger.info(f"Starting USB scrcpy with command: {' '.join(cmd)}")
+
+            proc = subprocess.Popen(cmd, env=env)
+            self.processes[serial] = proc
+
+            # Start monitoring thread
+            monitor_thread = threading.Thread(
+                target=self._monitor_process, args=(serial, proc), daemon=True
+            )
+            monitor_thread.start()
+
+            return True
+        except Exception as e:
+            logger.error(f"Error starting USB mirror: {e}")
+            return False
+
     def _monitor_process(self, serial: str, proc: subprocess.Popen):
         """
         Monitor the process and clean up when it exits.

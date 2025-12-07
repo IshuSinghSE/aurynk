@@ -55,6 +55,29 @@ ANDROID_VENDOR_IDS: Set[str] = {
     "17ef",  # Lenovo
     "0955",  # Nvidia
     "2a45",  # Meizu
+    "2d95",  # Vivo
+    "2a47",  # Oppo
+    "05c6",  # Qualcomm
+    "1ebf",  # Realme
+    "0e8d",  # MediaTek
+    "2ae5",  # Fairphone
+    "0502",  # Acer
+    "413c",  # Dell
+    "0489",  # Foxconn
+    "04dd",  # Sharp
+    "0930",  # Toshiba
+    "0b05",  # Asus
+    "0bb4",  # HTC
+    "0e79",  # Archos
+    "109b",  # Hisense
+    "1076",  # GCT Semiconductor
+    "1782",  # Spreadtrum
+    "1bbb",  # T-Mobile
+    "1d91",  # KDDI
+    "201e",  # Haier
+    "24e3",  # K-Touch
+    "2080",  # Nook
+    "271d",  # Le TV / LeEco
 }
 
 

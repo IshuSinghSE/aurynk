@@ -241,7 +241,7 @@ class AurynkWindow(Adw.ApplicationWindow):
         self.usb_group.set_visible(False)
         self.device_list_box.append(self.usb_group)
 
-        self.wireless_group = Adw.PreferencesGroup(title=_("Paired Wireless Devices"))
+        self.wireless_group = Adw.PreferencesGroup(title=_("Wireless Devices"))
         self.device_list_box.append(self.wireless_group)
         self._wireless_rows = []
 
@@ -355,15 +355,31 @@ class AurynkWindow(Adw.ApplicationWindow):
         if serial in self.usb_rows:
             return  # Already added
 
-        # Create row data
-        # Mapping pyudev attributes to dict
+        # Fetch detailed device info via ADB
+        import subprocess
+
         dev_data = {
             "name": device.get("ID_MODEL", "Unknown Model"),
             "manufacturer": device.get("ID_VENDOR", "Unknown Vendor"),
             "model": device.get("ID_MODEL"),
             "serial": serial,
-            # No IP/port
+            "is_usb": True,
         }
+
+        # Try to get actual Android device serial from adb devices
+        try:
+            result = subprocess.run(["adb", "devices"], capture_output=True, text=True, timeout=5)
+            # Parse for USB device (no colon in serial)
+            for line in result.stdout.strip().split("\n")[1:]:
+                if "\t" in line:
+                    adb_serial, status = line.split("\t", 1)
+                    if ":" not in adb_serial and status.strip() == "device":
+                        dev_data["adb_serial"] = adb_serial
+                        # Fetch full device info via ADB
+                        self._fetch_usb_device_info(dev_data, adb_serial)
+                        break
+        except Exception as e:
+            logger.debug(f"Could not fetch USB device info: {e}")
 
         row = self._create_device_row(dev_data, is_usb=True)
         self.usb_group.add(row)
@@ -386,6 +402,34 @@ class AurynkWindow(Adw.ApplicationWindow):
 
         if not self.usb_rows:
             self.usb_group.set_visible(False)
+
+    def _fetch_usb_device_info(self, dev_data, adb_serial):
+        """Fetch detailed USB device information via ADB."""
+        import subprocess
+
+        try:
+            timeout = 5
+
+            # Get device properties
+            props_to_fetch = [
+                ("ro.product.model", "name"),
+                ("ro.product.manufacturer", "manufacturer"),
+                ("ro.product.model", "model"),
+                ("ro.build.version.release", "android_version"),
+            ]
+
+            for prop, key in props_to_fetch:
+                result = subprocess.run(
+                    ["adb", "-s", adb_serial, "shell", "getprop", prop],
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout,
+                )
+                value = result.stdout.strip()
+                if value:
+                    dev_data[key] = value
+        except Exception as e:
+            logger.debug(f"Error fetching USB device properties: {e}")
 
     def _create_device_row(self, device, is_usb=False):
         """Create a row widget for a device."""
@@ -450,13 +494,17 @@ class AurynkWindow(Adw.ApplicationWindow):
         status_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         status_box.set_margin_end(12)
 
+        # Connect/Status button (same for both USB and wireless)
+        status_btn = Gtk.Button()
+        status_btn.set_valign(Gtk.Align.CENTER)
+
         if is_usb:
-            # USB Status
-            status_label = Gtk.Label(label=_("Connected (USB)"))
-            status_label.add_css_class("dim-label")
-            status_box.append(status_label)
+            # USB devices are always "connected"
+            status_btn.set_label(_("Connected (USB)"))
+            status_btn.set_sensitive(False)  # Disabled for USB
+            status_btn.add_css_class("suggested-action")
         else:
-            status_btn = Gtk.Button()
+            # Wireless devices can connect/disconnect
             address = device.get("address")
             connect_port = device.get("connect_port")
             connected = False
@@ -468,30 +516,45 @@ class AurynkWindow(Adw.ApplicationWindow):
             else:
                 status_btn.set_label(_("Connect"))
                 status_btn.add_css_class("suggested-action")
-            status_btn.set_valign(Gtk.Align.CENTER)
             status_btn.connect("clicked", self._on_status_clicked, device, connected)
-            status_box.append(status_btn)
 
-            # Mirror button
-            mirror_btn = Gtk.Button()
-            mirror_btn.set_icon_name("screen-shared-symbolic")
-            mirror_btn.set_tooltip_text(_("Screen Mirror"))
+        status_box.append(status_btn)
+
+        # Mirror button (same for both USB and wireless)
+        mirror_btn = Gtk.Button()
+        mirror_btn.set_icon_name("screen-shared-symbolic")
+        mirror_btn.set_tooltip_text(_("Screen Mirror"))
+        mirror_btn.set_valign(Gtk.Align.CENTER)
+
+        if is_usb:
+            # USB devices are always ready to mirror
+            mirror_btn.set_sensitive(True)
+            mirror_btn.add_css_class("suggested-action")
+            # TODO: Implement USB mirror handler
+            mirror_btn.connect("clicked", self._on_usb_mirror_clicked, device)
+        else:
+            # Wireless devices need to be connected first
+            address = device.get("address")
+            connect_port = device.get("connect_port")
+            connected = False
+            if address and connect_port:
+                connected = is_device_connected(address, connect_port)
             mirror_btn.set_sensitive(connected)
-            mirror_btn.set_valign(Gtk.Align.CENTER)
             if connected:
                 mirror_btn.add_css_class("suggested-action")
             else:
                 mirror_btn.add_css_class("destructive-action")
             mirror_btn.connect("clicked", self._on_mirror_clicked, device)
-            status_box.append(mirror_btn)
 
-            # Details button
-            details_btn = Gtk.Button()
-            details_btn.set_icon_name("preferences-system-details-symbolic")
-            details_btn.set_tooltip_text(_("Details"))
-            details_btn.set_valign(Gtk.Align.CENTER)
-            details_btn.connect("clicked", self._on_device_details_clicked, device)
-            status_box.append(details_btn)
+        status_box.append(mirror_btn)
+
+        # Details button (same for both USB and wireless)
+        details_btn = Gtk.Button()
+        details_btn.set_icon_name("preferences-system-details-symbolic")
+        details_btn.set_tooltip_text(_("Details"))
+        details_btn.set_valign(Gtk.Align.CENTER)
+        details_btn.connect("clicked", self._on_device_details_clicked, device)
+        status_box.append(details_btn)
 
         row.append(status_box)
         return row
@@ -741,6 +804,50 @@ class AurynkWindow(Adw.ApplicationWindow):
         app = self.get_application()
         if hasattr(app, "send_status_to_tray"):
             app.send_status_to_tray()
+
+    def _on_usb_mirror_clicked(self, button, device):
+        """Handle mirror click for USB devices."""
+        # For USB devices, we need to get the serial from adb devices
+        import subprocess
+
+        try:
+            result = subprocess.run(["adb", "devices"], capture_output=True, text=True, timeout=5)
+
+            # Parse adb devices output to find USB device serial
+            # Format: "serial\tdevice"
+            lines = result.stdout.strip().split("\n")[1:]  # Skip header
+            usb_serial = None
+
+            for line in lines:
+                if "\t" in line:
+                    serial, status = line.split("\t", 1)
+                    # USB devices don't have : in serial (wireless have ip:port)
+                    if ":" not in serial and status.strip() == "device":
+                        usb_serial = serial
+                        break
+
+            if not usb_serial:
+                logger.warning("No USB device serial found in adb devices")
+                return
+
+            device_name = device.get("name", "USB Device")
+            scrcpy = self._get_scrcpy_manager()
+
+            # Check if already mirroring using the USB serial
+            if scrcpy.is_mirroring_serial(usb_serial):
+                scrcpy.stop_mirror_by_serial(usb_serial)
+            else:
+                scrcpy.start_mirror_usb(usb_serial, device_name)
+
+            # Sync tray after mirroring
+            app = self.get_application()
+            if hasattr(app, "send_status_to_tray"):
+                app.send_status_to_tray()
+
+        except subprocess.TimeoutExpired:
+            logger.error("adb devices command timed out")
+        except Exception as e:
+            logger.error(f"Error starting USB mirror: {e}")
 
     def show_unpair_confirmation_dialog(address):
         """Show a confirmation dialog before unpairing a device. Returns True if confirmed, False otherwise."""

@@ -164,13 +164,24 @@ class DeviceDetailsWindow(Adw.Window):
         """Fetch device specifications in background."""
 
         def fetch():
-            specs = self.adb_controller.fetch_device_specs(
-                self.device["address"], self.device["connect_port"]
-            )
+            # Check if this is a USB device or wireless device
+            if self.device.get("is_usb"):
+                # USB device - use adb_serial
+                adb_serial = self.device.get("adb_serial")
+                if adb_serial:
+                    specs = self.adb_controller.fetch_device_specs_by_serial(adb_serial)
+                else:
+                    specs = {"ram": _("Unknown"), "storage": _("Unknown"), "battery": _("Unknown")}
+            else:
+                # Wireless device - use address:port
+                specs = self.adb_controller.fetch_device_specs(
+                    self.device["address"], self.device["connect_port"]
+                )
 
             # Update device info
             self.device["spec"] = specs
-            self.adb_controller.save_paired_device(self.device)
+            if not self.device.get("is_usb"):
+                self.adb_controller.save_paired_device(self.device)
 
             # Update UI on main thread
             from gi.repository import GLib
@@ -191,13 +202,24 @@ class DeviceDetailsWindow(Adw.Window):
         button.set_label(_("Refreshing..."))
 
         def capture():
-            screenshot_path = self.adb_controller.capture_screenshot(
-                self.device["address"], self.device["connect_port"]
-            )
+            # Check if this is a USB device or wireless device
+            if self.device.get("is_usb"):
+                # USB device - use adb_serial
+                adb_serial = self.device.get("adb_serial")
+                if adb_serial:
+                    screenshot_path = self.adb_controller.capture_screenshot_by_serial(adb_serial)
+                else:
+                    screenshot_path = None
+            else:
+                # Wireless device - use address:port
+                screenshot_path = self.adb_controller.capture_screenshot(
+                    self.device["address"], self.device["connect_port"]
+                )
 
             if screenshot_path:
                 self.device["thumbnail"] = screenshot_path
-                self.adb_controller.save_paired_device(self.device)
+                if not self.device.get("is_usb"):
+                    self.adb_controller.save_paired_device(self.device)
 
             # Update UI on main thread
             from gi.repository import GLib
@@ -218,21 +240,32 @@ class DeviceDetailsWindow(Adw.Window):
         button.set_sensitive(False)
 
         def refresh():
-            # Fetch specs
-            specs = self.adb_controller.fetch_device_specs(
-                self.device["address"], self.device["connect_port"]
-            )
-            self.device["spec"] = specs
+            # Check if this is a USB device or wireless device
+            if self.device.get("is_usb"):
+                # USB device - use adb_serial
+                adb_serial = self.device.get("adb_serial")
+                if adb_serial:
+                    specs = self.adb_controller.fetch_device_specs_by_serial(adb_serial)
+                    screenshot_path = self.adb_controller.capture_screenshot_by_serial(adb_serial)
+                else:
+                    specs = {"ram": _("Unknown"), "storage": _("Unknown"), "battery": _("Unknown")}
+                    screenshot_path = None
+            else:
+                # Wireless device - use address:port
+                specs = self.adb_controller.fetch_device_specs(
+                    self.device["address"], self.device["connect_port"]
+                )
+                screenshot_path = self.adb_controller.capture_screenshot(
+                    self.device["address"], self.device["connect_port"]
+                )
 
-            # Capture screenshot
-            screenshot_path = self.adb_controller.capture_screenshot(
-                self.device["address"], self.device["connect_port"]
-            )
+            self.device["spec"] = specs
             if screenshot_path:
                 self.device["thumbnail"] = screenshot_path
 
-            # Save
-            self.adb_controller.save_paired_device(self.device)
+            # Save (only for wireless devices)
+            if not self.device.get("is_usb"):
+                self.adb_controller.save_paired_device(self.device)
 
             # Update UI
             from gi.repository import GLib
