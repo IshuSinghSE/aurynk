@@ -383,8 +383,14 @@ class AurynkWindow(Adw.ApplicationWindow):
 
         row = self._create_device_row(dev_data, is_usb=True)
         self.usb_group.add(row)
-        self.usb_rows[serial] = row
+        # Store both row and device data for tray access
+        self.usb_rows[serial] = {"row": row, "data": dev_data}
         self.usb_group.set_visible(True)
+
+        # Update tray status after adding USB device
+        app = self.get_application()
+        if hasattr(app, "send_status_to_tray"):
+            app.send_status_to_tray()
 
     def _on_usb_device_connected(self, monitor, device):
         GLib.idle_add(self._add_usb_device_row, device)
@@ -396,12 +402,18 @@ class AurynkWindow(Adw.ApplicationWindow):
 
     def _remove_usb_device_row(self, serial):
         if serial in self.usb_rows:
-            row = self.usb_rows[serial]
+            row_data = self.usb_rows[serial]
+            row = row_data["row"] if isinstance(row_data, dict) else row_data
             self.usb_group.remove(row)
             del self.usb_rows[serial]
 
         if not self.usb_rows:
             self.usb_group.set_visible(False)
+
+        # Update tray status after removing USB device
+        app = self.get_application()
+        if hasattr(app, "send_status_to_tray"):
+            app.send_status_to_tray()
 
     def _fetch_usb_device_info(self, dev_data, adb_serial):
         """Fetch detailed USB device information via ADB."""
@@ -522,15 +534,24 @@ class AurynkWindow(Adw.ApplicationWindow):
 
         # Mirror button (same for both USB and wireless)
         mirror_btn = Gtk.Button()
-        mirror_btn.set_icon_name("screen-shared-symbolic")
-        mirror_btn.set_tooltip_text(_("Screen Mirror"))
         mirror_btn.set_valign(Gtk.Align.CENTER)
 
         if is_usb:
             # USB devices are always ready to mirror
             mirror_btn.set_sensitive(True)
-            mirror_btn.add_css_class("suggested-action")
-            # TODO: Implement USB mirror handler
+            # Check if already mirroring and set appropriate style
+            adb_serial = device.get("adb_serial")
+            if adb_serial:
+                scrcpy = self._get_scrcpy_manager()
+                if scrcpy.is_mirroring_serial(adb_serial):
+                    mirror_btn.set_label(_("Stop Mirroring"))
+                    mirror_btn.add_css_class("destructive-action")
+                else:
+                    mirror_btn.set_label(_("Mirror"))
+                    mirror_btn.add_css_class("suggested-action")
+            else:
+                mirror_btn.set_label(_("Mirror"))
+                mirror_btn.add_css_class("suggested-action")
             mirror_btn.connect("clicked", self._on_usb_mirror_clicked, device)
         else:
             # Wireless devices need to be connected first
@@ -541,9 +562,17 @@ class AurynkWindow(Adw.ApplicationWindow):
                 connected = is_device_connected(address, connect_port)
             mirror_btn.set_sensitive(connected)
             if connected:
-                mirror_btn.add_css_class("suggested-action")
+                # Check if already mirroring and set appropriate style
+                scrcpy = self._get_scrcpy_manager()
+                if scrcpy.is_mirroring(address, connect_port):
+                    mirror_btn.set_label(_("Stop Mirroring"))
+                    mirror_btn.add_css_class("destructive-action")
+                else:
+                    mirror_btn.set_label(_("Mirror"))
+                    mirror_btn.add_css_class("suggested-action")
             else:
-                mirror_btn.add_css_class("destructive-action")
+                mirror_btn.set_label(_("Mirror"))
+                mirror_btn.add_css_class("suggested-action")
             mirror_btn.connect("clicked", self._on_mirror_clicked, device)
 
         status_box.append(mirror_btn)
@@ -796,11 +825,26 @@ class AurynkWindow(Adw.ApplicationWindow):
         if not address or not connect_port:
             return
         scrcpy = self._get_scrcpy_manager()
+
+        # Toggle mirroring
         if scrcpy.is_mirroring(address, connect_port):
             scrcpy.stop_mirror(address, connect_port)
         else:
             scrcpy.start_mirror(address, connect_port, device_name)
-        # Sync tray after mirroring
+
+        # Update button state based on new mirroring status
+        # Check again after toggle to get accurate state
+        is_now_mirroring = scrcpy.is_mirroring(address, connect_port)
+        if is_now_mirroring:
+            button.set_label(_("Stop Mirroring"))
+            button.remove_css_class("suggested-action")
+            button.add_css_class("destructive-action")
+        else:
+            button.set_label(_("Mirror"))
+            button.remove_css_class("destructive-action")
+            button.add_css_class("suggested-action")
+
+        # Sync tray after mirroring toggle
         app = self.get_application()
         if hasattr(app, "send_status_to_tray"):
             app.send_status_to_tray()
@@ -834,12 +878,33 @@ class AurynkWindow(Adw.ApplicationWindow):
             scrcpy = self._get_scrcpy_manager()
 
             # Check if already mirroring using the USB serial
-            if scrcpy.is_mirroring_serial(usb_serial):
+            is_mirroring = scrcpy.is_mirroring_serial(usb_serial)
+            logger.info(
+                f"USB Mirror button clicked. Serial: {usb_serial}, Is mirroring: {is_mirroring}"
+            )
+
+            if is_mirroring:
+                logger.info(f"Stopping mirror for USB device {usb_serial}")
                 scrcpy.stop_mirror_by_serial(usb_serial)
             else:
+                logger.info(f"Starting mirror for USB device {usb_serial}")
                 scrcpy.start_mirror_usb(usb_serial, device_name)
 
-            # Sync tray after mirroring
+            # Update button state based on new mirroring status
+            # Check again after toggle to get accurate state
+            is_now_mirroring = scrcpy.is_mirroring_serial(usb_serial)
+            if is_now_mirroring:
+                button.set_label(_("Stop Mirroring"))
+                button.remove_css_class("suggested-action")
+                button.add_css_class("destructive-action")
+                logger.info("Button state changed to destructive-action (red)")
+            else:
+                button.set_label(_("Mirror"))
+                button.remove_css_class("destructive-action")
+                button.add_css_class("suggested-action")
+                logger.info("Button state changed to suggested-action (blue)")
+
+            # Sync tray after mirroring toggle
             app = self.get_application()
             if hasattr(app, "send_status_to_tray"):
                 app.send_status_to_tray()

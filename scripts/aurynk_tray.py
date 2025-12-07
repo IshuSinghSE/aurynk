@@ -170,23 +170,28 @@ class TrayHelper:
         if devices:
             for device in devices:
                 device_menu = Gtk.Menu()
+                is_usb = device.get("is_usb", False)
 
-                connect_item = Gtk.MenuItem(label="Connect")
-                connect_item.set_sensitive(not device.get("connected", False))
-                connect_item.connect("activate", self.on_connect_device, device)
-                connect_item.show()
-                device_menu.append(connect_item)
+                # Only show connect/disconnect for wireless devices
+                if not is_usb:
+                    connect_item = Gtk.MenuItem(label="Connect")
+                    connect_item.set_sensitive(not device.get("connected", False))
+                    connect_item.connect("activate", self.on_connect_device, device)
+                    connect_item.show()
+                    device_menu.append(connect_item)
 
-                disconnect_item = Gtk.MenuItem(label="Disconnect")
-                disconnect_item.set_sensitive(device.get("connected", False))
-                disconnect_item.connect("activate", self.on_disconnect_device, device)
-                disconnect_item.show()
-                device_menu.append(disconnect_item)
+                    disconnect_item = Gtk.MenuItem(label="Disconnect")
+                    disconnect_item.set_sensitive(device.get("connected", False))
+                    disconnect_item.connect("activate", self.on_disconnect_device, device)
+                    disconnect_item.show()
+                    device_menu.append(disconnect_item)
 
                 is_mirroring = device.get("mirroring", False)
                 mirror_label = "Stop Mirroring" if is_mirroring else "Start Mirroring"
                 mirror_item = Gtk.MenuItem(label=mirror_label)
-                mirror_item.set_sensitive(device.get("connected", False))
+                # USB devices are always ready to mirror, wireless need connection
+                is_usb = device.get("is_usb", False)
+                mirror_item.set_sensitive(is_usb or device.get("connected", False))
                 mirror_item.connect("activate", self.on_mirror_device, device)
                 mirror_item.show()
                 device_menu.append(mirror_item)

@@ -18,6 +18,7 @@ APP_SOCKET = "/tmp/aurynk_app.sock"
 def send_status_to_tray(app, status: str = None):
     """Send a status update for all devices to the tray helper via its socket."""
     import json
+    import subprocess
 
     try:
         win = app.props.active_window
@@ -29,6 +30,7 @@ def send_status_to_tray(app, status: str = None):
 
         scrcpy = ScrcpyManager()
 
+        # Add wireless devices
         for d in devices:
             address = d.get("address")
             connect_port = d.get("connect_port")
@@ -46,8 +48,52 @@ def send_status_to_tray(app, status: str = None):
                     "model": d.get("model"),
                     "manufacturer": d.get("manufacturer"),
                     "android_version": d.get("android_version"),
+                    "is_usb": False,
                 }
             )
+
+        # Add USB devices
+        try:
+            result = subprocess.run(["adb", "devices"], capture_output=True, text=True, timeout=2)
+            lines = result.stdout.strip().split("\n")[1:]  # Skip header
+            for line in lines:
+                if "\t" in line:
+                    serial, status_str = line.split("\t", 1)
+                    # USB devices don't have : in serial (wireless have ip:port)
+                    if ":" not in serial and status_str.strip() == "device":
+                        # Get device name from USB monitor if available
+                        device_name = None
+                        if hasattr(win, "usb_rows"):
+                            for usb_serial, row_data in win.usb_rows.items():
+                                # Handle both old format (just row) and new format (dict with data)
+                                if isinstance(row_data, dict) and "data" in row_data:
+                                    if row_data["data"].get("adb_serial") == serial:
+                                        device_name = row_data["data"].get("name", "USB Device")
+                                        break
+
+                        # Fallback to generic name if not found
+                        if not device_name:
+                            device_name = "USB Device"
+
+                        # Add asterisk prefix to indicate USB device
+                        device_name = f"* {device_name}"
+
+                        mirroring = scrcpy.is_mirroring_serial(serial)
+                        device_status.append(
+                            {
+                                "name": device_name,
+                                "address": serial,  # Use serial as address for USB
+                                "connected": True,  # USB devices are always "connected"
+                                "mirroring": mirroring,
+                                "model": None,
+                                "manufacturer": None,
+                                "android_version": None,
+                                "is_usb": True,
+                            }
+                        )
+        except Exception as e:
+            logger.debug(f"Could not get USB devices: {e}")
+
         msg = json.dumps({"devices": device_status})
     except Exception as e:
         logger.error(f"Error building device status for tray: {e}")
@@ -75,6 +121,7 @@ def send_devices_to_tray(devices):
     payload the tray helper expects.
     """
     import json
+    import subprocess
 
     try:
         from aurynk.utils.adb_utils import is_device_connected
@@ -88,6 +135,7 @@ def send_devices_to_tray(devices):
     scrcpy = ScrcpyManager()
 
     device_status = []
+    # Add wireless devices
     for d in devices:
         address = d.get("address")
         connect_port = d.get("connect_port")
@@ -108,8 +156,58 @@ def send_devices_to_tray(devices):
                 "model": d.get("model"),
                 "manufacturer": d.get("manufacturer"),
                 "android_version": d.get("android_version"),
+                "is_usb": False,
             }
         )
+
+    # Add USB devices
+    try:
+        result = subprocess.run(["adb", "devices"], capture_output=True, text=True, timeout=2)
+        lines = result.stdout.strip().split("\n")[1:]  # Skip header
+        for line in lines:
+            if "\t" in line:
+                serial, status_str = line.split("\t", 1)
+                # USB devices don't have : in serial (wireless have ip:port)
+                if ":" not in serial and status_str.strip() == "device":
+                    # Try to get device name from active window if possible
+                    device_name = None
+                    try:
+                        from gi.repository import Gtk
+
+                        app = Gtk.Application.get_default()
+                        if app and hasattr(app, "props") and app.props.active_window:
+                            win = app.props.active_window
+                            if hasattr(win, "usb_rows"):
+                                for usb_serial, row_data in win.usb_rows.items():
+                                    if isinstance(row_data, dict) and "data" in row_data:
+                                        if row_data["data"].get("adb_serial") == serial:
+                                            device_name = row_data["data"].get("name", "USB Device")
+                                            break
+                    except Exception:
+                        pass
+
+                    # Fallback to generic name if not found
+                    if not device_name:
+                        device_name = "USB Device"
+
+                    # Add asterisk prefix to indicate USB device
+                    device_name = f"* {device_name}"
+
+                    mirroring = scrcpy.is_mirroring_serial(serial)
+                    device_status.append(
+                        {
+                            "name": device_name,
+                            "address": serial,
+                            "connected": True,
+                            "mirroring": mirroring,
+                            "model": None,
+                            "manufacturer": None,
+                            "android_version": None,
+                            "is_usb": True,
+                        }
+                    )
+    except Exception as e:
+        logger.debug(f"Could not get USB devices: {e}")
 
     msg = json.dumps({"devices": device_status})
 
@@ -231,22 +329,49 @@ def tray_disconnect_device(app, address):
 
 
 def tray_mirror_device(app, address):
+    """Handle mirror command from tray - supports both wireless and USB devices."""
     win = app.props.active_window
     if not win:
         win = AurynkWindow(application=app)
-    devices = win.adb_controller.load_paired_devices()
-    device = next((d for d in devices if d.get("address") == address), None)
-    if device:
-        connect_port = device.get("connect_port")
-        device_name = device.get("name")
-        if connect_port and device_name:
-            scrcpy = win._get_scrcpy_manager()
-            if scrcpy.is_mirroring(address, connect_port):
-                scrcpy.stop_mirror(address, connect_port)
-            else:
-                scrcpy.start_mirror(address, connect_port, device_name)
-        win._refresh_device_list()
-        send_status_to_tray(app)
+
+    scrcpy = win._get_scrcpy_manager()
+
+    # Check if this is a USB device (no colon in address means it's a serial)
+    if ":" not in address:
+        # USB device - address is the serial number
+        device_name = "USB Device"
+        # Try to get device name from USB monitor
+        if hasattr(win, "usb_rows"):
+            for usb_serial, row_data in win.usb_rows.items():
+                # Handle both old format (just row) and new format (dict with data)
+                if isinstance(row_data, dict) and "data" in row_data:
+                    if row_data["data"].get("adb_serial") == address:
+                        device_name = row_data["data"].get("name", "USB Device")
+                        break
+
+        # Toggle mirroring for USB device
+        if scrcpy.is_mirroring_serial(address):
+            scrcpy.stop_mirror_by_serial(address)
+        else:
+            scrcpy.start_mirror_usb(address, device_name)
+    else:
+        # Wireless device - address is ip:port
+        devices = win.adb_controller.load_paired_devices()
+        device = next((d for d in devices if d.get("address") == address), None)
+        if device:
+            connect_port = device.get("connect_port")
+            device_name = device.get("name")
+            if connect_port and device_name:
+                if scrcpy.is_mirroring(address, connect_port):
+                    scrcpy.stop_mirror(address, connect_port)
+                else:
+                    scrcpy.start_mirror(address, connect_port, device_name)
+
+    # Update mirror button states in main window
+    if hasattr(win, "_update_all_mirror_buttons"):
+        GLib.idle_add(win._update_all_mirror_buttons)
+
+    send_status_to_tray(app)
 
 
 def tray_unpair_device(app, address):
