@@ -814,7 +814,9 @@ class AurynkWindow(Adw.ApplicationWindow):
         GLib.idle_add(self._handle_mirror_stop_ui_update)
 
     def _handle_mirror_stop_ui_update(self):
-        self._refresh_device_list()
+        # Use _update_all_mirror_buttons to ensure both wireless (via refresh)
+        # and USB buttons (via iteration) are updated
+        self._update_all_mirror_buttons()
         app = self.get_application()
         if hasattr(app, "send_status_to_tray"):
             app.send_status_to_tray()
