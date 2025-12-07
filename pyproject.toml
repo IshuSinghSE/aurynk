@@ -40,7 +40,7 @@ Repository = "https://github.com/IshuSinghSE/aurynk.git"
 Issues = "https://github.com/IshuSinghSE/aurynk/issues"
 
 [project.scripts]
-aurynk = "aurynk.app:main"
+aurynk = "aurynk.application:main"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
