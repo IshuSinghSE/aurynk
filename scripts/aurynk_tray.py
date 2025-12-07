@@ -235,12 +235,12 @@ class TrayHelper:
         separator2.show()
         new_menu.append(separator2)
 
-        about_item = Gtk.MenuItem(label="About Aurynk")
+        about_item = Gtk.MenuItem(label="About")
         about_item.connect("activate", self.on_about)
         about_item.show()
         new_menu.append(about_item)
 
-        quit_item = Gtk.MenuItem(label="Quit Aurynk")
+        quit_item = Gtk.MenuItem(label="Quit")
         quit_item.connect("activate", self.on_quit)
         quit_item.show()
         new_menu.append(quit_item)

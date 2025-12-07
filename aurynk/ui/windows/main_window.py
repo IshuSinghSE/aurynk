@@ -535,6 +535,7 @@ class AurynkWindow(Adw.ApplicationWindow):
         # Mirror button (same for both USB and wireless)
         mirror_btn = Gtk.Button()
         mirror_btn.set_valign(Gtk.Align.CENTER)
+        mirror_btn.add_css_class("mirror-button")
 
         if is_usb:
             # USB devices are always ready to mirror
@@ -817,6 +818,48 @@ class AurynkWindow(Adw.ApplicationWindow):
         app = self.get_application()
         if hasattr(app, "send_status_to_tray"):
             app.send_status_to_tray()
+
+    def _update_all_mirror_buttons(self):
+        """Update only mirror button states without rebuilding UI.
+        This is called when tray triggers mirroring to sync main window."""
+        # Refresh wireless device list which will update button states
+        self._refresh_device_list()
+
+        # Also update USB device mirror buttons
+        scrcpy = self._get_scrcpy_manager()
+        for serial, row_data in self.usb_rows.items():
+            if isinstance(row_data, dict) and "row" in row_data:
+                row = row_data["row"]
+                # Find the mirror button in this row
+                # Row structure: icon -> info_box -> status_box (contains buttons)
+                child = row.get_first_child()
+                while child:
+                    if isinstance(child, Gtk.Box):
+                        # Check if this is the status_box by looking for buttons
+                        btn_child = child.get_first_child()
+                        mirror_btn = None
+                        while btn_child:
+                            if isinstance(btn_child, Gtk.Button):
+                                # Check if this is the mirror button
+                                if btn_child.has_css_class("mirror-button"):
+                                    mirror_btn = btn_child
+                                    break
+                            btn_child = btn_child.get_next_sibling()
+
+                        if mirror_btn:
+                            # Update button state based on mirroring status
+                            adb_serial = row_data["data"].get("adb_serial", serial)
+                            is_mirroring = scrcpy.is_mirroring_serial(adb_serial)
+                            if is_mirroring:
+                                mirror_btn.set_label(_("Stop Mirroring"))
+                                mirror_btn.remove_css_class("suggested-action")
+                                mirror_btn.add_css_class("destructive-action")
+                            else:
+                                mirror_btn.set_label(_("Mirror"))
+                                mirror_btn.remove_css_class("destructive-action")
+                                mirror_btn.add_css_class("suggested-action")
+                            break
+                    child = child.get_next_sibling()
 
     def _on_mirror_clicked(self, button, device):
         address = device.get("address")

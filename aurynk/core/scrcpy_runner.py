@@ -346,20 +346,32 @@ class ScrcpyManager:
         Returns:
             bool: True if stopped or not running, False if error.
         """
+        logger.info(f"Attempting to stop mirror for serial: {serial}")
         proc = self.processes.get(serial)
         if proc:
             try:
+                logger.debug(f"Terminating process for {serial}")
                 proc.terminate()
                 try:
                     proc.wait(timeout=5)
                 except subprocess.TimeoutExpired:
+                    logger.warning(f"Process for {serial} did not terminate, killing...")
                     proc.kill()
             except Exception as e:
-                logger.error(f"Error stopping process: {e}")
+                logger.error(f"Error stopping process (terminate): {e}")
+                # Try to kill if terminate failed (e.g. PermissionError)
+                try:
+                    logger.debug(f"Force killing process for {serial}")
+                    proc.kill()
+                    proc.wait(timeout=1)
+                except Exception as e2:
+                    logger.error(f"Error killing process: {e2}")
             finally:
                 if serial in self.processes:
+                    logger.debug(f"Removing {serial} from processes dict")
                     del self.processes[serial]
             return True
+        logger.warning(f"No process found for serial: {serial}")
         return False
 
     def start_mirror_usb(self, serial: str, device_name: str = None) -> bool:

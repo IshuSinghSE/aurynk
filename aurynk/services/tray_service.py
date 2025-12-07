@@ -18,12 +18,19 @@ APP_SOCKET = "/tmp/aurynk_app.sock"
 def send_status_to_tray(app, status: str = None):
     """Send a status update for all devices to the tray helper via its socket."""
     import json
-    import subprocess
 
     try:
         win = app.props.active_window
         if not win:
+            # Try to find existing AurynkWindow (it might be hidden)
+            for w in app.get_windows():
+                if isinstance(w, AurynkWindow):
+                    win = w
+                    break
+
+        if not win:
             win = AurynkWindow(application=app)
+
         devices = win.adb_controller.load_paired_devices()
         device_status = []
         from aurynk.utils.adb_utils import is_device_connected
@@ -52,49 +59,40 @@ def send_status_to_tray(app, status: str = None):
                 }
             )
 
-        # Add USB devices
-        try:
-            result = subprocess.run(["adb", "devices"], capture_output=True, text=True, timeout=2)
-            lines = result.stdout.strip().split("\n")[1:]  # Skip header
-            for line in lines:
-                if "\t" in line:
-                    serial, status_str = line.split("\t", 1)
-                    # USB devices don't have : in serial (wireless have ip:port)
-                    if ":" not in serial and status_str.strip() == "device":
-                        # Get device name from USB monitor if available
-                        device_name = None
-                        if hasattr(win, "usb_rows"):
-                            for usb_serial, row_data in win.usb_rows.items():
-                                # Handle both old format (just row) and new format (dict with data)
-                                if isinstance(row_data, dict) and "data" in row_data:
-                                    if row_data["data"].get("adb_serial") == serial:
-                                        device_name = row_data["data"].get("name", "USB Device")
-                                        break
+        # Add USB devices from main window state
+        # This avoids blocking 'adb devices' calls and ensures consistency with UI
+        if hasattr(win, "usb_rows"):
+            for udev_serial, row_data in win.usb_rows.items():
+                try:
+                    # Handle both old format (just row) and new format (dict with data)
+                    if isinstance(row_data, dict) and "data" in row_data:
+                        data = row_data["data"]
+                        adb_serial = data.get("adb_serial")
 
-                        # Fallback to generic name if not found
-                        if not device_name:
-                            device_name = "USB Device"
+                        # Only list devices that have an ADB serial (are actually connected via ADB)
+                        if adb_serial:
+                            device_name = data.get("name", "USB Device")
+                            display_name = f"* {device_name}"
 
-                        # Add asterisk prefix to indicate USB device
-                        device_name = f"* {device_name}"
-
-                        mirroring = scrcpy.is_mirroring_serial(serial)
-                        device_status.append(
-                            {
-                                "name": device_name,
-                                "address": serial,  # Use serial as address for USB
-                                "connected": True,  # USB devices are always "connected"
-                                "mirroring": mirroring,
-                                "model": None,
-                                "manufacturer": None,
-                                "android_version": None,
-                                "is_usb": True,
-                            }
-                        )
-        except Exception as e:
-            logger.debug(f"Could not get USB devices: {e}")
+                            mirroring = scrcpy.is_mirroring_serial(adb_serial)
+                            logger.debug(f"USB Device {adb_serial}: mirroring={mirroring}")
+                            device_status.append(
+                                {
+                                    "name": display_name,
+                                    "address": adb_serial,
+                                    "connected": True,
+                                    "mirroring": mirroring,
+                                    "model": data.get("model"),
+                                    "manufacturer": data.get("manufacturer"),
+                                    "android_version": data.get("android_version"),
+                                    "is_usb": True,
+                                }
+                            )
+                except Exception as e:
+                    logger.error(f"Error adding USB device to tray status: {e}")
 
         msg = json.dumps({"devices": device_status})
+        logger.info(f"Sending tray status: {msg}")
     except Exception as e:
         logger.error(f"Error building device status for tray: {e}")
         msg = status if status else ""
