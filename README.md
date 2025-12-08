@@ -9,7 +9,9 @@
 # 🚀 Aurynk - Your Android Device Manager for Linux
 
 <p align="center">
-  <img src="data/icons/io.github.IshuSinghSE.aurynk.png" alt="Aurynk Logo" width="128"/>
+  <a href="https://ishusinghse.github.io/aurynk/">
+    <img src="data/icons/io.github.IshuSinghSE.aurynk.png" alt="Aurynk Logo" width="128"/>
+  </a>
 </p>
 
 <p align="center">
@@ -17,12 +19,13 @@
 </p>
 
 <p align="center">
+  <a href="https://ishusinghse.github.io/aurynk/">🌏 Website</a> •
   <a href="#-installation">📦 Install</a> •
   <a href="#-quick-start">🚀 Quick Start</a> •
   <a href="#-features">✨ Features</a> •
-  <a href="#-troubleshooting">🔧 Help</a>
+  <a href="#-troubleshooting">🔧 Help</a> •
+  <a href="https://ishusinghse.github.io/aurynk/nightly">🌙 Nightly</a>
 </p>
-
 
 ## 🎯 What is Aurynk?
 
@@ -52,23 +55,23 @@ Aurynk (Aura + Sync, pronounced “aw-rink”) makes managing your Android devic
   </table>
 </div>
 
-
 Perfect for:
+
 - 📱 **Developers** testing apps on multiple devices
-- 🎮 **Gamers** managing Android gaming setups  
+- 🎮 **Gamers** managing Android gaming setups
 - 👨‍💻 **Power users** who want full device control
 - 📸 **Content creators** capturing device screenshots
 
 ## ✨ Features
 
-| Feature | Description |
-|---------|-------------|
-| 🔗 **Wireless Pairing** | Connect via QR code - no cables needed! |
-| 📱 **Device Management** | View detailed specs, battery, storage info |
-| 📸 **Screenshot Capture** | Instantly capture and save device screenshots |
-| 🖥️ **Screen Mirroring** | View and control your device screen (via scrcpy) |
-| 🎨 **Modern Interface** | Beautiful GTK4 design that fits your Linux desktop |
-| � **Multiple Devices** | Manage several Android devices simultaneously |
+| Feature                   | Description                                        |
+| ------------------------- | -------------------------------------------------- |
+| 🔗 **Wireless Pairing**   | Connect via QR code - no cables needed!            |
+| 📱 **Device Management**  | View detailed specs, battery, storage info         |
+| 📸 **Screenshot Capture** | Instantly capture and save device screenshots      |
+| 🖥️ **Screen Mirroring**   | View and control your device screen (via scrcpy)   |
+| 🎨 **Modern Interface**   | Beautiful GTK4 design that fits your Linux desktop |
+| � **Multiple Devices**    | Manage several Android devices simultaneously      |
 
 ## 📦 Installation
 
@@ -85,29 +88,30 @@ flatpak install flathub io.github.IshuSinghSE.aurynk
 
 **Download** the latest release from [GitHub Releases](https://github.com/IshuSinghSE/aurynk/releases)
 
-
 ### 🌙 Nightly Builds [(Unstable)](https://ishusinghse.github.io/aurynk/nightly)
+
 To test the latest development features, add the nightly repository:
 
 ```bash
 flatpak remote-add --user --if-not-exists --no-gpg-verify aurynk-nightly https://theishu.xyz/aurynk/nightly
 flatpak install --user aurynk-nightly io.github.IshuSinghSE.aurynk
 ```
-Note: Nightly builds may be unstable and contain bugs. (<a href="https://ishusinghse.github.io/aurynk/nightly">Unstable</a>)
 
+Note: Nightly builds may be unstable and contain bugs. (<a href="https://ishusinghse.github.io/aurynk/nightly">Unstable</a>)
 
 ## 🚀 Quick Start
 
 ### Step 1: Prepare Your Android Device 📱
 
 1. **Enable Developer Options:**
+
    - Go to **Settings** → **About Phone**
    - Tap **Build Number** 7 times
    - Developer Options will appear in Settings
 
-2. **Enable Wireless Debugging:**
-   - Go to **Settings** → **Developer Options**
-   - Turn on **Wireless Debugging**
+2. **Enable Wireless Debugging:** (for Android 11+)
+    - Go to **Settings** → **Developer Options**
+    - Turn on **Wireless Debugging**
 
 ### Step 2: Pair Your Device 🤝
 
@@ -125,18 +129,33 @@ Note: Nightly builds may be unstable and contain bugs. (<a href="https://ishusin
 - **Mirror your screen** with the monitor button
 - **Refresh data** anytime with the refresh button
 
+### Optional: USB Cable Connection 🔌
+If you prefer a USB cable connection, enable USB debugging and authorize the host:
+
+- Connect your Android device to the PC with a USB cable.
+- Open **Settings** → **Developer Options** → enable **USB debugging**.
+- When the device prompts, tap **Allow** (accept the RSA key) to authorize the computer.
+- On some devices (for example Samsung with Knox), also enable **USB debugging (Security settings)** or **Install via USB** if present.
+- If the device does not appear in `adb devices`, set USB mode to **File Transfer (MTP)** or a similar mode that exposes ADB, and ensure `adb` is installed on your PC.
+
+This wired workflow is useful when wireless debugging is unavailable or when initial pairing requires a cable.
+
+
 ## 🔧 Troubleshooting
 
 ### Can't find Developer Options?
+
 - Make sure you tapped "Build Number" exactly 7 times
 - Look for "Developer Options" in your main Settings menu
 
 ### Device won't pair?
+
 - ✅ Both devices are on the **same WiFi network**
 - ✅ **Wireless Debugging is enabled** on Android
 - ✅ Try **restarting Aurynk** and trying again
 
 ### ADB not working?
+
 ```bash
 # Install ADB on your Linux system:
 # Ubuntu/Debian:
@@ -148,15 +167,18 @@ sudo dnf install android-tools
 # Arch:
 sudo pacman -S android-tools
 ```
+
 ### Still having issues?
+
 - 🐛 [Report a bug](https://github.com/IshuSinghSE/aurynk/issues)
 - 💬 [Ask for help](https://github.com/IshuSinghSE/aurynk/discussions)
 
 ## 🤝 Contributing
 
 Want to help make Aurynk better? Check out [CONTRIBUTING.md](CONTRIBUTING.md) for:
+
 - 🔨 Development setup
-- 🏗️ Building from source  
+- 🏗️ Building from source
 - 📝 Code style guidelines
 - 🚀 How to submit changes
 
