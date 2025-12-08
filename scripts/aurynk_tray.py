@@ -11,7 +11,7 @@ import signal
 import sys
 
 from gi.repository import AyatanaAppIndicator3 as AppIndicator
-from gi.repository import Gtk
+from gi.repository import GLib, Gtk
 
 try:
     from aurynk.utils.logger import get_logger
@@ -244,6 +244,14 @@ class TrayHelper:
         quit_item.connect("activate", self.on_quit)
         quit_item.show()
         new_menu.append(quit_item)
+
+        # Properly destroy old menu before replacing to avoid GTK warnings
+        old_menu = self.menu
+        if old_menu is not None:
+            # Detach from indicator first
+            self.indicator.set_menu(None)
+            # Let old menu cleanup happen in next idle cycle
+            GLib.idle_add(lambda: old_menu.destroy() if old_menu else None)
 
         # Replace the menu and set it on the indicator
         self.menu = new_menu

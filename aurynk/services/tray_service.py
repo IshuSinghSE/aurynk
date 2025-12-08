@@ -35,9 +35,12 @@ def send_status_to_tray(app, status: str = None):
 
         # If we updated very recently, schedule a delayed update instead of dropping it
         if time_since_last < _TRAY_UPDATE_MIN_INTERVAL:
-            # Cancel any existing pending update
+            # Cancel any existing pending update (safely handle if already fired)
             if _pending_tray_update is not None:
-                GLib.source_remove(_pending_tray_update)
+                try:
+                    GLib.source_remove(_pending_tray_update)
+                except Exception:
+                    pass  # Source already removed/fired
 
             # Schedule new update after the minimum interval
             delay_ms = int((_TRAY_UPDATE_MIN_INTERVAL - time_since_last) * 1000) + 50
@@ -47,9 +50,12 @@ def send_status_to_tray(app, status: str = None):
             _pending_tray_update = GLib.timeout_add(delay_ms, lambda: _do_tray_update(app, status))
             return
 
-        # Clear any pending update since we're doing it now
+        # Clear any pending update since we're doing it now (safely handle if already fired)
         if _pending_tray_update is not None:
-            GLib.source_remove(_pending_tray_update)
+            try:
+                GLib.source_remove(_pending_tray_update)
+            except Exception:
+                pass  # Source already removed/fired
             _pending_tray_update = None
 
         _last_tray_update = current_time
