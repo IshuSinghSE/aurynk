@@ -50,6 +50,10 @@ class DeviceMonitor:
             "on_device_lost": [],
         }
 
+        # Track active connection attempts to avoid duplicates
+        self._connecting_targets = set()
+        self._connecting_lock = threading.Lock()
+
         # Load settings
         self._settings = SettingsManager()
         self._auto_connect_enabled = self._settings.get("app", "auto_connect", True)
@@ -326,67 +330,109 @@ class DeviceMonitor:
                 logger.error(f"Error in device lost callback: {e}")
 
     def _auto_connect_to_device(self, address: str, port: int):
-        """Automatically connect to a paired device with retry logic."""
-        paired_info = self._paired_devices.get(address)
-        if not paired_info:
-            return
+        """Automatically connect to a paired device with retry logic (async)."""
+        target = f"{address}:{port}"
+        with self._connecting_lock:
+            if target in self._connecting_targets:
+                logger.debug(f"Already connecting to {target}, skipping duplicate request")
+                return
+            self._connecting_targets.add(target)
 
-        device_name = paired_info.get("name", address)
-        logger.info(f"Auto-connecting to paired device: {device_name} ({address}:{port})")
+        # Run in a separate thread to avoid blocking the mDNS listener
+        threading.Thread(target=self._do_auto_connect, args=(address, port), daemon=True).start()
 
-        from aurynk.utils.adb_utils import get_adb_path
-        from aurynk.utils.notify import notify_device_event
-
-        for attempt in range(1, self._auto_connect_retries + 1):
-            try:
-                result = subprocess.run(
-                    [get_adb_path(), "connect", f"{address}:{port}"],
-                    capture_output=True,
-                    text=True,
-                    timeout=10,
-                )
-                output = (result.stdout + result.stderr).lower()
-                if (
-                    "connected" in output or "already connected" in output
-                ) and "unable" not in output:
-                    self._connected_devices.add(address)
-                    logger.info(f"✓ Auto-connected to {device_name}")
-                    try:
-                        notify_device_event("connected", device=device_name)
-                    except Exception:
-                        pass
-                    time.sleep(0.5)
-                    for callback in self._callbacks["on_device_connected"]:
-                        try:
-                            callback(address, port)
-                        except Exception as e:
-                            logger.error(f"Error in connected callback: {e}")
-                    if paired_info.get("connect_port") != port:
-                        logger.info(
-                            f"Port changed from {paired_info.get('connect_port')} to {port}, updating..."
-                        )
-                        paired_info["connect_port"] = port
-                    return
-                else:
-                    logger.warning(
-                        f"[Attempt {attempt}/{self._auto_connect_retries}] Failed to auto-connect to {device_name}: {output}"
-                    )
-            except Exception as e:
-                logger.error(
-                    f"[Attempt {attempt}/{self._auto_connect_retries}] Error auto-connecting to {device_name}: {e}"
-                )
-            if attempt < self._auto_connect_retries:
-                time.sleep(self._auto_connect_retry_delay)
-        # If all attempts fail, notify user
+    def _do_auto_connect(self, address: str, port: int):
+        """Actual connection logic running in a thread."""
+        target = f"{address}:{port}"
         try:
-            notify_device_event(
-                "error", device=device_name, extra=_("Unlock device to auto-connect"), error=True
+            paired_info = self._paired_devices.get(address)
+            if not paired_info:
+                return
+
+            device_name = paired_info.get("name", address)
+            logger.info(f"Auto-connecting to paired device: {device_name} ({address}:{port})")
+
+            from aurynk.utils.adb_utils import get_adb_path
+            from aurynk.utils.notify import notify_device_event
+
+            for attempt in range(1, self._auto_connect_retries + 1):
+                # Before each attempt, check if device is already connected (by another thread)
+                if address in self._connected_devices:
+                    logger.debug(
+                        f"Device {address} already connected (via another port), aborting retry"
+                    )
+                    return
+
+                try:
+                    result = subprocess.run(
+                        [get_adb_path(), "connect", f"{address}:{port}"],
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                    )
+                    output = (result.stdout + result.stderr).lower()
+                    if (
+                        "connected" in output or "already connected" in output
+                    ) and "unable" not in output:
+                        self._connected_devices.add(address)
+                        logger.info(f"✓ Auto-connected to {device_name}")
+
+                        # Cancel any other pending connection attempts for this device
+                        with self._connecting_lock:
+                            # Remove all connection attempts for this address
+                            to_remove = [
+                                t for t in self._connecting_targets if t.startswith(f"{address}:")
+                            ]
+                            for t in to_remove:
+                                self._connecting_targets.discard(t)
+
+                        try:
+                            notify_device_event("connected", device=device_name)
+                        except Exception:
+                            pass
+                        time.sleep(0.5)
+                        for callback in self._callbacks["on_device_connected"]:
+                            try:
+                                callback(address, port)
+                            except Exception as e:
+                                logger.error(f"Error in connected callback: {e}")
+                        if paired_info.get("connect_port") != port:
+                            logger.info(
+                                f"Port changed from {paired_info.get('connect_port')} to {port}, updating..."
+                            )
+                            paired_info["connect_port"] = port
+                        return
+                    else:
+                        logger.warning(
+                            f"[Attempt {attempt}/{self._auto_connect_retries}] Failed to auto-connect to {device_name}: {output}"
+                        )
+                except Exception as e:
+                    logger.error(
+                        f"[Attempt {attempt}/{self._auto_connect_retries}] Error auto-connecting to {device_name}: {e}"
+                    )
+
+                # Before sleeping for retry, check again if device is now connected
+                if attempt < self._auto_connect_retries:
+                    if address in self._connected_devices:
+                        logger.debug(f"Device {address} connected during retry delay, aborting")
+                        return
+                    time.sleep(self._auto_connect_retry_delay)
+            # If all attempts fail, notify user
+            try:
+                notify_device_event(
+                    "error",
+                    device=device_name,
+                    extra=_("Unlock device to auto-connect"),
+                    error=True,
+                )
+            except Exception:
+                pass
+            logger.error(
+                f"Auto-connect failed after {self._auto_connect_retries} attempts. User notified."
             )
-        except Exception:
-            pass
-        logger.error(
-            f"Auto-connect failed after {self._auto_connect_retries} attempts. User notified."
-        )
+        finally:
+            with self._connecting_lock:
+                self._connecting_targets.discard(target)
 
     def _monitor_connections(self):
         """Background thread to monitor ADB connection status and send keep-alive if enabled."""

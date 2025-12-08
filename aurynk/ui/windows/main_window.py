@@ -363,21 +363,38 @@ class AurynkWindow(Adw.ApplicationWindow):
             "manufacturer": device.get("ID_VENDOR", "Unknown Vendor"),
             "model": device.get("ID_MODEL"),
             "serial": serial,
+            "short_serial": device.get("ID_SERIAL_SHORT"),
             "is_usb": True,
         }
 
         # Try to get actual Android device serial from adb devices
         try:
             result = subprocess.run(["adb", "devices"], capture_output=True, text=True, timeout=5)
+            adb_devices = []
             # Parse for USB device (no colon in serial)
             for line in result.stdout.strip().split("\n")[1:]:
                 if "\t" in line:
-                    adb_serial, status = line.split("\t", 1)
-                    if ":" not in adb_serial and status.strip() == "device":
-                        dev_data["adb_serial"] = adb_serial
-                        # Fetch full device info via ADB
-                        self._fetch_usb_device_info(dev_data, adb_serial)
-                        break
+                    s, st = line.split("\t", 1)
+                    if ":" not in s and st.strip() == "device":
+                        adb_devices.append(s)
+
+            # Try to match using ID_SERIAL_SHORT from udev
+            short_serial = dev_data.get("short_serial")
+            matched_serial = None
+
+            if short_serial and short_serial in adb_devices:
+                matched_serial = short_serial
+            elif len(adb_devices) == 1:
+                # If only one device connected, assume it's the one
+                matched_serial = adb_devices[0]
+            elif adb_devices:
+                # Fallback: just pick the first one if we can't match
+                matched_serial = adb_devices[0]
+
+            if matched_serial:
+                dev_data["adb_serial"] = matched_serial
+                # Fetch full device info via ADB
+                self._fetch_usb_device_info(dev_data, matched_serial)
         except Exception as e:
             logger.debug(f"Could not fetch USB device info: {e}")
 
@@ -820,9 +837,7 @@ class AurynkWindow(Adw.ApplicationWindow):
         # Use _update_all_mirror_buttons to ensure both wireless (via refresh)
         # and USB buttons (via iteration) are updated
         self._update_all_mirror_buttons()
-        app = self.get_application()
-        if hasattr(app, "send_status_to_tray"):
-            app.send_status_to_tray()
+        # No tray sync needed here - the stop handler already did it with proper timing
 
     def _update_all_mirror_buttons(self):
         """Update only mirror button states without rebuilding UI.
@@ -919,54 +934,67 @@ class AurynkWindow(Adw.ApplicationWindow):
             return
         scrcpy = self._get_scrcpy_manager()
 
+        # Check if currently mirroring
+        is_currently_mirroring = scrcpy.is_mirroring(address, connect_port)
+
         # Toggle mirroring
-        if scrcpy.is_mirroring(address, connect_port):
+        if is_currently_mirroring:
             scrcpy.stop_mirror(address, connect_port)
         else:
             scrcpy.start_mirror(address, connect_port, device_name)
 
-        # Update button state based on new mirroring status
-        # Check again after toggle to get accurate state
-        is_now_mirroring = scrcpy.is_mirroring(address, connect_port)
-        if is_now_mirroring:
-            button.set_label(_("Stop Mirroring"))
-            button.remove_css_class("suggested-action")
-            button.add_css_class("destructive-action")
-        else:
-            button.set_label(_("Mirror"))
-            button.remove_css_class("destructive-action")
-            button.add_css_class("suggested-action")
+        # Update UI immediately using _update_all_mirror_buttons
+        self._update_all_mirror_buttons()
 
-        # Sync tray after mirroring toggle
+        # Sync tray - with small delay only when stopping to let process cleanup complete
         app = self.get_application()
         if hasattr(app, "send_status_to_tray"):
-            app.send_status_to_tray()
+            if is_currently_mirroring:
+                # Stopping - wait for process to fully terminate
+                GLib.timeout_add(100, lambda: app.send_status_to_tray())
+            else:
+                # Starting - sync immediately
+                app.send_status_to_tray()
 
     def _on_usb_mirror_clicked(self, button, device):
         """Handle mirror click for USB devices."""
-        # For USB devices, we need to get the serial from adb devices
-        import subprocess
+        # Try to use the stored ADB serial first
+        usb_serial = device.get("adb_serial")
+
+        # If not found, try to find it via adb devices (fallback)
+        if not usb_serial:
+            import subprocess
+
+            try:
+                result = subprocess.run(
+                    ["adb", "devices"], capture_output=True, text=True, timeout=5
+                )
+                adb_devices = []
+                for line in result.stdout.strip().split("\n")[1:]:
+                    if "\t" in line:
+                        s, st = line.split("\t", 1)
+                        if ":" not in s and st.strip() == "device":
+                            adb_devices.append(s)
+
+                short_serial = device.get("short_serial")
+                if short_serial and short_serial in adb_devices:
+                    usb_serial = short_serial
+                elif len(adb_devices) == 1:
+                    usb_serial = adb_devices[0]
+                elif adb_devices:
+                    usb_serial = adb_devices[0]
+
+                if usb_serial:
+                    # Store it for future use to ensure consistency
+                    device["adb_serial"] = usb_serial
+            except Exception as e:
+                logger.error(f"Error finding USB serial: {e}")
+
+        if not usb_serial:
+            logger.warning("No USB device serial found")
+            return
 
         try:
-            result = subprocess.run(["adb", "devices"], capture_output=True, text=True, timeout=5)
-
-            # Parse adb devices output to find USB device serial
-            # Format: "serial\tdevice"
-            lines = result.stdout.strip().split("\n")[1:]  # Skip header
-            usb_serial = None
-
-            for line in lines:
-                if "\t" in line:
-                    serial, status = line.split("\t", 1)
-                    # USB devices don't have : in serial (wireless have ip:port)
-                    if ":" not in serial and status.strip() == "device":
-                        usb_serial = serial
-                        break
-
-            if not usb_serial:
-                logger.warning("No USB device serial found in adb devices")
-                return
-
             device_name = device.get("name", "USB Device")
             scrcpy = self._get_scrcpy_manager()
 
@@ -983,24 +1011,18 @@ class AurynkWindow(Adw.ApplicationWindow):
                 logger.info(f"Starting mirror for USB device {usb_serial}")
                 scrcpy.start_mirror_usb(usb_serial, device_name)
 
-            # Update button state based on new mirroring status
-            # Check again after toggle to get accurate state
-            is_now_mirroring = scrcpy.is_mirroring_serial(usb_serial)
-            if is_now_mirroring:
-                button.set_label(_("Stop Mirroring"))
-                button.remove_css_class("suggested-action")
-                button.add_css_class("destructive-action")
-                logger.info("Button state changed to destructive-action (red)")
-            else:
-                button.set_label(_("Mirror"))
-                button.remove_css_class("destructive-action")
-                button.add_css_class("suggested-action")
-                logger.info("Button state changed to suggested-action (blue)")
+            # Update UI immediately using _update_all_mirror_buttons
+            self._update_all_mirror_buttons()
 
-            # Sync tray after mirroring toggle
+            # Sync tray - with small delay only when stopping to let process cleanup complete
             app = self.get_application()
             if hasattr(app, "send_status_to_tray"):
-                app.send_status_to_tray()
+                if is_mirroring:
+                    # Stopping - wait for process to fully terminate
+                    GLib.timeout_add(100, lambda: app.send_status_to_tray())
+                else:
+                    # Starting - sync immediately
+                    app.send_status_to_tray()
 
         except subprocess.TimeoutExpired:
             logger.error("adb devices command timed out")

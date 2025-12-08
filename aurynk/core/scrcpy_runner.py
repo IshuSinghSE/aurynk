@@ -221,7 +221,7 @@ class ScrcpyManager:
             # Use adb to set show_touches before starting scrcpy, with serial and delay
             show_touches = settings.get("scrcpy", "show_touches")
             try:
-                adb_path = settings.get("adb", "adb_path", "adb")
+                adb_path = settings.get("adb", "adb_path") or "adb"
                 value = "1" if show_touches else "0"
                 # Use the correct device serial
                 subprocess.run(
@@ -278,20 +278,42 @@ class ScrcpyManager:
             bool: True if stopped or not running, False if error.
         """
         serial = f"{address}:{port}"
-        proc = self.processes.get(serial)
-        if proc:
-            try:
-                proc.terminate()
+        target_serial = None
+
+        # Check exact match first
+        if serial in self.processes:
+            target_serial = serial
+        else:
+            # Fallback: check if any process is running for this IP
+            # This handles cases where the port changed but scrcpy is still running on old port
+            for s in list(self.processes.keys()):
+                if s.startswith(f"{address}:"):
+                    target_serial = s
+                    break
+
+        if target_serial:
+            proc = self.processes.get(target_serial)
+            if proc:
                 try:
-                    proc.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    proc.kill()
-            except Exception as e:
-                logger.error(f"Error stopping process: {e}")
-            finally:
-                if serial in self.processes:
-                    del self.processes[serial]
-            return True
+                    logger.debug(f"Terminating process for {target_serial}")
+                    proc.terminate()
+                    try:
+                        proc.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        logger.debug(f"Force killing process for {target_serial}")
+                        proc.kill()
+                except Exception as e:
+                    logger.error(f"Error stopping process (terminate): {e}")
+                    # Try kill if terminate failed
+                    try:
+                        proc.kill()
+                    except Exception as e2:
+                        logger.error(f"Error killing process: {e2}")
+                finally:
+                    if target_serial in self.processes:
+                        logger.debug(f"Removing {target_serial} from processes dict")
+                        del self.processes[target_serial]
+                return True
         return False
 
     def is_mirroring(self, address: str, port: int) -> bool:
@@ -306,6 +328,8 @@ class ScrcpyManager:
             bool: True if running, False otherwise.
         """
         serial = f"{address}:{port}"
+
+        # Check exact match
         proc = self.processes.get(serial)
         if proc:
             poll_status = proc.poll()
@@ -314,6 +338,18 @@ class ScrcpyManager:
             else:
                 # Process finished, clean up
                 del self.processes[serial]
+
+        # Fallback: check if any process is running for this IP
+        # This handles cases where the port changed but scrcpy is still running on old port
+        for s in list(self.processes.keys()):
+            if s.startswith(f"{address}:"):
+                proc = self.processes[s]
+                if proc.poll() is None:
+                    return True
+                else:
+                    # Process finished, clean up
+                    del self.processes[s]
+
         return False
 
     def is_mirroring_serial(self, serial: str) -> bool:

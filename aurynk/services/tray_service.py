@@ -14,10 +14,59 @@ logger = get_logger("TrayController")
 TRAY_SOCKET = "/tmp/aurynk_tray.sock"
 APP_SOCKET = "/tmp/aurynk_app.sock"
 
+# Debounce mechanism to prevent tray update spam
+_last_tray_update = 0
+_tray_update_lock = __import__("threading").Lock()
+_pending_tray_update = None
+_TRAY_UPDATE_MIN_INTERVAL = 0.2  # Minimum 200ms between tray updates
+
 
 def send_status_to_tray(app, status: str = None):
-    """Send a status update for all devices to the tray helper via its socket."""
+    """Send a status update for all devices to the tray helper via its socket.
+
+    Uses trailing-edge debouncing: if called too frequently, schedules a delayed
+    update to ensure tray always gets the final state.
+    """
+    global _last_tray_update, _pending_tray_update
+
+    with _tray_update_lock:
+        current_time = time.time()
+        time_since_last = current_time - _last_tray_update
+
+        # If we updated very recently, schedule a delayed update instead of dropping it
+        if time_since_last < _TRAY_UPDATE_MIN_INTERVAL:
+            # Cancel any existing pending update
+            if _pending_tray_update is not None:
+                GLib.source_remove(_pending_tray_update)
+
+            # Schedule new update after the minimum interval
+            delay_ms = int((_TRAY_UPDATE_MIN_INTERVAL - time_since_last) * 1000) + 50
+            logger.debug(
+                f"Scheduling delayed tray update in {delay_ms}ms (last update {time_since_last:.3f}s ago)"
+            )
+            _pending_tray_update = GLib.timeout_add(delay_ms, lambda: _do_tray_update(app, status))
+            return
+
+        # Clear any pending update since we're doing it now
+        if _pending_tray_update is not None:
+            GLib.source_remove(_pending_tray_update)
+            _pending_tray_update = None
+
+        _last_tray_update = current_time
+
+    # Perform the actual update (outside the lock)
+    _do_tray_update(app, status)
+
+
+def _do_tray_update(app, status: str = None):
+    """Internal function that actually performs the tray update."""
+    global _last_tray_update, _pending_tray_update
     import json
+
+    # Update timestamp and clear pending flag
+    with _tray_update_lock:
+        _last_tray_update = time.time()
+        _pending_tray_update = None
 
     try:
         win = app.props.active_window
@@ -38,26 +87,67 @@ def send_status_to_tray(app, status: str = None):
         scrcpy = ScrcpyManager()
 
         # Add wireless devices
-        for d in devices:
-            address = d.get("address")
-            connect_port = d.get("connect_port")
-            connected = False
-            mirroring = False
-            if address and connect_port:
-                connected = is_device_connected(address, connect_port)
-                mirroring = scrcpy.is_mirroring(address, connect_port)
-            device_status.append(
-                {
-                    "name": d.get("name", _("Unknown Device")),
-                    "address": address,
-                    "connected": connected,
-                    "mirroring": mirroring,
-                    "model": d.get("model"),
-                    "manufacturer": d.get("manufacturer"),
-                    "android_version": d.get("android_version"),
-                    "is_usb": False,
-                }
-            )
+        # Prefer using the main window's row data to ensure consistency with UI
+        wireless_devices_processed = False
+        if hasattr(win, "_wireless_rows") and win._wireless_rows:
+            try:
+                for row in win._wireless_rows:
+                    # Skip placeholder rows or rows without device data
+                    if not hasattr(row, "_device_data") or not row._device_data:
+                        continue
+
+                    d = row._device_data
+                    address = d.get("address")
+                    connect_port = d.get("connect_port")
+                    connected = False
+                    mirroring = False
+
+                    if address and connect_port:
+                        connected = is_device_connected(address, connect_port)
+                        mirroring = scrcpy.is_mirroring(address, connect_port)
+                        logger.debug(
+                            f"Wireless {address}:{connect_port}: connected={connected}, mirroring={mirroring}, processes={list(scrcpy.processes.keys())}"
+                        )
+
+                    device_status.append(
+                        {
+                            "name": d.get("name", _("Unknown Device")),
+                            "address": address,
+                            "connected": connected,
+                            "mirroring": mirroring,
+                            "model": d.get("model"),
+                            "manufacturer": d.get("manufacturer"),
+                            "android_version": d.get("android_version"),
+                            "is_usb": False,
+                        }
+                    )
+                wireless_devices_processed = True
+            except Exception as e:
+                logger.error(f"Error reading wireless rows for tray: {e}")
+
+        # Fallback to loading from storage if UI rows aren't available
+        if not wireless_devices_processed:
+            devices = win.adb_controller.load_paired_devices()
+            for d in devices:
+                address = d.get("address")
+                connect_port = d.get("connect_port")
+                connected = False
+                mirroring = False
+                if address and connect_port:
+                    connected = is_device_connected(address, connect_port)
+                    mirroring = scrcpy.is_mirroring(address, connect_port)
+                device_status.append(
+                    {
+                        "name": d.get("name", _("Unknown Device")),
+                        "address": address,
+                        "connected": connected,
+                        "mirroring": mirroring,
+                        "model": d.get("model"),
+                        "manufacturer": d.get("manufacturer"),
+                        "android_version": d.get("android_version"),
+                        "is_usb": False,
+                    }
+                )
 
         # Add USB devices from main window state
         # This avoids blocking 'adb devices' calls and ensures consistency with UI
@@ -75,7 +165,9 @@ def send_status_to_tray(app, status: str = None):
                             display_name = f"* {device_name}"
 
                             mirroring = scrcpy.is_mirroring_serial(adb_serial)
-                            logger.debug(f"USB Device {adb_serial}: mirroring={mirroring}")
+                            logger.debug(
+                                f"USB Device {adb_serial}: mirroring={mirroring}, processes={list(scrcpy.processes.keys())}"
+                            )
                             device_status.append(
                                 {
                                     "name": display_name,
@@ -101,13 +193,14 @@ def send_status_to_tray(app, status: str = None):
             with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
                 s.connect(TRAY_SOCKET)
                 s.sendall(msg.encode())
-            return
+            return False  # Don't repeat if called from GLib.timeout_add
         except FileNotFoundError:
             time.sleep(0.5)
         except Exception as e:
             logger.warning(f"Could not send tray status '{msg}': {e}")
-            return
+            return False
     logger.warning("Tray helper socket not available after retries.")
+    return False
 
 
 def send_devices_to_tray(devices):
@@ -342,19 +435,57 @@ def tray_mirror_device(app, address):
     scrcpy = win._get_scrcpy_manager()
 
     # Try to find in wireless devices first
-    # Wireless devices use IP as address, which might not have a colon
-    devices = win.adb_controller.load_paired_devices()
-    wireless_device = next((d for d in devices if d.get("address") == address), None)
+    wireless_device = None
+
+    # Check UI rows first for most up-to-date state (especially connect_port)
+    if hasattr(win, "_wireless_rows") and win._wireless_rows:
+        try:
+            for row in win._wireless_rows:
+                if hasattr(row, "_device_data") and row._device_data:
+                    d = row._device_data
+                    if d.get("address") == address:
+                        wireless_device = d
+                        break
+        except Exception:
+            pass
+
+    if not wireless_device:
+        # Fallback to storage
+        devices = win.adb_controller.load_paired_devices()
+        wireless_device = next((d for d in devices if d.get("address") == address), None)
 
     if wireless_device:
         # Wireless device logic
         connect_port = wireless_device.get("connect_port")
         device_name = wireless_device.get("name")
-        if connect_port and device_name:
-            if scrcpy.is_mirroring(address, connect_port):
+        logger.debug(f"Tray mirror toggle for {address}:{connect_port} (Name: {device_name})")
+
+        if connect_port:
+            # Use the same logic as main window: check if mirroring, then toggle
+            is_mirroring = scrcpy.is_mirroring(address, connect_port)
+            logger.debug(f"Current mirroring state for {address}:{connect_port} is {is_mirroring}")
+
+            if is_mirroring:
                 scrcpy.stop_mirror(address, connect_port)
             else:
+                # If not mirroring, check if there's a stale process on another port and kill it first
+                # This prevents "already running" confusion if port changed
+                for s in list(scrcpy.processes.keys()):
+                    if s.startswith(f"{address}:"):
+                        logger.info(f"Found stale process {s} for {address}, stopping before start")
+                        scrcpy.stop_mirror(address, int(s.split(":")[1]))
+
                 scrcpy.start_mirror(address, connect_port, device_name)
+
+            # Update main window mirror buttons on GTK thread
+            if hasattr(win, "_update_all_mirror_buttons"):
+                GLib.idle_add(win._update_all_mirror_buttons)
+
+            # Sync tray - with delay only when stopping
+            if is_mirroring:
+                GLib.timeout_add(100, lambda: send_status_to_tray(app))
+            else:
+                send_status_to_tray(app)
     else:
         # Assume USB device - address is the serial number
         device_name = "USB Device"
@@ -367,17 +498,24 @@ def tray_mirror_device(app, address):
                         device_name = row_data["data"].get("name", "USB Device")
                         break
 
+        # Check if currently mirroring
+        is_mirroring = scrcpy.is_mirroring_serial(address)
+
         # Toggle mirroring for USB device
-        if scrcpy.is_mirroring_serial(address):
+        if is_mirroring:
             scrcpy.stop_mirror_by_serial(address)
         else:
             scrcpy.start_mirror_usb(address, device_name)
 
-    # Update mirror button states in main window
-    if hasattr(win, "_update_all_mirror_buttons"):
-        GLib.idle_add(win._update_all_mirror_buttons)
+        # Update main window mirror buttons on GTK thread
+        if hasattr(win, "_update_all_mirror_buttons"):
+            GLib.idle_add(win._update_all_mirror_buttons)
 
-    send_status_to_tray(app)
+        # Sync tray - with delay only when stopping
+        if is_mirroring:
+            GLib.timeout_add(100, lambda: send_status_to_tray(app))
+        else:
+            send_status_to_tray(app)
 
 
 def tray_unpair_device(app, address):
