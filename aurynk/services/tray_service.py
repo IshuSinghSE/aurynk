@@ -245,6 +245,8 @@ def start_udev_subscription(app):
         def _on_event(msg):
             try:
                 t = msg.get("type")
+                action = msg.get("action")
+                logger.info(f"Received event: type={t}, action={action}")
             except Exception:
                 return
 
@@ -253,6 +255,8 @@ def start_udev_subscription(app):
             # re-dispatch it as a 'state' message so the main window can
             # update `usb_rows` deterministically.
             if t == "device":
+                # Capture the action from the device event so we know if it's add or remove
+                device_action = msg.get("action")
 
                 def _fetch_status_and_dispatch():
                     try:
@@ -263,7 +267,13 @@ def start_udev_subscription(app):
                             resp = client.send_command({"cmd": "status"}, timeout=1.0)
                         except Exception:
                             return
-                        state_msg = {"type": "state", "devices": resp.get("devices", [])}
+                        # Include the action in the state message so the handler knows
+                        # whether to remove stale devices (on remove action)
+                        state_msg = {
+                            "type": "state",
+                            "devices": resp.get("devices", []),
+                            "action": device_action,
+                        }
                         try:
                             _on_event(state_msg)
                         except Exception:
@@ -491,16 +501,46 @@ def start_udev_subscription(app):
                                             new_rows[key] = {"data": d}
 
                                     # Remove any stale widgets left in old_rows
-                                    # IMPORTANT: Only remove if the device is explicitly marked as
-                                    # disconnected in helper data. Don't remove devices just because
-                                    # they're not in canonical list - they might be USB devices the
-                                    # helper hasn't seen yet.
+                                    # IMPORTANT: Only preserve devices if this is not a remove event.
+                                    # On remove events, any device not in the canonical list should
+                                    # be removed from the UI.
                                     try:
+                                        is_remove_event = msg.get("action") == "remove"
+                                        logger.info(
+                                            f"Processing state: is_remove_event={is_remove_event}, old_rows={list(old_rows.keys())}, new_rows={list(new_rows.keys())}"
+                                        )
                                         for stale_k, stale_entry in list(old_rows.items()):
-                                            # Preserve devices not in canonical list - they might be local USB devices
+                                            # On remove events, don't preserve stale devices
+                                            if is_remove_event:
+                                                logger.info(f"Removing stale device: {stale_k}")
+                                                # Actually remove the stale widget from the UI
+                                                try:
+                                                    if (
+                                                        isinstance(stale_entry, dict)
+                                                        and "row" in stale_entry
+                                                    ):
+                                                        row = stale_entry["row"]
+                                                        if (
+                                                            row
+                                                            and hasattr(win, "usb_group")
+                                                            and win.usb_group
+                                                        ):
+                                                            win.usb_group.remove(row)
+                                                    elif hasattr(stale_entry, "get_parent"):
+                                                        parent = stale_entry.get_parent()
+                                                        if parent:
+                                                            parent.remove(stale_entry)
+                                                except Exception as e:
+                                                    logger.error(
+                                                        f"Error removing stale device {stale_k}: {e}"
+                                                    )
+                                                continue
+                                            # On add events, preserve devices not in canonical list
+                                            # - they might be local USB devices
+                                            logger.debug(f"Preserving device: {stale_k}")
                                             new_rows[stale_k] = stale_entry
-                                    except Exception:
-                                        pass
+                                    except Exception as e:
+                                        logger.error(f"Error processing stale rows: {e}")
 
                                     win.usb_rows = new_rows
                                     # Create UI rows for any entries that don't yet have a widget

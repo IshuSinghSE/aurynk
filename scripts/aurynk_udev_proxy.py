@@ -32,7 +32,8 @@ class UdevProxyServer:
         self.clients: Set[asyncio.StreamWriter] = set()
         self.devices: Dict[str, Dict[str, Any]] = {}
         self.processes: Dict[str, asyncio.subprocess.Process] = {}
-        self.loop = asyncio.get_event_loop()
+        self.loop = None  # Will be set when async context starts
+        self.event_queue = None  # Will be created in async context
 
         self.context = pyudev.Context()
 
@@ -115,8 +116,10 @@ class UdevProxyServer:
         # Start udev observer in background thread via MonitorObserver
         monitor = pyudev.Monitor.from_netlink(self.context)
         monitor.filter_by(subsystem="usb")
+        LOG.info("Udev monitor created with subsystem=usb filter")
 
         def _udev_callback(device):
+            LOG.debug(f"Udev callback triggered: device={device}")
             # pyudev may call the observer callback with a single `device`
             # argument (the MonitorObserver implementation varies), so be
             # tolerant of different signatures. Extract the action in a
@@ -147,6 +150,9 @@ class UdevProxyServer:
                         device = None
 
                 action = str(action).lower() if action is not None else "present"
+                LOG.info(
+                    f"Udev callback processing: action={action}, device_type={type(device).__name__}"
+                )
 
                 serial = ""
                 vendor = None
@@ -183,8 +189,14 @@ class UdevProxyServer:
                     "properties": props,
                 }
 
-                # Hand off to asyncio loop thread-safely
-                self.loop.call_soon_threadsafe(self._on_device_event, info)
+                LOG.info(
+                    f"Udev callback info: action={action}, serial='{serial}', vendor={vendor}, product={product}"
+                )
+
+                # Put event in queue for async processing
+                # Use asyncio.run_coroutine_threadsafe to properly schedule the put operation
+                LOG.info("Putting event in queue via run_coroutine_threadsafe")
+                asyncio.run_coroutine_threadsafe(self.event_queue.put(info), self.loop)
             except Exception:
                 LOG.exception("Error in udev callback")
 
@@ -192,27 +204,76 @@ class UdevProxyServer:
         observer.start()
         LOG.info("Udev observer started")
 
+        # Start background task to process device events from the queue
+        asyncio.create_task(self._process_event_queue())
+
         LOG.info("Starting unix socket server at %s", self.socket_path)
         async with server:
             await server.serve_forever()
 
-    def _on_device_event(self, info: Dict[str, Any]):
-        # Update in-memory device state and broadcast
-        serial = info.get("serial") or ""
-        action = info.get("action")
-        # For both add and remove (and similar udev actions) update our
-        # in-memory state, trigger an adb rescan and broadcast a device
-        # notification so subscribers update promptly.
-        if action == "add":
-            self.devices[serial] = info
-            # Rescan adb to pick up adb-backed devices that may be present
-            # and broadcast an event so clients refresh their UI.
-            asyncio.ensure_future(self._rescan_adb())
-            asyncio.ensure_future(self._broadcast({"type": "device", **info}))
-        elif action == "remove":
-            self.devices.pop(serial, None)
-            asyncio.ensure_future(self._rescan_adb())
-            asyncio.ensure_future(self._broadcast({"type": "device", **info}))
+    async def _process_event_queue(self):
+        """Process device events from the queue continuously."""
+        LOG.info("Event queue processor started")
+        while True:
+            try:
+                LOG.info("Waiting for event from queue...")
+                info = await self.event_queue.get()
+                LOG.info(f"Processing queued event: {info.get('action')}")
+                await self._on_device_event_async(info)
+                self.event_queue.task_done()
+            except Exception:
+                LOG.exception("Error processing event from queue")
+
+    async def _on_device_event_async(self, info: Dict[str, Any]):
+        try:
+            # Update in-memory device state and broadcast
+            serial = info.get("serial") or ""
+            action = info.get("action")
+
+            LOG.info(f"_on_device_event called: action={action}, serial='{serial}'")
+
+            # For device identification, prefer ID_SERIAL, but fall back to a composite
+            # key if serial is empty or just a device path (like /dev/bus/usb/X/Y)
+            device_key = serial
+            if not device_key or device_key.startswith("/dev/"):
+                # Use vendor_id:product_id as key for devices without proper serial
+                vendor = info.get("vendor_id")
+                product = info.get("product_id")
+                LOG.debug(f"Serial empty or device path, vendor={vendor}, product={product}")
+                if vendor and product:
+                    device_key = f"usb:{vendor}:{product}"
+                    LOG.debug(f"Using composite key: {device_key}")
+                else:
+                    # Skip events with no usable identifier
+                    LOG.debug(
+                        f"Skipping event with no identifier: action={action}, serial='{serial}'"
+                    )
+                    return
+
+            LOG.info(f"Udev event: action={action}, device_key={device_key}")
+            # For both add and remove (and similar udev actions) update our
+            # in-memory state, trigger an adb rescan and broadcast a device
+            # notification so subscribers update promptly.
+            # Treat 'add' and 'bind' as device connection
+            # Treat 'remove' and 'unbind' as device disconnection
+            if action in ("add", "bind"):
+                self.devices[device_key] = info
+                LOG.info(f"Device added/bound: {device_key}")
+                # Normalize action to 'add' for client consistency
+                info["action"] = "add"
+                # Rescan adb to pick up adb-backed devices that may be present
+                # and broadcast an event so clients refresh their UI.
+                asyncio.ensure_future(self._rescan_adb())
+                await self._broadcast({"type": "device", **info})
+            elif action in ("remove", "unbind"):
+                self.devices.pop(device_key, None)
+                LOG.info(f"Device removed/unbound: {device_key}")
+                # Normalize action to 'remove' for client consistency
+                info["action"] = "remove"
+                asyncio.ensure_future(self._rescan_adb())
+                await self._broadcast({"type": "device", **info})
+        except Exception:
+            LOG.exception("Error in _on_device_event_async")
 
     async def _broadcast(self, message: Dict[str, Any]):
         data = (json.dumps(message) + "\n").encode("utf-8")
