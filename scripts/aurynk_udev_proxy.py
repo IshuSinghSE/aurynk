@@ -34,6 +34,7 @@ class UdevProxyServer:
         self.processes: Dict[str, asyncio.subprocess.Process] = {}
         self.loop = None  # Will be set when async context starts
         self.event_queue = None  # Will be created in async context
+        self.last_added_device = None  # Track most recently added device for remove correlation
 
         self.context = pyudev.Context()
 
@@ -204,6 +205,11 @@ class UdevProxyServer:
         observer.start()
         LOG.info("Udev observer started")
 
+        # Get the running event loop and create queue in async context
+        self.loop = asyncio.get_running_loop()
+        self.event_queue = asyncio.Queue()
+        LOG.info("Event queue created in async context with running loop")
+
         # Start background task to process device events from the queue
         asyncio.create_task(self._process_event_queue())
 
@@ -244,11 +250,45 @@ class UdevProxyServer:
                     device_key = f"usb:{vendor}:{product}"
                     LOG.debug(f"Using composite key: {device_key}")
                 else:
-                    # Skip events with no usable identifier
-                    LOG.debug(
-                        f"Skipping event with no identifier: action={action}, serial='{serial}'"
-                    )
-                    return
+                    # For remove events without identifiers, use the last added device
+                    if action in ("remove", "unbind"):
+                        if self.last_added_device:
+                            LOG.info(
+                                f"Remove event without identifier - removing last added: {self.last_added_device}"
+                            )
+                            # Remove the last added device and broadcast it
+                            removed_info = self.devices.pop(self.last_added_device, {})
+                            if removed_info:
+                                removed_info["action"] = "remove"
+                                await self._broadcast({"type": "device", **removed_info})
+                            else:
+                                # Fallback: broadcast generic remove
+                                await self._broadcast(
+                                    {
+                                        "type": "device",
+                                        "action": "remove",
+                                        "serial": self.last_added_device,
+                                    }
+                                )
+                            self.last_added_device = None
+                            asyncio.ensure_future(self._rescan_adb())
+                            return
+                        else:
+                            LOG.info(
+                                "Remove event without identifier and no last device - triggering state refresh"
+                            )
+                            # Broadcast a generic remove event to trigger full state refresh
+                            await self._broadcast(
+                                {"type": "device", "action": "remove", "serial": ""}
+                            )
+                            asyncio.ensure_future(self._rescan_adb())
+                            return
+                    else:
+                        # Skip add events with no usable identifier
+                        LOG.debug(
+                            f"Skipping add event with no identifier: action={action}, serial='{serial}'"
+                        )
+                        return
 
             LOG.info(f"Udev event: action={action}, device_key={device_key}")
             # For both add and remove (and similar udev actions) update our
@@ -258,6 +298,7 @@ class UdevProxyServer:
             # Treat 'remove' and 'unbind' as device disconnection
             if action in ("add", "bind"):
                 self.devices[device_key] = info
+                self.last_added_device = device_key  # Remember for remove correlation
                 LOG.info(f"Device added/bound: {device_key}")
                 # Normalize action to 'add' for client consistency
                 info["action"] = "add"
@@ -265,6 +306,7 @@ class UdevProxyServer:
                 # and broadcast an event so clients refresh their UI.
                 asyncio.ensure_future(self._rescan_adb())
                 await self._broadcast({"type": "device", **info})
+                LOG.info(f"Broadcasted add event for {device_key}")
             elif action in ("remove", "unbind"):
                 self.devices.pop(device_key, None)
                 LOG.info(f"Device removed/unbound: {device_key}")
@@ -272,6 +314,7 @@ class UdevProxyServer:
                 info["action"] = "remove"
                 asyncio.ensure_future(self._rescan_adb())
                 await self._broadcast({"type": "device", **info})
+                LOG.info(f"Broadcasted remove event for {device_key}")
         except Exception:
             LOG.exception("Error in _on_device_event_async")
 

@@ -255,8 +255,9 @@ def start_udev_subscription(app):
             # re-dispatch it as a 'state' message so the main window can
             # update `usb_rows` deterministically.
             if t == "device":
-                # Capture the action from the device event so we know if it's add or remove
+                # Capture the action and serial from the device event
                 device_action = msg.get("action")
+                device_serial = msg.get("serial")
 
                 def _fetch_status_and_dispatch():
                     try:
@@ -267,11 +268,25 @@ def start_udev_subscription(app):
                             resp = client.send_command({"cmd": "status"}, timeout=1.0)
                         except Exception:
                             return
+
+                        devices = resp.get("devices", [])
+
+                        # On remove events, filter out the removed device from the list
+                        # This ensures the UI updates immediately instead of waiting for ADB cache
+                        if device_action == "remove" and device_serial:
+                            devices = [
+                                d
+                                for d in devices
+                                if d.get("serial") != device_serial
+                                and d.get("adb_serial") != device_serial
+                                and d.get("short_serial") != device_serial
+                            ]
+
                         # Include the action in the state message so the handler knows
                         # whether to remove stale devices (on remove action)
                         state_msg = {
                             "type": "state",
-                            "devices": resp.get("devices", []),
+                            "devices": devices,
                             "action": device_action,
                         }
                         try:
