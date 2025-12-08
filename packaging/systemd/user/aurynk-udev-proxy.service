@@ -1,0 +1,12 @@
+[Unit]
+Description=Aurynk udev proxy (per-user)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/env python3 -u /usr/local/bin/aurynk_udev_proxy.py
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

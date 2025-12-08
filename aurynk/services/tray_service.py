@@ -1,11 +1,14 @@
+import json
 import os
 import socket
+import threading
 import time
 
 from gi.repository import GLib
 
 from aurynk.core.scrcpy_runner import ScrcpyManager
 from aurynk.i18n import _
+from aurynk.services.udev_proxy_client import UdevProxyClient
 from aurynk.ui.windows.main_window import AurynkWindow
 from aurynk.utils.logger import get_logger
 
@@ -13,6 +16,248 @@ logger = get_logger("TrayController")
 
 TRAY_SOCKET = "/tmp/aurynk_tray.sock"
 APP_SOCKET = "/tmp/aurynk_app.sock"
+
+# Udev proxy client (lazy)
+_udev_client = None
+_udev_client_lock = threading.Lock()
+_subscription_started = False
+_subscription_lock = threading.Lock()
+_cached_devices = None
+_cached_devices_lock = threading.Lock()
+
+
+def _canonicalize_adb_devices(devs):
+    """Return a list of canonical adb device dicts deduplicated by adb serial.
+
+    Prioritizes devices with action == 'adb_present' (these provide the
+    adb serial). For other udev entries that indicate adb capability we try
+    to derive a short serial (ID_SERIAL_SHORT) and merge if it matches an
+    existing adb device. The returned list contains dicts with at least
+    'adb_serial' and 'name' keys suitable for caching or populating
+    `win.usb_rows`.
+    """
+    if not devs:
+        return []
+
+    canonical = {}
+
+    # First pass: add explicit adb_present devices (authoritative)
+    for dev in devs:
+        try:
+            if dev.get("action") != "adb_present":
+                continue
+            serial = dev.get("serial")
+            if not serial:
+                continue
+            adb_props = dev.get("adb_props") or {}
+            name = (
+                adb_props.get("model")
+                or dev.get("properties", {}).get("ID_MODEL")
+                or dev.get("name")
+                or serial
+            )
+            canonical[serial] = {
+                "adb_serial": serial,
+                "name": name,
+                "model": adb_props.get("model"),
+                "manufacturer": adb_props.get("manufacturer"),
+                "android_version": adb_props.get("version"),
+            }
+        except Exception:
+            continue
+
+    # Second pass: include other udev entries that indicate adb but aren't
+    # explicit adb_present. Prefer short serials (ID_SERIAL_SHORT) and
+    # avoid adding entries that would duplicate existing adb devices.
+    for dev in devs:
+        try:
+            is_adb = False
+            if dev.get("action") == "adb_present":
+                is_adb = True
+            if dev.get("adb_props"):
+                is_adb = True
+            if dev.get("properties", {}).get("adb_user") == "yes":
+                is_adb = True
+            if not is_adb:
+                continue
+
+            props = dev.get("properties", {}) or {}
+            short = props.get("ID_SERIAL_SHORT")
+            serial = dev.get("serial") or dev.get("address")
+
+            # If either form already exists in canonical map, skip adding
+            if serial and serial in canonical:
+                continue
+            if short and short in canonical:
+                continue
+
+            # Choose key: prefer short if available
+            key = short or serial
+            if not key:
+                continue
+
+            adb_props = dev.get("adb_props") or {}
+            name = adb_props.get("model") or props.get("ID_MODEL") or dev.get("name") or key
+            # If this maps to an already-known adb device by name/serial,
+            # prefer the existing canonical entry; otherwise add it.
+            if key not in canonical:
+                canonical[key] = {
+                    "adb_serial": key,
+                    "name": name,
+                    "model": adb_props.get("model"),
+                    "manufacturer": adb_props.get("manufacturer"),
+                    "android_version": adb_props.get("version"),
+                }
+        except Exception:
+            continue
+
+    # Return as a list
+    return list(canonical.values())
+
+
+def _get_udev_client():
+    global _udev_client
+    with _udev_client_lock:
+        if _udev_client is None:
+            try:
+                _udev_client = UdevProxyClient()
+            except Exception:
+                _udev_client = None
+        return _udev_client
+
+
+def start_udev_subscription(app):
+    """Start subscription to host helper events to refresh UI automatically.
+
+    Idempotent: safe to call multiple times.
+    """
+    global _subscription_started
+    with _subscription_lock:
+        if _subscription_started:
+            return
+        client = _get_udev_client()
+        if not client:
+            # client may be unavailable inside sandbox; caller may retry later
+            return
+
+        def _on_event(msg):
+            try:
+                t = msg.get("type")
+            except Exception:
+                return
+
+            if t in ("device", "process", "state"):
+                # Notify GTK to refresh device list and tray
+                def _refresh():
+                    try:
+                        win = None
+                        if hasattr(app, "props") and getattr(app, "props", None):
+                            win = app.props.active_window
+                        if not win:
+                            for w in app.get_windows():
+                                if isinstance(w, AurynkWindow):
+                                    win = w
+                                    break
+                        if not win:
+                            # No window yet; cache the device list so a window
+                            # created later can pick it up during initialization.
+                            try:
+                                devs = None
+                                if isinstance(msg.get("devices"), list):
+                                    devs = msg.get("devices")
+                                if devs is not None:
+                                    try:
+                                        # Canonicalize before caching so window can
+                                        # pick up deduplicated adb entries.
+                                        canonical = _canonicalize_adb_devices(devs)
+                                        with _cached_devices_lock:
+                                            global _cached_devices
+                                            _cached_devices = list(canonical)
+                                    except Exception:
+                                        pass
+                            except Exception:
+                                pass
+                            return False
+                        # Update usb_rows from helper-provided state if present
+                        try:
+                            # msg may be 'state' with devices list
+                            if t == "state" and isinstance(msg.get("devices"), list):
+                                try:
+                                    if not hasattr(win, "usb_rows") or win.usb_rows is None:
+                                        win.usb_rows = {}
+                                except Exception:
+                                    win.usb_rows = {}
+
+                                # Build a canonical list of adb devices and populate
+                                # win.usb_rows from it. This avoids duplicates when
+                                # both udev and adb_present entries exist for the
+                                # same physical device.
+                                canonical = _canonicalize_adb_devices(msg.get("devices"))
+                                try:
+                                    # Replace usb_rows with canonical mapping
+                                    new_rows = {}
+                                    for d in canonical:
+                                        serial = d.get("adb_serial")
+                                        if not serial:
+                                            continue
+                                        new_rows[serial] = {"data": d}
+                                    win.usb_rows = new_rows
+
+                                    # Create UI rows for any entries that don't yet have a widget
+                                    try:
+                                        if hasattr(win, "usb_group") and win.usb_group is not None:
+                                            for serial, entry in list(win.usb_rows.items()):
+                                                try:
+                                                    if (
+                                                        isinstance(entry, dict)
+                                                        and "data" in entry
+                                                        and "row" not in entry
+                                                    ):
+                                                        dev_data = entry["data"]
+                                                        try:
+                                                            row = win._create_device_row(
+                                                                dev_data, is_usb=True
+                                                            )
+                                                            win.usb_group.add(row)
+                                                            entry["row"] = row
+                                                            win.usb_group.set_visible(True)
+                                                        except Exception:
+                                                            # Creating a row failed; ignore
+                                                            pass
+                                                except Exception:
+                                                    # Skip problematic entry
+                                                    pass
+                                    except Exception:
+                                        pass
+                                except Exception:
+                                    pass
+                        except Exception:
+                            pass
+                        try:
+                            win._refresh_device_list()
+                        except Exception:
+                            pass
+                        try:
+                            if hasattr(win, "_update_all_mirror_buttons"):
+                                win._update_all_mirror_buttons()
+                        except Exception:
+                            pass
+                        # push status to tray
+                        try:
+                            send_status_to_tray(app)
+                        except Exception:
+                            pass
+                    finally:
+                        return False
+
+                GLib.idle_add(_refresh)
+
+        try:
+            client.subscribe(_on_event)
+            _subscription_started = True
+        except Exception:
+            pass
+
 
 # Debounce mechanism to prevent tray update spam
 _last_tray_update = 0
@@ -67,7 +312,6 @@ def send_status_to_tray(app, status: str = None):
 def _do_tray_update(app, status: str = None):
     """Internal function that actually performs the tray update."""
     global _last_tray_update, _pending_tray_update
-    import json
 
     # Update timestamp and clear pending flag
     with _tray_update_lock:
@@ -91,6 +335,15 @@ def _do_tray_update(app, status: str = None):
         from aurynk.utils.adb_utils import is_device_connected
 
         scrcpy = ScrcpyManager()
+        # Query helper for running processes (non-blocking small timeout)
+        helper_processes = {}
+        client = _get_udev_client()
+        if client:
+            try:
+                resp = client.send_command({"cmd": "status"}, timeout=0.5)
+                helper_processes = resp.get("processes", {}) or {}
+            except Exception:
+                helper_processes = {}
 
         # Add wireless devices
         # Prefer using the main window's row data to ensure consistency with UI
@@ -110,7 +363,13 @@ def _do_tray_update(app, status: str = None):
 
                     if address and connect_port:
                         connected = is_device_connected(address, connect_port)
-                        mirroring = scrcpy.is_mirroring(address, connect_port)
+                        # Prefer helper process status when available
+                        key = f"{address}:{connect_port}"
+                        mirroring = False
+                        if key in helper_processes:
+                            mirroring = True
+                        else:
+                            mirroring = scrcpy.is_mirroring(address, connect_port)
                         logger.debug(
                             f"Wireless {address}:{connect_port}: connected={connected}, mirroring={mirroring}, processes={list(scrcpy.processes.keys())}"
                         )
@@ -170,7 +429,11 @@ def _do_tray_update(app, status: str = None):
                             device_name = data.get("name", "USB Device")
                             display_name = f"* {device_name}"
 
-                            mirroring = scrcpy.is_mirroring_serial(adb_serial)
+                            mirroring = False
+                            if adb_serial in helper_processes:
+                                mirroring = True
+                            else:
+                                mirroring = scrcpy.is_mirroring_serial(adb_serial)
                             logger.debug(
                                 f"USB Device {adb_serial}: mirroring={mirroring}, processes={list(scrcpy.processes.keys())}"
                             )
@@ -217,7 +480,6 @@ def send_devices_to_tray(devices):
     compute the `connected` state for each device and send the same JSON
     payload the tray helper expects.
     """
-    import json
     import subprocess
 
     try:
@@ -230,6 +492,15 @@ def send_devices_to_tray(devices):
     from aurynk.core.scrcpy_runner import ScrcpyManager
 
     scrcpy = ScrcpyManager()
+    # Try to get helper process list
+    helper_processes = {}
+    client = _get_udev_client()
+    if client:
+        try:
+            resp = client.send_command({"cmd": "status"}, timeout=0.5)
+            helper_processes = resp.get("processes", {}) or {}
+        except Exception:
+            helper_processes = {}
 
     device_status = []
     # Add wireless devices
@@ -290,7 +561,11 @@ def send_devices_to_tray(devices):
                     # Add asterisk prefix to indicate USB device
                     device_name = f"* {device_name}"
 
-                    mirroring = scrcpy.is_mirroring_serial(serial)
+                    mirroring = False
+                    if serial in helper_processes:
+                        mirroring = True
+                    else:
+                        mirroring = scrcpy.is_mirroring_serial(serial)
                     device_status.append(
                         {
                             "name": device_name,
@@ -467,21 +742,67 @@ def tray_mirror_device(app, address):
         logger.debug(f"Tray mirror toggle for {address}:{connect_port} (Name: {device_name})")
 
         if connect_port:
-            # Use the same logic as main window: check if mirroring, then toggle
-            is_mirroring = scrcpy.is_mirroring(address, connect_port)
+            # Prefer delegating start/stop to the host helper when available
+            client = _get_udev_client()
+            is_mirroring = False
+            helper_processes = {}
+            if client:
+                try:
+                    resp = client.send_command({"cmd": "status"}, timeout=0.5)
+                    helper_processes = resp.get("processes", {}) or {}
+                except Exception:
+                    helper_processes = {}
+
+            key = f"{address}:{connect_port}"
+            if key in helper_processes:
+                is_mirroring = True
+            else:
+                is_mirroring = scrcpy.is_mirroring(address, connect_port)
+
             logger.debug(f"Current mirroring state for {address}:{connect_port} is {is_mirroring}")
 
             if is_mirroring:
-                scrcpy.stop_mirror(address, connect_port)
+                # Stop via helper if possible, else local manager
+                if client:
+                    try:
+                        client.send_command({"cmd": "stop_mirror", "serial": key}, timeout=0.5)
+                    except Exception:
+                        scrcpy.stop_mirror(address, connect_port)
+                else:
+                    scrcpy.stop_mirror(address, connect_port)
             else:
-                # If not mirroring, check if there's a stale process on another port and kill it first
-                # This prevents "already running" confusion if port changed
-                for s in list(scrcpy.processes.keys()):
-                    if s.startswith(f"{address}:"):
-                        logger.info(f"Found stale process {s} for {address}, stopping before start")
-                        scrcpy.stop_mirror(address, int(s.split(":")[1]))
+                # Stop stale helper processes for this address if any
+                if client:
+                    for s in list(helper_processes.keys()):
+                        if s.startswith(f"{address}:"):
+                            try:
+                                client.send_command(
+                                    {"cmd": "stop_mirror", "serial": s}, timeout=0.5
+                                )
+                            except Exception:
+                                pass
+                    # Start new mirror via helper
+                    try:
+                        client.send_command(
+                            {
+                                "cmd": "start_mirror",
+                                "serial": key,
+                                "options": {"scrcpy_cmd": "scrcpy"},
+                            },
+                            timeout=0.5,
+                        )
+                    except Exception:
+                        scrcpy.start_mirror(address, connect_port, device_name)
+                else:
+                    # Fallback to local start
+                    for s in list(scrcpy.processes.keys()):
+                        if s.startswith(f"{address}:"):
+                            logger.info(
+                                f"Found stale process {s} for {address}, stopping before start"
+                            )
+                            scrcpy.stop_mirror(address, int(s.split(":")[1]))
 
-                scrcpy.start_mirror(address, connect_port, device_name)
+                    scrcpy.start_mirror(address, connect_port, device_name)
 
             # Update main window mirror buttons on GTK thread
             if hasattr(win, "_update_all_mirror_buttons"):
@@ -504,14 +825,46 @@ def tray_mirror_device(app, address):
                         device_name = row_data["data"].get("name", "USB Device")
                         break
 
-        # Check if currently mirroring
-        is_mirroring = scrcpy.is_mirroring_serial(address)
+        # Check if currently mirroring (prefer helper)
+        client = _get_udev_client()
+        helper_processes = {}
+        if client:
+            try:
+                resp = client.send_command({"cmd": "status"}, timeout=0.5)
+                helper_processes = resp.get("processes", {}) or {}
+            except Exception:
+                helper_processes = {}
+
+        is_mirroring = False
+        if address in helper_processes:
+            is_mirroring = True
+        else:
+            is_mirroring = scrcpy.is_mirroring_serial(address)
 
         # Toggle mirroring for USB device
         if is_mirroring:
-            scrcpy.stop_mirror_by_serial(address)
+            if client and address in helper_processes:
+                try:
+                    client.send_command({"cmd": "stop_mirror", "serial": address}, timeout=0.5)
+                except Exception:
+                    scrcpy.stop_mirror_by_serial(address)
+            else:
+                scrcpy.stop_mirror_by_serial(address)
         else:
-            scrcpy.start_mirror_usb(address, device_name)
+            if client:
+                try:
+                    client.send_command(
+                        {
+                            "cmd": "start_mirror",
+                            "serial": address,
+                            "options": {"scrcpy_cmd": "scrcpy"},
+                        },
+                        timeout=0.5,
+                    )
+                except Exception:
+                    scrcpy.start_mirror_usb(address, device_name)
+            else:
+                scrcpy.start_mirror_usb(address, device_name)
 
         # Update main window mirror buttons on GTK thread
         if hasattr(win, "_update_all_mirror_buttons"):

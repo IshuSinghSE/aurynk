@@ -272,6 +272,14 @@ class AurynkApp(Adw.Application):
         # Send initial device status to tray so menu is populated
         # Use the bound helper to send the initial status
         self.send_status_to_tray()
+        # Subscribe to host udev proxy events to refresh UI automatically
+        try:
+            from aurynk.services.tray_service import start_udev_subscription
+
+            start_udev_subscription(self)
+        except Exception:
+            # best-effort; continue if subscription unavailable
+            logger.debug("Udev proxy subscription not available at startup")
 
     def _apply_theme(self):
         """Apply the theme from settings."""

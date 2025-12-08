@@ -42,6 +42,60 @@ class AurynkWindow(Adw.ApplicationWindow):
 
         # Track USB device rows: serial -> widget
         self.usb_rows = {}
+        # If the tray helper already reported devices before the window was
+        # constructed, cache that list and apply it once the UI is ready.
+        self._initial_cached_devices = None
+        try:
+            from aurynk.services import tray_service
+
+            try:
+                with tray_service._cached_devices_lock:
+                    cached = tray_service._cached_devices
+            except Exception:
+                cached = None
+
+            if cached:
+                # store for later application after UI setup
+                try:
+                    self._initial_cached_devices = list(cached)
+                except Exception:
+                    self._initial_cached_devices = cached
+        except Exception:
+            # best-effort
+            self._initial_cached_devices = None
+
+        # If we have cached usb_rows data create corresponding UI rows now
+        try:
+            if self.usb_rows:
+                for usn, entry in list(self.usb_rows.items()):
+                    try:
+                        if isinstance(entry, dict) and "data" in entry and "row" not in entry:
+                            dev_data = entry["data"]
+                            # Create a UI row from data (do not call adb here)
+                            row = self._create_device_row(dev_data, is_usb=True)
+                            self.usb_group.add(row)
+                            entry["row"] = row
+                            self.usb_group.set_visible(True)
+                    except Exception:
+                        logger.debug("Failed creating UI row for cached USB device %s", usn)
+        except Exception:
+            pass
+        # If we have cached usb_rows data create corresponding UI rows now
+        try:
+            if self.usb_rows:
+                for usn, entry in list(self.usb_rows.items()):
+                    try:
+                        if isinstance(entry, dict) and "data" in entry and "row" not in entry:
+                            dev_data = entry["data"]
+                            # Create a UI row from data (do not call adb here)
+                            row = self._create_device_row(dev_data, is_usb=True)
+                            self.usb_group.add(row)
+                            entry["row"] = row
+                            self.usb_group.set_visible(True)
+                    except Exception:
+                        logger.debug("Failed creating UI row for cached USB device %s", usn)
+        except Exception:
+            logger.debug("Error applying cached USB devices at window init", exc_info=True)
 
         # Register for device change events
         def safe_refresh():
@@ -67,6 +121,58 @@ class AurynkWindow(Adw.ApplicationWindow):
         except Exception as e:
             logger.error(f"Could not load UI template: {e}")
             self._setup_ui_programmatically()
+
+        # Apply any cached devices now that UI (and `usb_group`) exists.
+        try:
+            GLib.idle_add(self._apply_initial_cached_devices)
+        except Exception:
+            pass
+
+    def _apply_initial_cached_devices(self):
+        """Create UI rows for devices received from the helper before
+        the window was constructed.
+        Returns False so the idle source is removed after running once.
+        """
+        try:
+            if not self._initial_cached_devices:
+                return False
+            # Ensure usb_group exists
+            if not hasattr(self, "usb_group") or self.usb_group is None:
+                return False
+
+            for dev in self._initial_cached_devices:
+                serial = dev.get("serial") or dev.get("adb_serial") or dev.get("address")
+                if not serial:
+                    continue
+                # avoid duplicates
+                if serial in self.usb_rows:
+                    continue
+                adb_props = dev.get("adb_props") or {}
+                name = (
+                    adb_props.get("model")
+                    or dev.get("properties", {}).get("ID_MODEL")
+                    or dev.get("name")
+                    or serial
+                )
+                dev_data = {
+                    "adb_serial": dev.get("adb_serial") or serial,
+                    "name": name,
+                    "model": adb_props.get("model"),
+                    "manufacturer": adb_props.get("manufacturer"),
+                }
+                try:
+                    row = self._create_device_row(dev_data, is_usb=True)
+                    self.usb_group.add(row)
+                    self.usb_rows[serial] = {"row": row, "data": dev_data}
+                    self.usb_group.set_visible(True)
+                except Exception:
+                    logger.debug("Failed creating UI row for cached USB device %s", serial)
+        except Exception:
+            logger.exception("Error applying cached devices")
+        finally:
+            # Clear cache after applying
+            self._initial_cached_devices = None
+            return False
 
     def _setup_actions(self):
         """Setup window actions."""
