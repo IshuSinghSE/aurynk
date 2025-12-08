@@ -16,6 +16,8 @@ finish-args:
   - --socket=wayland
   # Network access for ADB wireless
   - --share=network
+  # Device access for USB debugging (required for pyudev USB monitor)
+  - --device=all
   # D-Bus access for notifications and system tray
   - --talk-name=org.kde.StatusNotifierWatcher
   - --talk-name=org.ayatana.indicator.service
