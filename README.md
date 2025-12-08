@@ -81,6 +81,8 @@ Now Aurynk is available on Flathub for easy installation:
 flatpak install flathub io.github.IshuSinghSE.aurynk
 ```
 
+> **USB device support:** The Flatpak version automatically handles USB device monitoring - no additional setup needed!
+
 ### Option 2: From GitHub Release
 
 **Download** the latest release from [GitHub Releases](https://github.com/IshuSinghSE/aurynk/releases)
