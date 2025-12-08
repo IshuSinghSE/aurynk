@@ -100,13 +100,14 @@ class DeviceDetailsWindow(Adw.Window):
         refresh_btn.connect("clicked", self._on_refresh_all)
         actions_box.append(refresh_btn)
 
-        # Remove device button (icon only)
-        remove_btn = Gtk.Button()
-        remove_btn.set_icon_name("user-trash-symbolic")
-        remove_btn.set_tooltip_text(_("Remove Device"))
-        remove_btn.add_css_class("destructive-action")
-        remove_btn.connect("clicked", self._on_remove_device)
-        actions_box.append(remove_btn)
+        # Remove device button (icon only) - only show for wireless devices
+        if not self.device.get("is_usb"):
+            remove_btn = Gtk.Button()
+            remove_btn.set_icon_name("user-trash-symbolic")
+            remove_btn.set_tooltip_text(_("Remove Device"))
+            remove_btn.add_css_class("destructive-action")
+            remove_btn.connect("clicked", self._on_remove_device)
+            actions_box.append(remove_btn)
 
         left_box.append(actions_box)
         content.append(left_box)
@@ -120,14 +121,26 @@ class DeviceDetailsWindow(Adw.Window):
         basic_group = Adw.PreferencesGroup()
         basic_group.set_title(_("Basic Information"))
 
-        self._add_info_row(basic_group, _("Device Name"), self.device.get("name", _("Unknown")))
-        self._add_info_row(
+        self.name_row = self._add_info_row(
+            basic_group, _("Device Name"), self.device.get("name", _("Unknown"))
+        )
+        self.manufacturer_row = self._add_info_row(
             basic_group, _("Manufacturer"), self.device.get("manufacturer", _("Unknown"))
         )
-        self._add_info_row(
+        self.android_version_row = self._add_info_row(
             basic_group, _("Android Version"), self.device.get("android_version", _("Unknown"))
         )
-        self._add_info_row(basic_group, _("IP Address"), self.device.get("address", _("Unknown")))
+
+        # Show different field based on device type
+        if self.device.get("is_usb"):
+            # For USB devices, show the ADB serial or connection type
+            serial = self.device.get("adb_serial") or self.device.get("short_serial", _("Unknown"))
+            self.connection_row = self._add_info_row(basic_group, _("USB Serial"), serial)
+        else:
+            # For wireless devices, show IP address
+            self.connection_row = self._add_info_row(
+                basic_group, _("IP Address"), self.device.get("address", _("Unknown"))
+            )
 
         right_box.append(basic_group)
 
@@ -168,8 +181,70 @@ class DeviceDetailsWindow(Adw.Window):
             if self.device.get("is_usb"):
                 # USB device - use adb_serial
                 adb_serial = self.device.get("adb_serial")
+
+                # If no adb_serial, try to find it
+                if not adb_serial:
+                    import subprocess
+
+                    try:
+                        result = subprocess.run(
+                            ["adb", "devices"], capture_output=True, text=True, timeout=5
+                        )
+                        adb_devices = []
+                        for line in result.stdout.strip().split("\n")[1:]:
+                            if "\t" in line:
+                                s, st = line.split("\t", 1)
+                                if ":" not in s and st.strip() == "device":
+                                    adb_devices.append(s)
+
+                        # Try to match with short_serial or use first device
+                        short_serial = self.device.get("short_serial")
+                        if short_serial and short_serial in adb_devices:
+                            adb_serial = short_serial
+                        elif len(adb_devices) == 1:
+                            adb_serial = adb_devices[0]
+
+                        if adb_serial:
+                            self.device["adb_serial"] = adb_serial
+                    except Exception:
+                        pass
+
                 if adb_serial:
+                    # Fetch specs
                     specs = self.adb_controller.fetch_device_specs_by_serial(adb_serial)
+
+                    # Also fetch basic device info if not already present
+                    if not self.device.get("android_version") or not self.device.get(
+                        "manufacturer"
+                    ):
+                        import subprocess
+
+                        try:
+                            props_to_fetch = [
+                                ("ro.product.model", "model"),
+                                ("ro.product.manufacturer", "manufacturer"),
+                                ("ro.build.version.release", "android_version"),
+                            ]
+
+                            for prop, key in props_to_fetch:
+                                try:
+                                    result = subprocess.run(
+                                        ["adb", "-s", adb_serial, "shell", "getprop", prop],
+                                        capture_output=True,
+                                        text=True,
+                                        timeout=5,
+                                    )
+                                    value = result.stdout.strip()
+                                    if value:
+                                        self.device[key] = value
+                                except Exception:
+                                    pass
+
+                            # Update name to use the actual model if available
+                            if self.device.get("model") and not self.device.get("name"):
+                                self.device["name"] = self.device["model"]
+                        except Exception:
+                            pass
                 else:
                     specs = {"ram": _("Unknown"), "storage": _("Unknown"), "battery": _("Unknown")}
             else:
@@ -186,9 +261,22 @@ class DeviceDetailsWindow(Adw.Window):
             # Update UI on main thread
             from gi.repository import GLib
 
-            GLib.idle_add(self._update_specs_ui, specs)
+            GLib.idle_add(self._update_all_device_info, specs)
 
         threading.Thread(target=fetch, daemon=True).start()
+
+    def _update_all_device_info(self, specs):
+        """Update all device information in the UI."""
+        # Update specs
+        self._update_specs_ui(specs)
+
+        # Update basic info if it was fetched
+        if hasattr(self, "name_row"):
+            self.name_row.set_subtitle(self.device.get("name", _("Unknown")))
+        if hasattr(self, "manufacturer_row"):
+            self.manufacturer_row.set_subtitle(self.device.get("manufacturer", _("Unknown")))
+        if hasattr(self, "android_version_row"):
+            self.android_version_row.set_subtitle(self.device.get("android_version", _("Unknown")))
 
     def _update_specs_ui(self, specs):
         """Update specifications UI."""

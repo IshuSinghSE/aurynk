@@ -97,11 +97,18 @@ class USBMonitor(GObject.Object):
         self._monitor.filter_by(subsystem="usb")
         self._watch_id: Optional[int] = None
         self._running = False
+        # Cache connected device paths so we can emit disconnect even when metadata is missing
+        self._connected_devices: Set[str] = set()
 
     def start(self) -> None:
         """Start monitoring for USB events."""
         if self._running:
             return
+
+        # Populate cache with currently connected Android devices
+        for device in self._context.list_devices(subsystem="usb"):
+            if self._is_android_device(device):
+                self._connected_devices.add(device.device_path)
 
         # Start the monitor (binds the socket)
         self._monitor.start()
@@ -161,14 +168,25 @@ class USBMonitor(GObject.Object):
             device: The pyudev Device object.
         """
         action = device.action
+        device_path = device.device_path
+
         if action == "add":
             if self._is_android_device(device):
                 serial = device.get("ID_SERIAL", "unknown")
                 logger.info(f"Android device connected: {serial}")
+                # Cache the device path so we can detect its removal even if metadata is gone
+                self._connected_devices.add(device_path)
                 self.emit("device-connected", device)
         elif action == "remove":
-            # On remove, we check if it was likely an Android device
-            if self._is_android_device(device):
+            # On remove, metadata like ID_SERIAL and ID_VENDOR_ID are often missing.
+            # Check if this device path was in our cache of connected Android devices.
+            if device_path in self._connected_devices:
+                serial = device.get("ID_SERIAL", "unknown")
+                logger.info(f"Android device disconnected: {serial} (path: {device_path})")
+                self._connected_devices.discard(device_path)
+                self.emit("device-disconnected", device)
+            elif self._is_android_device(device):
+                # Fallback: if metadata is still present and matches, emit disconnect
                 serial = device.get("ID_SERIAL", "unknown")
                 logger.info(f"Android device disconnected: {serial}")
                 self.emit("device-disconnected", device)

@@ -1,6 +1,7 @@
 """scrcpy interaction and management for Aurynk."""
 
 import os
+import shutil
 import subprocess
 import threading
 import time
@@ -102,12 +103,53 @@ class ScrcpyManager:
             env = os.environ.copy()
             env["SNAP_LAUNCHER_NOTICE_ENABLED"] = "false"
 
+            # Quick sanity check: ensure ADB sees this USB serial before
+            # attempting to launch scrcpy. This avoids launching a snap
+            # scrcpy that will immediately fail with "Could not find any ADB device".
+            try:
+                adb_path = settings.get("adb", "adb_path", "adb")
+                res = subprocess.run(
+                    [adb_path, "devices"], capture_output=True, text=True, timeout=3
+                )
+                adb_list = []
+                for line in res.stdout.strip().splitlines()[1:]:
+                    if "\t" in line:
+                        s, st = line.split("\t", 1)
+                        if st.strip() == "device":
+                            adb_list.append(s)
+                if serial not in adb_list:
+                    logger.warning("ADB does not list serial %s; aborting scrcpy start", serial)
+                    return False
+            except Exception:
+                # If adb check fails, continue and attempt to start; let scrcpy report errors
+                logger.debug("ADB presence check failed or timed out; proceeding to start scrcpy")
+
             # Build scrcpy command from settings
             scrcpy_path = settings.get("scrcpy", "scrcpy_path", "").strip()
+            # Resolve which scrcpy binary we'll execute. If user configured
+            # a path, prefer it; otherwise resolve from PATH. Detect snap
+            # launcher variants that lack raw USB access and warn early.
+            resolved = None
+            if scrcpy_path:
+                resolved = scrcpy_path
+            else:
+                resolved = shutil.which("scrcpy") or "scrcpy"
+
+            # Detect snap launcher that will not have raw-usb access.
+            if isinstance(resolved, str) and (
+                "/snap/" in resolved or resolved.endswith("scrcpy-launch")
+            ):
+                logger.warning(
+                    "Detected snap-packaged scrcpy (%s). This build may not have raw USB access; "
+                    "install scrcpy from your distro or set scrcpy_path in settings to a non-snap binary, "
+                    "or connect the snap 'raw-usb' interface.",
+                    resolved,
+                )
+
             if scrcpy_path:
                 cmd = [scrcpy_path, "--serial", serial, "--window-title", window_title]
             else:
-                cmd = ["scrcpy", "--serial", serial, "--window-title", window_title]
+                cmd = [resolved, "--serial", serial, "--window-title", window_title]
 
             # --- Monitor geometry logic ---
             window_geom = settings.get("scrcpy", "window_geometry", "")
@@ -447,12 +489,29 @@ class ScrcpyManager:
             env = os.environ.copy()
             env["SNAP_LAUNCHER_NOTICE_ENABLED"] = "false"
 
-            # Build scrcpy command from settings
+            # Build scrcpy command from settings. Resolve executable path
+            # and detect snap-packaged launchers which may lack raw USB access.
             scrcpy_path = settings.get("scrcpy", "scrcpy_path", "").strip()
+            resolved = None
+            if scrcpy_path:
+                resolved = scrcpy_path
+            else:
+                resolved = shutil.which("scrcpy") or "scrcpy"
+
+            if isinstance(resolved, str) and (
+                "/snap/" in resolved or resolved.endswith("scrcpy-launch")
+            ):
+                logger.warning(
+                    "Detected snap-packaged scrcpy (%s). This build may not have raw USB access; "
+                    "install scrcpy from your distro or set scrcpy_path in settings to a non-snap binary, "
+                    "or connect the snap 'raw-usb' interface.",
+                    resolved,
+                )
+
             if scrcpy_path:
                 cmd = [scrcpy_path, "--serial", serial, "--window-title", window_title]
             else:
-                cmd = ["scrcpy", "--serial", serial, "--window-title", window_title]
+                cmd = [resolved, "--serial", serial, "--window-title", window_title]
 
             # Apply all the same settings as wireless devices
             # (reusing the same settings logic from start_mirror)

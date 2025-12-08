@@ -116,18 +116,74 @@ class UdevProxyServer:
         monitor = pyudev.Monitor.from_netlink(self.context)
         monitor.filter_by(subsystem="usb")
 
-        def _udev_callback(action, device):
+        def _udev_callback(device):
+            # pyudev may call the observer callback with a single `device`
+            # argument (the MonitorObserver implementation varies), so be
+            # tolerant of different signatures. Extract the action in a
+            # robust way and normalize it to lowercase strings like
+            # 'add'/'remove'/'change'.
             try:
+                # Prefer attribute access (pyudev Device.action), fall back
+                # to environment property names.
+                action = None
+                try:
+                    action = getattr(device, "action", None)
+                except Exception:
+                    action = None
+
+                if not action:
+                    try:
+                        action = device.get("ACTION")
+                    except Exception:
+                        action = None
+
+                if not action:
+                    # Some monitor implementations pass a single string
+                    # representing the action instead of a Device object.
+                    # If that's the case, coerce accordingly.
+                    if isinstance(device, str):
+                        # Called as _udev_callback(action)
+                        action = device
+                        device = None
+
+                action = str(action).lower() if action is not None else "present"
+
+                serial = ""
+                vendor = None
+                product = None
+                props = {}
+                if device is not None:
+                    try:
+                        serial = (
+                            device.get("ID_SERIAL")
+                            or device.get("SERIAL")
+                            or getattr(device, "device_node", None)
+                            or ""
+                        )
+                    except Exception:
+                        serial = ""
+                    try:
+                        vendor = device.get("ID_VENDOR_ID")
+                    except Exception:
+                        vendor = None
+                    try:
+                        product = device.get("ID_MODEL_ID")
+                    except Exception:
+                        product = None
+                    try:
+                        props = dict(device.items())
+                    except Exception:
+                        props = {}
+
                 info = {
                     "action": action,
-                    "serial": device.get("ID_SERIAL")
-                    or device.get("SERIAL")
-                    or device.device_node
-                    or "",
-                    "vendor_id": device.get("ID_VENDOR_ID"),
-                    "product_id": device.get("ID_MODEL_ID"),
-                    "properties": dict(device.items()),
+                    "serial": serial,
+                    "vendor_id": vendor,
+                    "product_id": product,
+                    "properties": props,
                 }
+
+                # Hand off to asyncio loop thread-safely
                 self.loop.call_soon_threadsafe(self._on_device_event, info)
             except Exception:
                 LOG.exception("Error in udev callback")
@@ -144,13 +200,17 @@ class UdevProxyServer:
         # Update in-memory device state and broadcast
         serial = info.get("serial") or ""
         action = info.get("action")
+        # For both add and remove (and similar udev actions) update our
+        # in-memory state, trigger an adb rescan and broadcast a device
+        # notification so subscribers update promptly.
         if action == "add":
             self.devices[serial] = info
+            # Rescan adb to pick up adb-backed devices that may be present
+            # and broadcast an event so clients refresh their UI.
+            asyncio.ensure_future(self._rescan_adb())
+            asyncio.ensure_future(self._broadcast({"type": "device", **info}))
         elif action == "remove":
             self.devices.pop(serial, None)
-            # Kick off an adb rescan and broadcast the device event. The rescan
-            # will add/remove adb-backed device entries and then we broadcast an
-            # updated state to subscribers as needed.
             asyncio.ensure_future(self._rescan_adb())
             asyncio.ensure_future(self._broadcast({"type": "device", **info}))
 

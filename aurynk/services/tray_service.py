@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import socket
 import threading
 import time
@@ -26,6 +27,51 @@ _cached_devices = None
 _cached_devices_lock = threading.Lock()
 
 
+def _update_device_row_labels(row_widget, device_data):
+    """Update the labels in a device row widget to reflect updated device data.
+    This is used when tray canonicalization merges new data into an existing
+    row widget, ensuring the UI displays the latest information.
+    """
+    try:
+        from gi.repository import Gtk
+
+        # Find the info_box containing the labels (second child after icon)
+        child = row_widget.get_first_child()
+        if child:
+            child = child.get_next_sibling()  # Skip icon, get info_box
+
+        if not child or not isinstance(child, Gtk.Box):
+            return
+
+        # Update name label (first child of info_box)
+        name_label = child.get_first_child()
+        if name_label and isinstance(name_label, Gtk.Label):
+            dev_name = device_data.get("name", _("Unknown Device"))
+            # Strip the "* " prefix if present (helper adds it for USB devices)
+            if dev_name.startswith("* "):
+                dev_name = dev_name[2:]
+            name_label.set_markup(f'<span size="large" weight="bold">{dev_name}</span>')
+
+        # Update details label (second child of info_box)
+        details_label = name_label.get_next_sibling() if name_label else None
+        if details_label and isinstance(details_label, Gtk.Label):
+            details = []
+            if device_data.get("manufacturer"):
+                details.append(device_data["manufacturer"])
+            if device_data.get("model"):
+                details.append(device_data["model"])
+            if device_data.get("android_version"):
+                details.append(f"Android {device_data['android_version']}")
+
+            if details:
+                details_label.set_label(" • ".join(details))
+                details_label.set_visible(True)
+            else:
+                details_label.set_visible(False)
+    except Exception as e:
+        logger.debug(f"Failed to update device row labels: {e}")
+
+
 def _canonicalize_adb_devices(devs):
     """Return a list of canonical adb device dicts deduplicated by adb serial.
 
@@ -40,6 +86,19 @@ def _canonicalize_adb_devices(devs):
         return []
 
     canonical = {}
+
+    # Use a normalized-key map to deduplicate variants of the same serial
+    # (different punctuation/case). Normalization strips non-alphanum and
+    # lowercases: e.g. 'SM-G610F' and 'SM_G610F' -> 'smg610f'.
+    def _norm(s):
+        if not s:
+            return None
+        try:
+            return re.sub(r"[^0-9a-z]", "", str(s).lower())
+        except Exception:
+            return str(s).lower()
+
+    norm_map = {}
 
     # First pass: add explicit adb_present devices (authoritative)
     for dev in devs:
@@ -56,13 +115,18 @@ def _canonicalize_adb_devices(devs):
                 or dev.get("name")
                 or serial
             )
-            canonical[serial] = {
+            entry = {
                 "adb_serial": serial,
                 "name": name,
                 "model": adb_props.get("model"),
                 "manufacturer": adb_props.get("manufacturer"),
                 "android_version": adb_props.get("version"),
             }
+            n = _norm(serial)
+            if n:
+                norm_map[n] = entry
+            else:
+                canonical[serial] = entry
         except Exception:
             continue
 
@@ -85,34 +149,72 @@ def _canonicalize_adb_devices(devs):
             short = props.get("ID_SERIAL_SHORT")
             serial = dev.get("serial") or dev.get("address")
 
-            # If either form already exists in canonical map, skip adding
-            if serial and serial in canonical:
-                continue
-            if short and short in canonical:
-                continue
-
             # Choose key: prefer short if available
             key = short or serial
             if not key:
                 continue
 
+            n = _norm(key)
+            # Skip if normalized key already present (dedupe variants)
+            if n and n in norm_map:
+                continue
+
             adb_props = dev.get("adb_props") or {}
             name = adb_props.get("model") or props.get("ID_MODEL") or dev.get("name") or key
-            # If this maps to an already-known adb device by name/serial,
-            # prefer the existing canonical entry; otherwise add it.
-            if key not in canonical:
-                canonical[key] = {
-                    "adb_serial": key,
-                    "name": name,
-                    "model": adb_props.get("model"),
-                    "manufacturer": adb_props.get("manufacturer"),
-                    "android_version": adb_props.get("version"),
-                }
+
+            entry = {
+                "adb_serial": key,
+                "name": name,
+                "model": adb_props.get("model"),
+                "manufacturer": adb_props.get("manufacturer"),
+                "android_version": adb_props.get("version"),
+            }
+
+            if n:
+                norm_map[n] = entry
+            else:
+                # fallback to raw key
+                canonical[key] = entry
         except Exception:
             continue
 
-    # Return as a list
-    return list(canonical.values())
+    # Merge norm_map + canonical into a single list
+    raw = []
+    for v in norm_map.values():
+        raw.append(v)
+    for v in canonical.values():
+        raw.append(v)
+
+    # Final dedupe pass: prefer entries with adb_serial and merge entries
+    # that share a normalized serial. For entries lacking a serial, fall
+    # back to normalized (model|manufacturer) to merge name-only variants.
+    final_map = {}
+
+    def _fallback_key(e):
+        m = e.get("model") or ""
+        mf = e.get("manufacturer") or ""
+        k = f"{m}|{mf}"
+        return re.sub(r"[^0-9a-z]", "", k.lower())
+
+    for e in raw:
+        nserial = _norm(e.get("adb_serial")) if e.get("adb_serial") else None
+        if nserial:
+            key = f"s:{nserial}"
+        else:
+            key = f"m:{_fallback_key(e)}"
+
+        if key in final_map:
+            # Merge missing fields into existing entry, keep existing adb_serial
+            existing = final_map[key]
+            for fld in ("name", "model", "manufacturer", "android_version"):
+                if not existing.get(fld) and e.get(fld):
+                    existing[fld] = e.get(fld)
+            if not existing.get("adb_serial") and e.get("adb_serial"):
+                existing["adb_serial"] = e.get("adb_serial")
+        else:
+            final_map[key] = dict(e)
+
+    return list(final_map.values())
 
 
 def _get_udev_client():
@@ -145,6 +247,79 @@ def start_udev_subscription(app):
                 t = msg.get("type")
             except Exception:
                 return
+
+            # If we received a lightweight 'device' notification, fetch a
+            # full 'status' from the helper in a background thread and
+            # re-dispatch it as a 'state' message so the main window can
+            # update `usb_rows` deterministically.
+            if t == "device":
+
+                def _fetch_status_and_dispatch():
+                    try:
+                        client = _get_udev_client()
+                        if not client:
+                            return
+                        try:
+                            resp = client.send_command({"cmd": "status"}, timeout=1.0)
+                        except Exception:
+                            return
+                        state_msg = {"type": "state", "devices": resp.get("devices", [])}
+                        try:
+                            _on_event(state_msg)
+                        except Exception:
+                            pass
+                    except Exception:
+                        pass
+
+                try:
+                    threading.Thread(target=_fetch_status_and_dispatch, daemon=True).start()
+                except Exception:
+                    pass
+
+                    # Also schedule an immediate UI refresh on the GTK main loop so
+                    # plugged/unplugged devices show up instantly while the
+                    # background status fetch is in-flight.
+                    try:
+
+                        def _immediate_ui_refresh():
+                            try:
+                                win = None
+                                if hasattr(app, "props") and getattr(app, "props", None):
+                                    win = app.props.active_window
+                                if not win:
+                                    for w in app.get_windows():
+                                        if isinstance(w, AurynkWindow):
+                                            win = w
+                                            break
+                                if not win:
+                                    return False
+
+                                try:
+                                    if hasattr(win, "_refresh_usb_list"):
+                                        win._refresh_usb_list()
+                                except Exception:
+                                    pass
+                                try:
+                                    if hasattr(win, "_refresh_device_list"):
+                                        win._refresh_device_list()
+                                except Exception:
+                                    pass
+                                try:
+                                    if hasattr(win, "_update_all_mirror_buttons"):
+                                        win._update_all_mirror_buttons()
+                                except Exception:
+                                    pass
+                                try:
+                                    send_status_to_tray(app)
+                                except Exception:
+                                    pass
+                            finally:
+                                # single-shot
+                                return False
+
+                        GLib.idle_add(_immediate_ui_refresh)
+                    except Exception:
+                        pass
 
             if t in ("device", "process", "state"):
                 # Notify GTK to refresh device list and tray
@@ -194,15 +369,140 @@ def start_udev_subscription(app):
                                 # same physical device.
                                 canonical = _canonicalize_adb_devices(msg.get("devices"))
                                 try:
-                                    # Replace usb_rows with canonical mapping
+                                    # Replace usb_rows with canonical mapping, reusing any
+                                    # existing widgets to avoid duplicate rows created by
+                                    # earlier immediate refreshes.
+                                    try:
+                                        old_rows = dict(win.usb_rows or {})
+                                    except Exception:
+                                        old_rows = {}
+
                                     new_rows = {}
+
+                                    def _match_and_extract_old_row(d):
+                                        adb = d.get("adb_serial")
+                                        serial = d.get("serial")
+                                        short = d.get("short_serial")
+
+                                        candidates = []
+                                        if adb:
+                                            try:
+                                                k = (
+                                                    win._norm_serial(adb)
+                                                    if hasattr(win, "_norm_serial")
+                                                    else adb
+                                                )
+                                            except Exception:
+                                                k = adb
+                                            if k in old_rows:
+                                                candidates.append(k)
+                                        if serial:
+                                            try:
+                                                k2 = (
+                                                    win._norm_serial(serial)
+                                                    if hasattr(win, "_norm_serial")
+                                                    else serial
+                                                )
+                                            except Exception:
+                                                k2 = serial
+                                            if k2 in old_rows:
+                                                candidates.append(k2)
+                                        if short:
+                                            try:
+                                                k3 = (
+                                                    win._norm_serial(short)
+                                                    if hasattr(win, "_norm_serial")
+                                                    else short
+                                                )
+                                            except Exception:
+                                                k3 = short
+                                            if k3 in old_rows:
+                                                candidates.append(k3)
+
+                                        for c in candidates:
+                                            entry = old_rows.get(c)
+                                            if not entry:
+                                                continue
+                                            if isinstance(entry, dict) and "row" in entry:
+                                                return c, entry.get("row")
+                                            # If entry itself looks like a widget with _device_data
+                                            try:
+                                                if hasattr(entry, "_device_data"):
+                                                    return c, entry
+                                            except Exception:
+                                                pass
+                                        return None, None
+
                                     for d in canonical:
                                         serial = d.get("adb_serial")
                                         if not serial:
                                             continue
-                                        new_rows[serial] = {"data": d}
-                                    win.usb_rows = new_rows
+                                        try:
+                                            norm_key = (
+                                                win._norm_serial(serial)
+                                                if hasattr(win, "_norm_serial")
+                                                else None
+                                            )
+                                        except Exception:
+                                            norm_key = None
+                                        key = norm_key or serial
 
+                                        old_key, old_row = _match_and_extract_old_row(d)
+                                        if old_key and old_row:
+                                            # Merge canonical data with existing local data to preserve
+                                            # manufacturer, model, android_version fetched locally
+                                            existing_data = old_rows.get(old_key, {}).get(
+                                                "data", {}
+                                            )
+                                            merged_data = (
+                                                dict(existing_data)
+                                                if isinstance(existing_data, dict)
+                                                else {}
+                                            )
+                                            # Update with canonical data (adds adb_serial, name from helper)
+                                            merged_data.update(d)
+                                            # But preserve local-only fields if they exist and canonical doesn't have them
+                                            for field in [
+                                                "manufacturer",
+                                                "model",
+                                                "android_version",
+                                            ]:
+                                                if (
+                                                    field in existing_data
+                                                    and existing_data[field]
+                                                    and not d.get(field)
+                                                ):
+                                                    merged_data[field] = existing_data[field]
+                                            new_rows[key] = {"data": merged_data, "row": old_row}
+
+                                            # Update the widget labels to reflect merged data
+                                            try:
+                                                if hasattr(old_row, "_device_data"):
+                                                    old_row._device_data = merged_data
+                                                _update_device_row_labels(old_row, merged_data)
+                                            except Exception:
+                                                pass
+
+                                            try:
+                                                old_rows.pop(old_key, None)
+                                            except Exception:
+                                                pass
+                                        else:
+                                            new_rows[key] = {"data": d}
+
+                                    # Remove any stale widgets left in old_rows
+                                    # IMPORTANT: Only remove if the device is explicitly marked as
+                                    # disconnected in helper data. Don't remove devices just because
+                                    # they're not in canonical list - they might be USB devices the
+                                    # helper hasn't seen yet.
+                                    try:
+                                        for stale_k, stale_entry in list(old_rows.items()):
+                                            # Preserve devices not in canonical list - they might be local USB devices
+                                            new_rows[stale_k] = stale_entry
+                                    except Exception:
+                                        pass
+
+                                    win.usb_rows = new_rows
                                     # Create UI rows for any entries that don't yet have a widget
                                     try:
                                         if hasattr(win, "usb_group") and win.usb_group is not None:
@@ -453,7 +753,7 @@ def _do_tray_update(app, status: str = None):
                     logger.error(f"Error adding USB device to tray status: {e}")
 
         msg = json.dumps({"devices": device_status})
-        logger.info(f"Sending tray status: {msg}")
+        # logger.info(f"Sending tray status: {msg}")
     except Exception as e:
         logger.error(f"Error building device status for tray: {e}")
         msg = status if status else ""
@@ -766,6 +1066,17 @@ def tray_mirror_device(app, address):
                 if client:
                     try:
                         client.send_command({"cmd": "stop_mirror", "serial": key}, timeout=0.5)
+                        # Clear any UI override we may have set when starting via tray
+                        try:
+                            # find matching wireless row and clear override
+                            if hasattr(win, "_wireless_rows") and win._wireless_rows:
+                                for row in win._wireless_rows:
+                                    if hasattr(row, "_device_data") and row._device_data:
+                                        if row._device_data.get("address") == address:
+                                            row._device_data.pop("_mirroring_override", None)
+                                            break
+                        except Exception:
+                            pass
                     except Exception:
                         scrcpy.stop_mirror(address, connect_port)
                 else:
@@ -791,8 +1102,36 @@ def tray_mirror_device(app, address):
                             },
                             timeout=0.5,
                         )
+                        # Mark a transient UI override so main window shows mirroring
+                        try:
+                            if hasattr(win, "_wireless_rows") and win._wireless_rows:
+                                for row in win._wireless_rows:
+                                    if hasattr(row, "_device_data") and row._device_data:
+                                        if row._device_data.get("address") == address:
+                                            row._device_data["_mirroring_override"] = True
+                                            break
+                        except Exception:
+                            pass
                     except Exception:
-                        scrcpy.start_mirror(address, connect_port, device_name)
+                        started = False
+                        try:
+                            started = scrcpy.start_mirror(address, connect_port, device_name)
+                        except Exception:
+                            started = False
+                        if not started:
+                            try:
+                                GLib.idle_add(
+                                    lambda: (
+                                        win._show_scrcpy_unavailable_dialog(
+                                            f"{address}:{connect_port}"
+                                        )
+                                        or False
+                                    )
+                                )
+                            except Exception:
+                                logger.exception(
+                                    "Failed to schedule scrcpy unavailable dialog from tray"
+                                )
                 else:
                     # Fallback to local start
                     for s in list(scrcpy.processes.keys()):
@@ -804,15 +1143,26 @@ def tray_mirror_device(app, address):
 
                     scrcpy.start_mirror(address, connect_port, device_name)
 
-            # Update main window mirror buttons on GTK thread
-            if hasattr(win, "_update_all_mirror_buttons"):
-                GLib.idle_add(win._update_all_mirror_buttons)
+            # Update main window mirror buttons on GTK thread.
+            # If we just started mirroring (is_mirroring == False previously),
+            # schedule a small delay so the helper/scrcpy process has time to
+            # register before UI polls `is_mirroring*`.
+            try:
+                if hasattr(win, "_update_all_mirror_buttons"):
+                    if is_mirroring:
+                        # We were mirroring and have just stopped: update immediately
+                        GLib.idle_add(win._update_all_mirror_buttons)
+                    else:
+                        # We have just started mirroring: delay update slightly
+                        GLib.timeout_add(120, lambda: (win._update_all_mirror_buttons() or False))
+            except Exception:
+                pass
 
-            # Sync tray - with delay only when stopping
+            # Sync tray: use a small delay when starting so process bookkeeping completes
             if is_mirroring:
                 GLib.timeout_add(100, lambda: send_status_to_tray(app))
             else:
-                send_status_to_tray(app)
+                GLib.timeout_add(120, lambda: send_status_to_tray(app))
     else:
         # Assume USB device - address is the serial number
         device_name = "USB Device"
@@ -846,6 +1196,14 @@ def tray_mirror_device(app, address):
             if client and address in helper_processes:
                 try:
                     client.send_command({"cmd": "stop_mirror", "serial": address}, timeout=0.5)
+                    # Clear any UI override set earlier for this USB serial
+                    try:
+                        if hasattr(win, "usb_rows") and win.usb_rows:
+                            entry = win.usb_rows.get(address)
+                            if isinstance(entry, dict) and "data" in entry:
+                                entry["data"].pop("_mirroring_override", None)
+                    except Exception:
+                        pass
                 except Exception:
                     scrcpy.stop_mirror_by_serial(address)
             else:
@@ -861,20 +1219,58 @@ def tray_mirror_device(app, address):
                         },
                         timeout=0.5,
                     )
+                    # Mark transient UI override so main window reflects immediate start
+                    try:
+                        if hasattr(win, "usb_rows") and win.usb_rows:
+                            entry = win.usb_rows.get(address)
+                            if isinstance(entry, dict) and "data" in entry:
+                                entry["data"]["_mirroring_override"] = True
+                    except Exception:
+                        pass
                 except Exception:
-                    scrcpy.start_mirror_usb(address, device_name)
+                    started = False
+                    try:
+                        started = scrcpy.start_mirror_usb(address, device_name)
+                    except Exception:
+                        started = False
+                    if not started:
+                        try:
+                            GLib.idle_add(
+                                lambda: (win._show_scrcpy_unavailable_dialog(address) or False)
+                            )
+                        except Exception:
+                            logger.exception(
+                                "Failed to schedule scrcpy unavailable dialog from tray"
+                            )
             else:
-                scrcpy.start_mirror_usb(address, device_name)
+                started = False
+                try:
+                    started = scrcpy.start_mirror_usb(address, device_name)
+                except Exception:
+                    started = False
+                if not started:
+                    try:
+                        GLib.idle_add(
+                            lambda: (win._show_scrcpy_unavailable_dialog(address) or False)
+                        )
+                    except Exception:
+                        logger.exception("Failed to schedule scrcpy unavailable dialog from tray")
 
-        # Update main window mirror buttons on GTK thread
-        if hasattr(win, "_update_all_mirror_buttons"):
-            GLib.idle_add(win._update_all_mirror_buttons)
+        # Update main window mirror buttons on GTK thread.
+        try:
+            if hasattr(win, "_update_all_mirror_buttons"):
+                if is_mirroring:
+                    GLib.idle_add(win._update_all_mirror_buttons)
+                else:
+                    GLib.timeout_add(120, lambda: (win._update_all_mirror_buttons() or False))
+        except Exception:
+            pass
 
-        # Sync tray - with delay only when stopping
+        # Sync tray: delay slightly when starting so helper/process state settles
         if is_mirroring:
             GLib.timeout_add(100, lambda: send_status_to_tray(app))
         else:
-            send_status_to_tray(app)
+            GLib.timeout_add(120, lambda: send_status_to_tray(app))
 
 
 def tray_unpair_device(app, address):

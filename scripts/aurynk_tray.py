@@ -148,14 +148,16 @@ class TrayHelper:
                     msg = data.decode()
                     if msg.strip() == "quit":
                         logger.info("Received 'quit'. Quitting tray helper.")
-                        Gtk.main_quit()
+                        # Schedule quit on the GTK main loop thread
+                        GLib.idle_add(Gtk.main_quit)
                         break
                     try:
                         status = json.loads(msg)
                         if "devices" in status:
-                            self.update_device_menu(status["devices"])
+                            # Schedule menu update on GTK main loop
+                            GLib.idle_add(self.update_device_menu, status["devices"])
                         else:
-                            self.update_device_menu([])
+                            GLib.idle_add(self.update_device_menu, [])
                     except Exception:
                         # Ignore legacy single-device logic
                         pass

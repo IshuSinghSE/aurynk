@@ -42,6 +42,21 @@ class AurynkWindow(Adw.ApplicationWindow):
 
         # Track USB device rows: serial -> widget
         self.usb_rows = {}
+        # Track device path to key mapping for reliable disconnect detection
+        self.usb_device_paths = {}
+
+        # Helper: normalize serials for consistent keys
+        def _norm_serial(s):
+            import re
+
+            if not s:
+                return None
+            try:
+                return re.sub(r"[^0-9a-z]", "", str(s).lower())
+            except Exception:
+                return str(s).lower()
+
+        self._norm_serial = _norm_serial
         # If the tray helper already reported devices before the window was
         # constructed, cache that list and apply it once the UI is ready.
         self._initial_cached_devices = None
@@ -144,8 +159,9 @@ class AurynkWindow(Adw.ApplicationWindow):
                 serial = dev.get("serial") or dev.get("adb_serial") or dev.get("address")
                 if not serial:
                     continue
+                key = self._norm_serial(serial) or serial
                 # avoid duplicates
-                if serial in self.usb_rows:
+                if key in self.usb_rows:
                     continue
                 adb_props = dev.get("adb_props") or {}
                 name = (
@@ -163,7 +179,7 @@ class AurynkWindow(Adw.ApplicationWindow):
                 try:
                     row = self._create_device_row(dev_data, is_usb=True)
                     self.usb_group.add(row)
-                    self.usb_rows[serial] = {"row": row, "data": dev_data}
+                    self.usb_rows[key] = {"row": row, "data": dev_data}
                     self.usb_group.set_visible(True)
                 except Exception:
                     logger.debug("Failed creating UI row for cached USB device %s", serial)
@@ -458,7 +474,42 @@ class AurynkWindow(Adw.ApplicationWindow):
         if not serial:
             return
 
-        if serial in self.usb_rows:
+        # Initially assume we will key by the normalized ID_SERIAL, but if
+        # we can determine an ADB serial for this device, prefer using the
+        # normalized ADB serial as the canonical key so it matches helper
+        # state which uses adb_serial-based keys.
+        provisional_key = self._norm_serial(serial) or serial
+
+        # If any existing entry corresponds to the same physical device
+        # (match by adb_serial, short_serial, or normalized stored serial),
+        # skip creating a new row to avoid duplicates from multiple udev
+        # interfaces being reported for the same device.
+        try:
+            for k, entry in list(self.usb_rows.items()):
+                try:
+                    data = entry["data"] if isinstance(entry, dict) and "data" in entry else {}
+                    # Match by adb serial (best)
+                    adb = data.get("adb_serial")
+                    if adb and adb == device.get("ID_SERIAL_SHORT"):
+                        return
+                    if adb and adb == device.get("ID_SERIAL"):
+                        return
+                    # Match by short_serial
+                    short = data.get("short_serial")
+                    if short and short == device.get("ID_SERIAL_SHORT"):
+                        return
+                    # Match by normalized stored serial
+                    stored = data.get("serial")
+                    if stored and (self._norm_serial(stored) or stored) == (
+                        self._norm_serial(serial) or serial
+                    ):
+                        return
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        if provisional_key in self.usb_rows:
             return  # Already added
 
         # Fetch detailed device info via ADB
@@ -501,13 +552,25 @@ class AurynkWindow(Adw.ApplicationWindow):
                 dev_data["adb_serial"] = matched_serial
                 # Fetch full device info via ADB
                 self._fetch_usb_device_info(dev_data, matched_serial)
+                # Use normalized ADB serial as canonical key when available
+                try:
+                    adb_key = self._norm_serial(matched_serial) or matched_serial
+                except Exception:
+                    adb_key = matched_serial
+                key = adb_key
+            else:
+                # Fallback to normalized ID_SERIAL
+                key = provisional_key
         except Exception as e:
             logger.debug(f"Could not fetch USB device info: {e}")
 
         row = self._create_device_row(dev_data, is_usb=True)
         self.usb_group.add(row)
-        # Store both row and device data for tray access
-        self.usb_rows[serial] = {"row": row, "data": dev_data}
+        # Store both row and device data for tray access using canonical key
+        self.usb_rows[key] = {"row": row, "data": dev_data}
+        # Store device path -> key mapping for disconnect detection
+        device_path = device.device_path
+        self.usb_device_paths[device_path] = key
         self.usb_group.set_visible(True)
 
         # Update tray status after adding USB device
@@ -519,16 +582,75 @@ class AurynkWindow(Adw.ApplicationWindow):
         GLib.idle_add(self._add_usb_device_row, device)
 
     def _on_usb_device_disconnected(self, monitor, device):
-        serial = device.get("ID_SERIAL")
-        if serial:
-            GLib.idle_add(self._remove_usb_device_row, serial)
+        device_path = device.device_path
 
-    def _remove_usb_device_row(self, serial):
-        if serial in self.usb_rows:
-            row_data = self.usb_rows[serial]
+        # First, try to find the key using device path (most reliable)
+        if device_path in self.usb_device_paths:
+            key = self.usb_device_paths[device_path]
+            logger.debug(f"Found device to remove by path: {device_path} -> {key}")
+            GLib.idle_add(self._remove_usb_device_row, key, device_path)
+            return
+
+        # Fallback: try to match by serial if metadata is present
+        serial = device.get("ID_SERIAL")
+        if not serial or serial == "unknown":
+            logger.warning(f"Device disconnected but no path mapping found: {device_path}")
+            return
+
+        norm = self._norm_serial(serial) or serial
+
+        # If a direct key exists, remove it. Otherwise, search for matching
+        # entries by comparing normalized ID_SERIAL, short_serial, or adb_serial
+        keys_to_remove = []
+        if norm in self.usb_rows:
+            keys_to_remove.append(norm)
+        else:
+            for k, entry in list(self.usb_rows.items()):
+                try:
+                    data = entry["data"] if isinstance(entry, dict) and "data" in entry else {}
+                    # Compare normalized stored serials
+                    stored_serial = data.get("serial")
+                    if (
+                        stored_serial
+                        and (self._norm_serial(stored_serial) or stored_serial) == norm
+                    ):
+                        keys_to_remove.append(k)
+                        continue
+                    short = data.get("short_serial")
+                    if short and (self._norm_serial(short) or short) == norm:
+                        keys_to_remove.append(k)
+                        continue
+                    adb = data.get("adb_serial")
+                    if adb and (self._norm_serial(adb) or adb) == norm:
+                        keys_to_remove.append(k)
+                        continue
+                except Exception:
+                    pass
+
+        for key in keys_to_remove:
+            GLib.idle_add(self._remove_usb_device_row, key, None)
+
+    def _remove_usb_device_row(self, serial, device_path=None):
+        # `serial` here is already a normalized key
+        key = serial
+        if key in self.usb_rows:
+            row_data = self.usb_rows[key]
             row = row_data["row"] if isinstance(row_data, dict) else row_data
-            self.usb_group.remove(row)
-            del self.usb_rows[serial]
+            try:
+                self.usb_group.remove(row)
+            except Exception:
+                pass
+            del self.usb_rows[key]
+
+        # Clean up device path mapping
+        if device_path and device_path in self.usb_device_paths:
+            del self.usb_device_paths[device_path]
+        else:
+            # Find and remove by key
+            for path, k in list(self.usb_device_paths.items()):
+                if k == key:
+                    del self.usb_device_paths[path]
+                    break
 
         if not self.usb_rows:
             self.usb_group.set_visible(False)
@@ -547,24 +669,37 @@ class AurynkWindow(Adw.ApplicationWindow):
 
             # Get device properties
             props_to_fetch = [
-                ("ro.product.model", "name"),
-                ("ro.product.manufacturer", "manufacturer"),
                 ("ro.product.model", "model"),
+                ("ro.product.manufacturer", "manufacturer"),
                 ("ro.build.version.release", "android_version"),
             ]
 
             for prop, key in props_to_fetch:
-                result = subprocess.run(
-                    ["adb", "-s", adb_serial, "shell", "getprop", prop],
-                    capture_output=True,
-                    text=True,
-                    timeout=timeout,
-                )
-                value = result.stdout.strip()
-                if value:
-                    dev_data[key] = value
+                try:
+                    result = subprocess.run(
+                        ["adb", "-s", adb_serial, "shell", "getprop", prop],
+                        capture_output=True,
+                        text=True,
+                        timeout=timeout,
+                    )
+                    value = result.stdout.strip()
+                    if value:
+                        dev_data[key] = value
+                        logger.info(f"Fetched USB {key} = '{value}' for device {adb_serial}")
+                except Exception as e:
+                    logger.debug(f"Error fetching {prop}: {e}")
+
+            # Update name to use the actual model if available (prefer real model over udev ID_MODEL)
+            if dev_data.get("model") and dev_data.get("model") != dev_data.get("ID_MODEL"):
+                dev_data["name"] = dev_data["model"]
+                logger.info(f"Updated USB device name to '{dev_data['name']}'")
+
         except Exception as e:
             logger.debug(f"Error fetching USB device properties: {e}")
+
+        # logger.info(
+        #     f"Final USB dev_data for {adb_serial}: name='{dev_data.get('name')}', manufacturer='{dev_data.get('manufacturer')}', model='{dev_data.get('model')}', android_version='{dev_data.get('android_version')}'"
+        # )
 
     def _create_device_row(self, device, is_usb=False):
         """Create a row widget for a device."""
@@ -638,7 +773,7 @@ class AurynkWindow(Adw.ApplicationWindow):
 
         if is_usb:
             # USB devices are always "connected"
-            status_btn.set_label(_("Connected (USB)"))
+            status_btn.set_label(_("Connected"))
             status_btn.set_sensitive(False)  # Disabled for USB
             status_btn.add_css_class("suggested-action")
         else:
@@ -671,7 +806,7 @@ class AurynkWindow(Adw.ApplicationWindow):
             if adb_serial:
                 scrcpy = self._get_scrcpy_manager()
                 if scrcpy.is_mirroring_serial(adb_serial):
-                    mirror_btn.set_label(_("Stop Mirroring"))
+                    mirror_btn.set_label(_("Mirroring"))
                     mirror_btn.add_css_class("destructive-action")
                 else:
                     mirror_btn.set_label(_("Mirror"))
@@ -692,7 +827,7 @@ class AurynkWindow(Adw.ApplicationWindow):
                 # Check if already mirroring and set appropriate style
                 scrcpy = self._get_scrcpy_manager()
                 if scrcpy.is_mirroring(address, connect_port):
-                    mirror_btn.set_label(_("Stop Mirroring"))
+                    mirror_btn.set_label(_("Mirroring"))
                     mirror_btn.add_css_class("destructive-action")
                 else:
                     mirror_btn.set_label(_("Mirror"))
@@ -983,7 +1118,7 @@ class AurynkWindow(Adw.ApplicationWindow):
                             mirror_btn.set_sensitive(connected)
                             if connected:
                                 if scrcpy.is_mirroring(address, connect_port):
-                                    mirror_btn.set_label(_("Stop Mirroring"))
+                                    mirror_btn.set_label(_("Mirroring"))
                                     mirror_btn.remove_css_class("suggested-action")
                                     mirror_btn.add_css_class("destructive-action")
                                 else:
@@ -1020,9 +1155,17 @@ class AurynkWindow(Adw.ApplicationWindow):
                         if mirror_btn:
                             # Update button state based on mirroring status
                             adb_serial = row_data["data"].get("adb_serial", serial)
-                            is_mirroring = scrcpy.is_mirroring_serial(adb_serial)
+                            # Honor transient override set when tray started mirroring via helper
+                            is_mirroring = False
+                            try:
+                                if row_data["data"].get("_mirroring_override"):
+                                    is_mirroring = True
+                                else:
+                                    is_mirroring = scrcpy.is_mirroring_serial(adb_serial)
+                            except Exception:
+                                is_mirroring = scrcpy.is_mirroring_serial(adb_serial)
                             if is_mirroring:
-                                mirror_btn.set_label(_("Stop Mirroring"))
+                                mirror_btn.set_label(_("Mirroring"))
                                 mirror_btn.remove_css_class("suggested-action")
                                 mirror_btn.add_css_class("destructive-action")
                             else:
@@ -1115,7 +1258,13 @@ class AurynkWindow(Adw.ApplicationWindow):
                 scrcpy.stop_mirror_by_serial(usb_serial)
             else:
                 logger.info(f"Starting mirror for USB device {usb_serial}")
-                scrcpy.start_mirror_usb(usb_serial, device_name)
+                started = scrcpy.start_mirror_usb(usb_serial, device_name)
+                if not started:
+                    # Show a user-facing dialog explaining common causes and remediation
+                    try:
+                        self._show_scrcpy_unavailable_dialog(usb_serial)
+                    except Exception:
+                        logger.exception("Failed to show scrcpy unavailable dialog")
 
             # Update UI immediately using _update_all_mirror_buttons
             self._update_all_mirror_buttons()
@@ -1129,11 +1278,51 @@ class AurynkWindow(Adw.ApplicationWindow):
                 else:
                     # Starting - sync immediately
                     app.send_status_to_tray()
-
+        # end of try block for USB mirror click
         except subprocess.TimeoutExpired:
             logger.error("adb devices command timed out")
         except Exception as e:
             logger.error(f"Error starting USB mirror: {e}")
+
+    def _show_scrcpy_unavailable_dialog(self, serial: str):
+        """Show a concise dialog describing why scrcpy may not have started.
+
+        This provides common remediation steps (non-snap scrcpy, connect snap raw-usb,
+        or configure `scrcpy_path` in settings).
+        """
+        try:
+            from gi.repository import Adw
+
+            dialog = Adw.MessageDialog.new(self)
+            dialog.set_heading(_("Unable to start screen mirroring"))
+            body = _(
+                "Aurynk was unable to start scrcpy for device: {serial}.\n\n"
+                "Common causes: scrcpy cannot see the ADB device (ADB does not list it), or "
+                "you are using a snap-packaged scrcpy which lacks raw USB access.\n\n"
+                "Remedies:\n"
+                "  • Install a non-snap scrcpy from your distribution or build it locally.\n"
+                "  • If you installed scrcpy via snap, connect the raw-usb interface:\n"
+                "    sudo snap connect scrcpy:raw-usb :raw-usb\n"
+                "  • Or set a full path to a non-snap `scrcpy` binary in Aurynk settings."
+            ).format(serial=serial)
+
+            dialog.set_body(body)
+            dialog.set_default_size(420, 180)
+            body_label = dialog.get_body_label() if hasattr(dialog, "get_body_label") else None
+            if body_label:
+                body_label.set_line_wrap(True)
+                body_label.set_max_width_chars(60)
+
+            dialog.add_response("ok", _("OK"))
+
+            def _on_resp(dlg, resp):
+                dlg.destroy()
+
+            dialog.connect("response", _on_resp)
+            dialog.present()
+        except Exception:
+            # If Adw isn't available or dialog creation fails, fall back to logging only
+            logger.warning("scrcpy unavailable for %s and UI dialog could not be shown", serial)
 
     def show_unpair_confirmation_dialog(address):
         """Show a confirmation dialog before unpairing a device. Returns True if confirmed, False otherwise."""
