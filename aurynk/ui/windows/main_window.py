@@ -449,6 +449,9 @@ class AurynkWindow(Adw.ApplicationWindow):
         row.set_margin_start(24)
         row.set_margin_end(24)
 
+        # Store device data on the row for easier updates
+        row._device_data = device
+
         # Add CSS classes for styling
         row.add_css_class("card")
 
@@ -824,11 +827,56 @@ class AurynkWindow(Adw.ApplicationWindow):
     def _update_all_mirror_buttons(self):
         """Update only mirror button states without rebuilding UI.
         This is called when tray triggers mirroring to sync main window."""
-        # Refresh wireless device list which will update button states
-        self._refresh_device_list()
+        scrcpy = self._get_scrcpy_manager()
+        from aurynk.utils.adb_utils import is_device_connected
+
+        # Update wireless device rows
+        if hasattr(self, "_wireless_rows"):
+            for row in self._wireless_rows:
+                if not hasattr(row, "_device_data"):
+                    continue
+
+                device = row._device_data
+                address = device.get("address")
+                connect_port = device.get("connect_port")
+
+                # Find mirror button
+                child = row.get_first_child()
+                while child:
+                    if isinstance(child, Gtk.Box):
+                        btn_child = child.get_first_child()
+                        mirror_btn = None
+                        while btn_child:
+                            if isinstance(btn_child, Gtk.Button) and btn_child.has_css_class(
+                                "mirror-button"
+                            ):
+                                mirror_btn = btn_child
+                                break
+                            btn_child = btn_child.get_next_sibling()
+
+                        if mirror_btn:
+                            connected = False
+                            if address and connect_port:
+                                connected = is_device_connected(address, connect_port)
+
+                            mirror_btn.set_sensitive(connected)
+                            if connected:
+                                if scrcpy.is_mirroring(address, connect_port):
+                                    mirror_btn.set_label(_("Stop Mirroring"))
+                                    mirror_btn.remove_css_class("suggested-action")
+                                    mirror_btn.add_css_class("destructive-action")
+                                else:
+                                    mirror_btn.set_label(_("Mirror"))
+                                    mirror_btn.remove_css_class("destructive-action")
+                                    mirror_btn.add_css_class("suggested-action")
+                            else:
+                                mirror_btn.set_label(_("Mirror"))
+                                mirror_btn.remove_css_class("destructive-action")
+                                mirror_btn.add_css_class("suggested-action")
+                            break
+                    child = child.get_next_sibling()
 
         # Also update USB device mirror buttons
-        scrcpy = self._get_scrcpy_manager()
         for serial, row_data in self.usb_rows.items():
             if isinstance(row_data, dict) and "row" in row_data:
                 row = row_data["row"]
