@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 
 
 class SettingsWindow(Adw.PreferencesWindow):
-    """Settings window using Adwaita preferences"""
+    """Settings window using Adwaita preferences with top navigation"""
 
     def __init__(self, parent=None, transient_for=None, **kwargs):
         """Initialize the settings window."""
@@ -26,20 +26,19 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Window properties
         self.set_title(_("Settings"))
-        self.set_default_size(560, 640)
-        self.set_modal(False)  # Allow independent window movement
+        self.set_default_size(700, 540)
+        self.set_modal(False)
         self.set_hide_on_close(True)
 
-        # Set transient parent but not modal - allows separate window movement
+        # Set transient parent
         parent_window = transient_for or parent
         if parent_window:
             self.set_transient_for(parent_window)
-            # Keep window above parent without modal behavior
-            self.set_destroy_with_parent(False)
 
-        # Add preference pages directly for sidebar navigation
+        # Add preference pages for top navigation bar
         self._create_app_page()
         self._create_adb_page()
+        self._create_usb_page()
         self._create_scrcpy_page()
 
         logger.info("Settings window initialized")
@@ -157,13 +156,13 @@ class SettingsWindow(Adw.PreferencesWindow):
     def _create_adb_page(self):
         """Create the ADB settings page."""
         page = Adw.PreferencesPage()
-        page.set_title(_("Device"))
-        page.set_icon_name("smartphone-symbolic")
+        page.set_title(_("Wireless"))
+        page.set_icon_name("network-wireless-symbolic")
 
         # Connection group
         connection_group = Adw.PreferencesGroup()
-        connection_group.set_title(_("Connection"))
-        connection_group.set_description(_("ADB connection settings"))
+        connection_group.set_title(_("Wireless Connection"))
+        connection_group.set_description(_("ADB wireless pairing and connection settings"))
 
         # ADB Path row
         adb_path_row = Adw.ActionRow()
@@ -282,6 +281,81 @@ class SettingsWindow(Adw.PreferencesWindow):
     def _on_require_confirmation_changed(self, switch, _):
         self.settings.set("adb", "require_confirmation_for_unpair", switch.get_active())
 
+    def _create_usb_page(self):
+        """Create the USB device settings page."""
+        page = Adw.PreferencesPage()
+        page.set_title(_("USB"))
+        page.set_icon_name("drive-removable-media-symbolic")
+
+        # USB Detection group
+        detection_group = Adw.PreferencesGroup()
+        detection_group.set_title(_("USB Detection"))
+        detection_group.set_description(_("Settings for USB connected devices"))
+
+        # Auto-detect USB devices
+        auto_detect = Adw.SwitchRow()
+        auto_detect.set_title(_("Auto-detect USB Devices"))
+        auto_detect.set_subtitle(
+            _("Automatically detect and display USB connected Android devices")
+        )
+        auto_detect.set_active(self.settings.get("usb", "auto_detect", True))
+        auto_detect.connect("notify::active", self._on_usb_auto_detect_changed)
+        detection_group.add(auto_detect)
+
+        # Show USB notifications
+        usb_notifications = Adw.SwitchRow()
+        usb_notifications.set_title(_("USB Device Notifications"))
+        usb_notifications.set_subtitle(_("Show notifications when USB devices connect/disconnect"))
+        usb_notifications.set_active(self.settings.get("usb", "show_notifications", True))
+        usb_notifications.connect("notify::active", self._on_usb_notifications_changed)
+        detection_group.add(usb_notifications)
+
+        # Prefer USB over wireless
+        prefer_usb = Adw.SwitchRow()
+        prefer_usb.set_title(_("Prefer USB over Wireless"))
+        prefer_usb.set_subtitle(
+            _(
+                "When a device is connected both via USB and wirelessly, prioritize USB connection for better performance"
+            )
+        )
+        prefer_usb.set_active(self.settings.get("usb", "prefer_usb_over_wireless", True))
+        prefer_usb.connect("notify::active", self._on_prefer_usb_changed)
+        detection_group.add(prefer_usb)
+
+        page.add(detection_group)
+
+        # USB Mirroring group
+        mirroring_group = Adw.PreferencesGroup()
+        mirroring_group.set_title(_("USB Mirroring"))
+        mirroring_group.set_description(
+            _(
+                "USB devices use the same mirroring settings as wireless devices (see Mirroring tab), but generally offer better performance and lower latency"
+            )
+        )
+
+        # Info row
+        info_row = Adw.ActionRow()
+        info_row.set_title(_("Performance Note"))
+        info_row.set_subtitle(
+            _(
+                "USB connections typically provide:\n• Lower latency\n• Higher quality streaming\n• More reliable audio (if enabled)\n• Better battery efficiency"
+            )
+        )
+        info_row.set_activatable(False)
+        mirroring_group.add(info_row)
+
+        page.add(mirroring_group)
+        self.add(page)
+
+    def _on_usb_auto_detect_changed(self, switch, _):
+        self.settings.set("usb", "auto_detect", switch.get_active())
+
+    def _on_usb_notifications_changed(self, switch, _):
+        self.settings.set("usb", "show_notifications", switch.get_active())
+
+    def _on_prefer_usb_changed(self, switch, _):
+        self.settings.set("usb", "prefer_usb_over_wireless", switch.get_active())
+
     # scrcpy settings page
     def _create_scrcpy_page(self):
         """Create the Scrcpy settings dashboard page with all features."""
@@ -292,6 +366,9 @@ class SettingsWindow(Adw.PreferencesWindow):
         # --- General/Session Options ---
         session_group = Adw.PreferencesGroup()
         session_group.set_title(_("Session Options"))
+        session_group.set_description(
+            _("These settings apply to both USB and wireless device mirroring")
+        )
 
         # Scrcpy Path (modern: entry + file picker button)
         scrcpy_path_row = Adw.ActionRow()
@@ -668,7 +745,7 @@ class SettingsWindow(Adw.PreferencesWindow):
         enable_audio = Adw.SwitchRow()
         enable_audio.set_title(_("Enable Audio"))
         enable_audio.set_subtitle(
-            _("Stream device audio to PC (experimental, may not work over wireless connection).")
+            _("Stream device audio to PC. Works reliably over USB, may be unstable over wireless.")
         )
         enable_audio.set_active(not self.settings.get("scrcpy", "no_audio", False))
 
@@ -680,11 +757,9 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Audio Source
         audio_source_row = Adw.ComboRow()
-        audio_source_row.set_title(_("Audio Source (experimental)"))
+        audio_source_row.set_title(_("Audio Source"))
         audio_source_row.set_subtitle(
-            _(
-                "Choose between device output or mic (experimental, may not work over wireless connection)."
-            )
+            _("Choose between device output or mic. Works best over USB connection.")
         )
         audio_source_options = [_("default"), _("output"), _("mic")]
         audio_source_model = Gtk.StringList.new(audio_source_options)

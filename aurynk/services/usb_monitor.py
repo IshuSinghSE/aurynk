@@ -55,6 +55,29 @@ ANDROID_VENDOR_IDS: Set[str] = {
     "17ef",  # Lenovo
     "0955",  # Nvidia
     "2a45",  # Meizu
+    "2d95",  # Vivo
+    "2a47",  # Oppo
+    "05c6",  # Qualcomm
+    "1ebf",  # Realme
+    "0e8d",  # MediaTek
+    "2ae5",  # Fairphone
+    "0502",  # Acer
+    "413c",  # Dell
+    "0489",  # Foxconn
+    "04dd",  # Sharp
+    "0930",  # Toshiba
+    "0b05",  # Asus
+    "0bb4",  # HTC
+    "0e79",  # Archos
+    "109b",  # Hisense
+    "1076",  # GCT Semiconductor
+    "1782",  # Spreadtrum
+    "1bbb",  # T-Mobile
+    "1d91",  # KDDI
+    "201e",  # Haier
+    "24e3",  # K-Touch
+    "2080",  # Nook
+    "271d",  # Le TV / LeEco
 }
 
 
@@ -74,11 +97,18 @@ class USBMonitor(GObject.Object):
         self._monitor.filter_by(subsystem="usb")
         self._watch_id: Optional[int] = None
         self._running = False
+        # Cache connected device paths so we can emit disconnect even when metadata is missing
+        self._connected_devices: Set[str] = set()
 
     def start(self) -> None:
         """Start monitoring for USB events."""
         if self._running:
             return
+
+        # Populate cache with currently connected Android devices
+        for device in self._context.list_devices(subsystem="usb"):
+            if self._is_android_device(device):
+                self._connected_devices.add(device.device_path)
 
         # Start the monitor (binds the socket)
         self._monitor.start()
@@ -89,6 +119,17 @@ class USBMonitor(GObject.Object):
         )
         self._running = True
         logger.info("USB Monitor started")
+
+    def get_connected_devices(self) -> list[pyudev.Device]:
+        """Get currently connected Android devices."""
+        devices = []
+        try:
+            for device in self._context.list_devices(subsystem="usb"):
+                if self._is_android_device(device):
+                    devices.append(device)
+        except Exception as e:
+            logger.error(f"Error listing USB devices: {e}")
+        return devices
 
     def stop(self) -> None:
         """Stop monitoring."""
@@ -127,14 +168,25 @@ class USBMonitor(GObject.Object):
             device: The pyudev Device object.
         """
         action = device.action
+        device_path = device.device_path
+
         if action == "add":
             if self._is_android_device(device):
                 serial = device.get("ID_SERIAL", "unknown")
                 logger.info(f"Android device connected: {serial}")
+                # Cache the device path so we can detect its removal even if metadata is gone
+                self._connected_devices.add(device_path)
                 self.emit("device-connected", device)
         elif action == "remove":
-            # On remove, we check if it was likely an Android device
-            if self._is_android_device(device):
+            # On remove, metadata like ID_SERIAL and ID_VENDOR_ID are often missing.
+            # Check if this device path was in our cache of connected Android devices.
+            if device_path in self._connected_devices:
+                serial = device.get("ID_SERIAL", "unknown")
+                logger.info(f"Android device disconnected: {serial} (path: {device_path})")
+                self._connected_devices.discard(device_path)
+                self.emit("device-disconnected", device)
+            elif self._is_android_device(device):
+                # Fallback: if metadata is still present and matches, emit disconnect
                 serial = device.get("ID_SERIAL", "unknown")
                 logger.info(f"Android device disconnected: {serial}")
                 self.emit("device-disconnected", device)

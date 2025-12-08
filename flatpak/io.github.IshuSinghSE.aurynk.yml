@@ -5,6 +5,8 @@ sdk: org.gnome.Sdk
 command: aurynk
 
 finish-args:
+  # Allow writing to Videos folder for recording
+  - --filesystem=xdg-videos:rw
   # Set scrcpy server path
   - --env=SCRCPY_SERVER_PATH=/app/share/scrcpy/scrcpy-server
   # X11 + XShm access
@@ -17,8 +19,14 @@ finish-args:
   # D-Bus access for notifications and system tray
   - --talk-name=org.kde.StatusNotifierWatcher
   - --talk-name=org.ayatana.indicator.service
-  # USB device access for ADB
-  - --device=all
+  # Allow access to a single host socket provided by the user helper
+  - --filesystem=xdg-run/aurynk-udev.sock
+  # Fallback: some flatpak-builder versions don't recognize the `xdg-run`
+  # filesystem token. Use the explicit user runtime path as a pragmatic
+  # fallback for local builds. On newer Flatpak installations the
+  # `xdg-run/aurynk-udev.sock` entry will be preferred at runtime.
+  - --filesystem=/run/user/1000/aurynk-udev.sock
+  - --filesystem=/run/user/1000
 
 cleanup:
   - /include

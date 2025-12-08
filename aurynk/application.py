@@ -77,17 +77,31 @@ class AurynkApp(Adw.Application):
         def on_port_updated(address, new_port):
             """Update device storage when port changes."""
             try:
+                # Try to use active window controller first
                 win = self.props.active_window
+                controller = None
+
                 if win and hasattr(win, "adb_controller"):
-                    devices = win.adb_controller.load_paired_devices()
+                    controller = win.adb_controller
+                else:
+                    # Fallback: create temporary controller to ensure save happens
+                    from aurynk.core.adb_manager import ADBController
+
+                    controller = ADBController()
+
+                if controller:
+                    devices = controller.load_paired_devices()
                     for device in devices:
                         if device.get("address") == address:
                             device["connect_port"] = new_port
-                            win.adb_controller.save_paired_device(device)
+                            controller.save_paired_device(device)
                             logger.info(f"Updated port for {address} to {new_port}")
-                            # Refresh UI on main thread
-                            GLib.idle_add(win._refresh_device_list)
                             break
+
+                # Refresh UI if window exists
+                if win and hasattr(win, "_refresh_device_list"):
+                    GLib.idle_add(win._refresh_device_list)
+
             except Exception as e:
                 logger.error(f"Error updating port: {e}")
 
@@ -258,6 +272,14 @@ class AurynkApp(Adw.Application):
         # Send initial device status to tray so menu is populated
         # Use the bound helper to send the initial status
         self.send_status_to_tray()
+        # Subscribe to host udev proxy events to refresh UI automatically
+        try:
+            from aurynk.services.tray_service import start_udev_subscription
+
+            start_udev_subscription(self)
+        except Exception:
+            # best-effort; continue if subscription unavailable
+            logger.debug("Udev proxy subscription not available at startup")
 
     def _apply_theme(self):
         """Apply the theme from settings."""

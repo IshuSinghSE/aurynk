@@ -358,6 +358,66 @@ class ADBController:
 
         return specs
 
+    def fetch_device_specs_by_serial(self, serial: str) -> Dict[str, str]:
+        """
+        Fetch device specifications (RAM, storage, battery) by serial number.
+
+        Args:
+            serial (str): Device serial number.
+
+        Returns:
+            Dict[str, str]: A dictionary containing RAM, storage, and battery info.
+        """
+        specs = {"ram": "", "storage": "", "battery": ""}
+
+        try:
+            # RAM
+            timeout = SettingsManager().get("adb", "connection_timeout", 10)
+            meminfo = subprocess.run(
+                [get_adb_path(), "-s", serial, "shell", "cat", "/proc/meminfo"],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+            import re
+
+            match = re.search(r"MemTotal:\s+(\d+) kB", meminfo.stdout)
+            if match:
+                ram_mb = int(match.group(1)) // 1000
+                ram_gb = ram_mb / 1000
+                specs["ram"] = f"{round(ram_gb)} GB"
+
+            # Storage
+            df = subprocess.run(
+                [get_adb_path(), "-s", serial, "shell", "df", "/data"],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+            lines = df.stdout.splitlines()
+            if len(lines) > 1:
+                parts = lines[1].split()
+                if len(parts) > 1:
+                    storage_mb = int(parts[1]) // 1000
+                    storage_gb = storage_mb / 1000
+                    specs["storage"] = f"{round(storage_gb)} GB"
+
+            # Battery
+            battery = subprocess.run(
+                [get_adb_path(), "-s", serial, "shell", "dumpsys", "battery"],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+            match = re.search(r"level: (\d+)", battery.stdout)
+            if match:
+                specs["battery"] = f"{match.group(1)}%"
+
+        except Exception as e:
+            logger.error(f"Error fetching specs by serial: {e}")
+
+        return specs
+
     def capture_screenshot(self, address: str, connect_port: int) -> Optional[str]:
         """
         Capture device screenshot and return local path.
@@ -466,6 +526,108 @@ class ADBController:
         except Exception as e:
             logger.error(f"Error capturing screenshot: {e}")
             # If error, fallback to old image if available
+            if os.path.exists(local_path):
+                return local_path
+            return None
+
+    def capture_screenshot_by_serial(self, serial: str) -> Optional[str]:
+        """
+        Capture device screenshot by serial number and return local path.
+
+        Args:
+            serial (str): Device serial number.
+
+        Returns:
+            Optional[str]: Path to the screenshot file if successful, None otherwise.
+        """
+        screenshot_dir = os.path.join(DEVICE_STORE_DIR, "screenshots")
+        os.makedirs(screenshot_dir, exist_ok=True)
+        local_path = os.path.join(screenshot_dir, f"aurynk_{serial.replace(':', '_')}_screen.png")
+        try:
+            # Check if device is locked or screen is off
+            timeout = SettingsManager().get("adb", "connection_timeout", 10)
+            dumpsys = subprocess.run(
+                [get_adb_path(), "-s", serial, "shell", "dumpsys", "window"],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+            screen_off = (
+                "mDreamingLockscreen=true" in dumpsys.stdout
+                or "mScreenOn=false" in dumpsys.stdout
+                or "mInteractive=false" in dumpsys.stdout
+            )
+            keyguard = subprocess.run(
+                [get_adb_path(), "-s", serial, "shell", "dumpsys", "window", "windows"],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+            locked = (
+                "mShowingLockscreen=true" in keyguard.stdout
+                or "mDreamingLockscreen=true" in keyguard.stdout
+            )
+            if screen_off or locked:
+                if os.path.exists(local_path):
+                    return local_path
+                else:
+                    logger.warning(
+                        "Device is locked or screen off, and no previous screenshot available."
+                    )
+                    return None
+
+            # Get current foreground app/activity
+            activity_result = subprocess.run(
+                [get_adb_path(), "-s", serial, "shell", "dumpsys", "window", "windows"],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+            import re
+
+            match = re.search(
+                r"mCurrentFocus=Window\{[^ ]+ ([^/]+)/([^ ]+)\}", activity_result.stdout
+            )
+            current_app = match.group(1) if match else None
+
+            # Go to home screen
+            subprocess.run(
+                [get_adb_path(), "-s", serial, "shell", "input", "keyevent", "3"],
+                check=True,
+                timeout=timeout,
+            )
+
+            # Take screenshot on home
+            subprocess.run(
+                [
+                    get_adb_path(),
+                    "-s",
+                    serial,
+                    "shell",
+                    "screencap",
+                    "-p",
+                    "/sdcard/aurynk_screen.png",
+                ],
+                check=True,
+                timeout=timeout,
+            )
+
+            # Return to previous app if possible
+            if current_app:
+                subprocess.run(
+                    [get_adb_path(), "-s", serial, "shell", "monkey", "-p", current_app, "1"],
+                    timeout=timeout,
+                )
+
+            # Pull to local directory
+            subprocess.run(
+                [get_adb_path(), "-s", serial, "pull", "/sdcard/aurynk_screen.png", local_path],
+                check=True,
+                timeout=timeout,
+            )
+            return local_path
+        except Exception as e:
+            logger.error(f"Error capturing screenshot by serial: {e}")
             if os.path.exists(local_path):
                 return local_path
             return None
