@@ -330,13 +330,33 @@ def tray_mirror_device(app, address):
     """Handle mirror command from tray - supports both wireless and USB devices."""
     win = app.props.active_window
     if not win:
+        # Try to find existing AurynkWindow (it might be hidden)
+        for w in app.get_windows():
+            if isinstance(w, AurynkWindow):
+                win = w
+                break
+
+    if not win:
         win = AurynkWindow(application=app)
 
     scrcpy = win._get_scrcpy_manager()
 
-    # Check if this is a USB device (no colon in address means it's a serial)
-    if ":" not in address:
-        # USB device - address is the serial number
+    # Try to find in wireless devices first
+    # Wireless devices use IP as address, which might not have a colon
+    devices = win.adb_controller.load_paired_devices()
+    wireless_device = next((d for d in devices if d.get("address") == address), None)
+
+    if wireless_device:
+        # Wireless device logic
+        connect_port = wireless_device.get("connect_port")
+        device_name = wireless_device.get("name")
+        if connect_port and device_name:
+            if scrcpy.is_mirroring(address, connect_port):
+                scrcpy.stop_mirror(address, connect_port)
+            else:
+                scrcpy.start_mirror(address, connect_port, device_name)
+    else:
+        # Assume USB device - address is the serial number
         device_name = "USB Device"
         # Try to get device name from USB monitor
         if hasattr(win, "usb_rows"):
@@ -352,18 +372,6 @@ def tray_mirror_device(app, address):
             scrcpy.stop_mirror_by_serial(address)
         else:
             scrcpy.start_mirror_usb(address, device_name)
-    else:
-        # Wireless device - address is ip:port
-        devices = win.adb_controller.load_paired_devices()
-        device = next((d for d in devices if d.get("address") == address), None)
-        if device:
-            connect_port = device.get("connect_port")
-            device_name = device.get("name")
-            if connect_port and device_name:
-                if scrcpy.is_mirroring(address, connect_port):
-                    scrcpy.stop_mirror(address, connect_port)
-                else:
-                    scrcpy.start_mirror(address, connect_port, device_name)
 
     # Update mirror button states in main window
     if hasattr(win, "_update_all_mirror_buttons"):
