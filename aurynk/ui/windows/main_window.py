@@ -948,7 +948,26 @@ class AurynkWindow(Adw.ApplicationWindow):
         details_btn.set_icon_name("preferences-system-details-symbolic")
         details_btn.set_tooltip_text(_("Details"))
         details_btn.set_valign(Gtk.Align.CENTER)
-        details_btn.connect("clicked", self._on_device_details_clicked, device)
+
+        # Use a small closure so the button resolves the most up-to-date
+        # device object or data at click time. This avoids stale dicts
+        # being passed when tray_service creates a Device object later.
+        def _details_clicked(btn):
+            try:
+                # Prefer a Device object attached to the row
+                target = getattr(row, "_device", None)
+                if target and hasattr(target, "to_dict"):
+                    self._on_device_details_clicked(btn, target)
+                else:
+                    # Fallback to the latest device data dict attached to the row
+                    self._on_device_details_clicked(btn, getattr(row, "_device_data", {}))
+            except Exception:
+                try:
+                    self._on_device_details_clicked(btn, getattr(row, "_device_data", {}))
+                except Exception:
+                    pass
+
+        details_btn.connect("clicked", lambda btn, *a: _details_clicked(btn))
         status_box.append(details_btn)
 
         row.append(status_box)
@@ -1156,8 +1175,44 @@ class AurynkWindow(Adw.ApplicationWindow):
         """Handle device details button click."""
         from aurynk.ui.windows.device_details import DeviceDetailsWindow
 
-        details_window = DeviceDetailsWindow(device, self)
-        details_window.present()
+        # If caller passed a Device object, prefer its live data. If a dict
+        # was passed (common when tray_service created the row), attempt to
+        # locate an associated Device object from `self.usb_rows` so we can
+        # show the most up-to-date information.
+        try:
+            # If it's a Device-like object with `to_dict`, use that
+            if hasattr(device, "to_dict"):
+                data = device.to_dict()
+                # mark as usb if it has an adb serial (or caller likely intended this)
+                if data.get("adb_serial"):
+                    data["is_usb"] = True
+            else:
+                # Try to find a Device object for this serial in usb_rows
+                serial = (
+                    device.get("adb_serial") or device.get("serial") or device.get("short_serial")
+                )
+                data = device
+                if serial:
+                    try:
+                        key = self._norm_serial(serial) or serial
+                    except Exception:
+                        key = serial
+                    entry = self.usb_rows.get(key) if hasattr(self, "usb_rows") else None
+                    if entry and isinstance(entry, dict) and entry.get("device_obj"):
+                        try:
+                            data = entry.get("device_obj").to_dict()
+                            data["is_usb"] = True
+                        except Exception:
+                            data = device
+            details_window = DeviceDetailsWindow(data, self)
+            details_window.present()
+        except Exception:
+            # Fallback to original behavior
+            try:
+                details_window = DeviceDetailsWindow(device, self)
+                details_window.present()
+            except Exception:
+                pass
 
     def _on_search_changed(self, search_entry):
         """Handle search entry text change."""

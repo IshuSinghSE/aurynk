@@ -513,6 +513,11 @@ def start_udev_subscription(app):
                                             except Exception:
                                                 pass
                                         else:
+                                            # mark entries coming from helper as USB-backed
+                                            try:
+                                                d["is_usb"] = True
+                                            except Exception:
+                                                pass
                                             new_rows[key] = {"data": d}
 
                                     # Remove any stale widgets left in old_rows
@@ -558,6 +563,16 @@ def start_udev_subscription(app):
                                         logger.error(f"Error processing stale rows: {e}")
 
                                     win.usb_rows = new_rows
+                                    # Hide USB group if there are no devices, else ensure visible
+                                    try:
+                                        if not win.usb_rows:
+                                            if hasattr(win, "usb_group") and win.usb_group:
+                                                win.usb_group.set_visible(False)
+                                        else:
+                                            if hasattr(win, "usb_group") and win.usb_group:
+                                                win.usb_group.set_visible(True)
+                                    except Exception:
+                                        pass
                                     # Create UI rows for any entries that don't yet have a widget
                                     try:
                                         if hasattr(win, "usb_group") and win.usb_group is not None:
@@ -651,8 +666,104 @@ def start_udev_subscription(app):
                                                                 dev_data, is_usb=True
                                                             )
                                                             win.usb_group.add(row)
-                                                            entry["row"] = row
-                                                            win.usb_group.set_visible(True)
+                                                            # Create a Device object and attach it to the row so
+                                                            # ADB-backed information can be fetched and the UI
+                                                            # can listen for 'info-updated' signals.
+                                                            try:
+                                                                from aurynk.models.device import (
+                                                                    Device,
+                                                                )
+
+                                                                device_obj = Device(
+                                                                    initial=dev_data,
+                                                                    adb_serial=dev_data.get(
+                                                                        "adb_serial"
+                                                                    ),
+                                                                )
+                                                                # store references for later updates
+                                                                entry["row"] = row
+                                                                entry["device_obj"] = device_obj
+                                                                # keep device data in sync with device_obj
+                                                                row._device = device_obj
+
+                                                                def _on_info_updated(devobj):
+                                                                    try:
+                                                                        new_data = devobj.to_dict()
+                                                                        # Update stored data and refresh labels
+                                                                        try:
+                                                                            # Try to find our serial key in win.usb_rows
+                                                                            s = new_data.get(
+                                                                                "adb_serial"
+                                                                            ) or new_data.get(
+                                                                                "serial"
+                                                                            )
+                                                                            k = None
+                                                                            if s:
+                                                                                try:
+                                                                                    k = (
+                                                                                        win._norm_serial(
+                                                                                            s
+                                                                                        )
+                                                                                        or s
+                                                                                    )
+                                                                                except Exception:
+                                                                                    k = s
+                                                                            if (
+                                                                                k
+                                                                                and k
+                                                                                in win.usb_rows
+                                                                            ):
+                                                                                win.usb_rows[k][
+                                                                                    "data"
+                                                                                ] = new_data
+                                                                                try:
+                                                                                    from aurynk.services.tray_service import (
+                                                                                        _update_device_row_labels,
+                                                                                    )
+
+                                                                                    _update_device_row_labels(
+                                                                                        row,
+                                                                                        new_data,
+                                                                                    )
+                                                                                except Exception:
+                                                                                    pass
+                                                                        except Exception:
+                                                                            pass
+                                                                        # Also trigger a tray update if app supports it
+                                                                        try:
+                                                                            app_ctx = app
+                                                                            if hasattr(
+                                                                                app_ctx,
+                                                                                "send_status_to_tray",
+                                                                            ):
+                                                                                app_ctx.send_status_to_tray()
+                                                                        except Exception:
+                                                                            pass
+                                                                    except Exception:
+                                                                        pass
+
+                                                                try:
+                                                                    device_obj.connect(
+                                                                        "info-updated",
+                                                                        _on_info_updated,
+                                                                    )
+                                                                except Exception:
+                                                                    pass
+
+                                                                # Kick off an asynchronous fetch of adb-backed details if we
+                                                                # already have an adb serial available.
+                                                                try:
+                                                                    if device_obj.adb_serial:
+                                                                        device_obj.fetch_details()
+                                                                except Exception:
+                                                                    pass
+                                                            except Exception:
+                                                                # If Device couldn't be created, still record row
+                                                                entry["row"] = row
+                                                            try:
+                                                                win.usb_group.set_visible(True)
+                                                            except Exception:
+                                                                pass
                                                         except Exception:
                                                             # Creating a row failed; ignore
                                                             pass

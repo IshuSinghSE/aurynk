@@ -249,9 +249,13 @@ class DeviceDetailsWindow(Adw.Window):
                     specs = {"ram": _("Unknown"), "storage": _("Unknown"), "battery": _("Unknown")}
             else:
                 # Wireless device - use address:port
-                specs = self.adb_controller.fetch_device_specs(
-                    self.device["address"], self.device["connect_port"]
-                )
+                # Be defensive: ensure address/connect_port exist
+                addr = self.device.get("address")
+                port = self.device.get("connect_port")
+                if not addr or not port:
+                    specs = {"ram": _("Unknown"), "storage": _("Unknown"), "battery": _("Unknown")}
+                else:
+                    specs = self.adb_controller.fetch_device_specs(addr, port)
 
             # Update device info
             self.device["spec"] = specs
@@ -280,9 +284,10 @@ class DeviceDetailsWindow(Adw.Window):
 
     def _update_specs_ui(self, specs):
         """Update specifications UI."""
-        self.ram_row.set_subtitle(specs.get("ram", _("Unknown")))
-        self.storage_row.set_subtitle(specs.get("storage", _("Unknown")))
-        self.battery_row.set_subtitle(specs.get("battery", _("Unknown")))
+        # Use fallback 'Unknown' when values are empty or falsy
+        self.ram_row.set_subtitle(specs.get("ram") or _("Unknown"))
+        self.storage_row.set_subtitle(specs.get("storage") or _("Unknown"))
+        self.battery_row.set_subtitle(specs.get("battery") or _("Unknown"))
 
     def _on_refresh_screenshot(self, button):
         """Handle refresh screenshot button click."""
