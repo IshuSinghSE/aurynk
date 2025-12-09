@@ -245,6 +245,8 @@ def start_udev_subscription(app):
         def _on_event(msg):
             try:
                 t = msg.get("type")
+                action = msg.get("action")
+                logger.info(f"Received event: type={t}, action={action}")
             except Exception:
                 return
 
@@ -253,6 +255,9 @@ def start_udev_subscription(app):
             # re-dispatch it as a 'state' message so the main window can
             # update `usb_rows` deterministically.
             if t == "device":
+                # Capture the action and serial from the device event
+                device_action = msg.get("action")
+                device_serial = msg.get("serial")
 
                 def _fetch_status_and_dispatch():
                     try:
@@ -263,7 +268,27 @@ def start_udev_subscription(app):
                             resp = client.send_command({"cmd": "status"}, timeout=1.0)
                         except Exception:
                             return
-                        state_msg = {"type": "state", "devices": resp.get("devices", [])}
+
+                        devices = resp.get("devices", [])
+
+                        # On remove events, filter out the removed device from the list
+                        # This ensures the UI updates immediately instead of waiting for ADB cache
+                        if device_action == "remove" and device_serial:
+                            devices = [
+                                d
+                                for d in devices
+                                if d.get("serial") != device_serial
+                                and d.get("adb_serial") != device_serial
+                                and d.get("short_serial") != device_serial
+                            ]
+
+                        # Include the action in the state message so the handler knows
+                        # whether to remove stale devices (on remove action)
+                        state_msg = {
+                            "type": "state",
+                            "devices": devices,
+                            "action": device_action,
+                        }
                         try:
                             _on_event(state_msg)
                         except Exception:
@@ -488,21 +513,66 @@ def start_udev_subscription(app):
                                             except Exception:
                                                 pass
                                         else:
+                                            # mark entries coming from helper as USB-backed
+                                            try:
+                                                d["is_usb"] = True
+                                            except Exception:
+                                                pass
                                             new_rows[key] = {"data": d}
 
                                     # Remove any stale widgets left in old_rows
-                                    # IMPORTANT: Only remove if the device is explicitly marked as
-                                    # disconnected in helper data. Don't remove devices just because
-                                    # they're not in canonical list - they might be USB devices the
-                                    # helper hasn't seen yet.
+                                    # IMPORTANT: Only preserve devices if this is not a remove event.
+                                    # On remove events, any device not in the canonical list should
+                                    # be removed from the UI.
                                     try:
+                                        is_remove_event = msg.get("action") == "remove"
+                                        logger.info(
+                                            f"Processing state: is_remove_event={is_remove_event}, old_rows={list(old_rows.keys())}, new_rows={list(new_rows.keys())}"
+                                        )
                                         for stale_k, stale_entry in list(old_rows.items()):
-                                            # Preserve devices not in canonical list - they might be local USB devices
+                                            # On remove events, don't preserve stale devices
+                                            if is_remove_event:
+                                                logger.info(f"Removing stale device: {stale_k}")
+                                                # Actually remove the stale widget from the UI
+                                                try:
+                                                    if (
+                                                        isinstance(stale_entry, dict)
+                                                        and "row" in stale_entry
+                                                    ):
+                                                        row = stale_entry["row"]
+                                                        if (
+                                                            row
+                                                            and hasattr(win, "usb_group")
+                                                            and win.usb_group
+                                                        ):
+                                                            win.usb_group.remove(row)
+                                                    elif hasattr(stale_entry, "get_parent"):
+                                                        parent = stale_entry.get_parent()
+                                                        if parent:
+                                                            parent.remove(stale_entry)
+                                                except Exception as e:
+                                                    logger.error(
+                                                        f"Error removing stale device {stale_k}: {e}"
+                                                    )
+                                                continue
+                                            # On add events, preserve devices not in canonical list
+                                            # - they might be local USB devices
+                                            logger.debug(f"Preserving device: {stale_k}")
                                             new_rows[stale_k] = stale_entry
-                                    except Exception:
-                                        pass
+                                    except Exception as e:
+                                        logger.error(f"Error processing stale rows: {e}")
 
                                     win.usb_rows = new_rows
+                                    # Hide USB group if there are no devices, else ensure visible
+                                    try:
+                                        if not win.usb_rows:
+                                            if hasattr(win, "usb_group") and win.usb_group:
+                                                win.usb_group.set_visible(False)
+                                        else:
+                                            if hasattr(win, "usb_group") and win.usb_group:
+                                                win.usb_group.set_visible(True)
+                                    except Exception:
+                                        pass
                                     # Create UI rows for any entries that don't yet have a widget
                                     try:
                                         if hasattr(win, "usb_group") and win.usb_group is not None:
@@ -515,12 +585,185 @@ def start_udev_subscription(app):
                                                     ):
                                                         dev_data = entry["data"]
                                                         try:
+                                                            # If adb-derived fields are missing, try to fill from
+                                                            # the raw udev properties included in the same state
+                                                            # message. This helps when the helper couldn't include
+                                                            # adb_props in time but udev provides ID_MODEL/ID_VENDOR.
+                                                            if (
+                                                                not dev_data.get("model")
+                                                                or not dev_data.get("manufacturer")
+                                                            ) and isinstance(
+                                                                msg.get("devices"), list
+                                                            ):
+                                                                try:
+                                                                    for raw in msg.get("devices"):
+                                                                        try:
+                                                                            raw_serial = (
+                                                                                raw.get("serial")
+                                                                                or raw.get(
+                                                                                    "adb_serial"
+                                                                                )
+                                                                                or raw.get(
+                                                                                    "short_serial"
+                                                                                )
+                                                                            )
+                                                                            if not raw_serial:
+                                                                                continue
+                                                                            # quick equality or suffix match
+                                                                            if (
+                                                                                raw_serial
+                                                                                == dev_data.get(
+                                                                                    "adb_serial"
+                                                                                )
+                                                                                or raw_serial
+                                                                                == dev_data.get(
+                                                                                    "serial"
+                                                                                )
+                                                                                or str(
+                                                                                    raw_serial
+                                                                                ).endswith(
+                                                                                    str(
+                                                                                        dev_data.get(
+                                                                                            "adb_serial"
+                                                                                        )
+                                                                                        or ""
+                                                                                    )
+                                                                                )
+                                                                            ):
+                                                                                props = (
+                                                                                    raw.get(
+                                                                                        "properties"
+                                                                                    )
+                                                                                    or {}
+                                                                                )
+                                                                                if not dev_data.get(
+                                                                                    "model"
+                                                                                ):
+                                                                                    dev_data[
+                                                                                        "model"
+                                                                                    ] = props.get(
+                                                                                        "ID_MODEL"
+                                                                                    ) or props.get(
+                                                                                        "ID_MODEL_FROM_DATABASE"
+                                                                                    )
+                                                                                if not dev_data.get(
+                                                                                    "manufacturer"
+                                                                                ):
+                                                                                    dev_data[
+                                                                                        "manufacturer"
+                                                                                    ] = props.get(
+                                                                                        "ID_VENDOR"
+                                                                                    ) or props.get(
+                                                                                        "ID_VENDOR_FROM_DATABASE"
+                                                                                    )
+                                                                                break
+                                                                        except Exception:
+                                                                            continue
+                                                                except Exception:
+                                                                    pass
+
                                                             row = win._create_device_row(
                                                                 dev_data, is_usb=True
                                                             )
                                                             win.usb_group.add(row)
-                                                            entry["row"] = row
-                                                            win.usb_group.set_visible(True)
+                                                            # Create a Device object and attach it to the row so
+                                                            # ADB-backed information can be fetched and the UI
+                                                            # can listen for 'info-updated' signals.
+                                                            try:
+                                                                from aurynk.models.device import (
+                                                                    Device,
+                                                                )
+
+                                                                device_obj = Device(
+                                                                    initial=dev_data,
+                                                                    adb_serial=dev_data.get(
+                                                                        "adb_serial"
+                                                                    ),
+                                                                )
+                                                                # store references for later updates
+                                                                entry["row"] = row
+                                                                entry["device_obj"] = device_obj
+                                                                # keep device data in sync with device_obj
+                                                                row._device = device_obj
+
+                                                                def _on_info_updated(devobj):
+                                                                    try:
+                                                                        new_data = devobj.to_dict()
+                                                                        # Update stored data and refresh labels
+                                                                        try:
+                                                                            # Try to find our serial key in win.usb_rows
+                                                                            s = new_data.get(
+                                                                                "adb_serial"
+                                                                            ) or new_data.get(
+                                                                                "serial"
+                                                                            )
+                                                                            k = None
+                                                                            if s:
+                                                                                try:
+                                                                                    k = (
+                                                                                        win._norm_serial(
+                                                                                            s
+                                                                                        )
+                                                                                        or s
+                                                                                    )
+                                                                                except Exception:
+                                                                                    k = s
+                                                                            if (
+                                                                                k
+                                                                                and k
+                                                                                in win.usb_rows
+                                                                            ):
+                                                                                win.usb_rows[k][
+                                                                                    "data"
+                                                                                ] = new_data
+                                                                                try:
+                                                                                    from aurynk.services.tray_service import (
+                                                                                        _update_device_row_labels,
+                                                                                    )
+
+                                                                                    _update_device_row_labels(
+                                                                                        row,
+                                                                                        new_data,
+                                                                                    )
+                                                                                except Exception:
+                                                                                    pass
+                                                                        except Exception:
+                                                                            pass
+                                                                        # Also trigger a tray update if app supports it
+                                                                        try:
+                                                                            app_ctx = app
+                                                                            if hasattr(
+                                                                                app_ctx,
+                                                                                "send_status_to_tray",
+                                                                            ):
+                                                                                app_ctx.send_status_to_tray()
+                                                                        except Exception:
+                                                                            pass
+                                                                    except Exception:
+                                                                        pass
+
+                                                                try:
+                                                                    device_obj.connect(
+                                                                        "info-updated",
+                                                                        _on_info_updated,
+                                                                    )
+                                                                except Exception:
+                                                                    pass
+
+                                                                # Kick off an asynchronous fetch of adb-backed details if we
+                                                                # already have an adb serial available.
+                                                                try:
+                                                                    if device_obj.adb_serial:
+                                                                        device_obj.fetch_details()
+                                                                except Exception:
+                                                                    pass
+                                                            except Exception:
+                                                                # If Device couldn't be created, still record row
+                                                                entry["row"] = row
+                                                            try:
+                                                                win.usb_group.set_visible(True)
+                                                            except Exception:
+                                                                pass
                                                         except Exception:
                                                             # Creating a row failed; ignore
                                                             pass

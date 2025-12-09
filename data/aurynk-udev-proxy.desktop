@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Aurynk USB Monitor
+Comment=USB device monitoring helper for Aurynk (required for Flatpak)
+Exec=aurynk_udev_proxy.py
+Icon=io.github.IshuSinghSE.aurynk
+Terminal=false
+Categories=Utility;
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+X-KDE-autostart-after=panel

@@ -289,14 +289,14 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # USB Detection group
         detection_group = Adw.PreferencesGroup()
-        detection_group.set_title(_("USB Detection"))
+        detection_group.set_title(_("USB Detection (experimental)"))
         detection_group.set_description(_("Settings for USB connected devices"))
 
         # Auto-detect USB devices
         auto_detect = Adw.SwitchRow()
         auto_detect.set_title(_("Auto-detect USB Devices"))
         auto_detect.set_subtitle(
-            _("Automatically detect and display USB connected Android devices")
+            _("Automatically detect and display USB connected Android devices (expermimental)")
         )
         auto_detect.set_active(self.settings.get("usb", "auto_detect", True))
         auto_detect.connect("notify::active", self._on_usb_auto_detect_changed)

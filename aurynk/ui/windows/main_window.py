@@ -11,6 +11,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
 from aurynk.core.adb_manager import ADBController
 from aurynk.core.scrcpy_runner import ScrcpyManager
+from aurynk.models.device import Device
 from aurynk.services.usb_monitor import USBMonitor
 from aurynk.ui.windows.about_window import AboutWindow
 from aurynk.ui.windows.settings_window import SettingsWindow
@@ -35,10 +36,22 @@ class AurynkWindow(Adw.ApplicationWindow):
         self.adb_controller = ADBController()
 
         # Initialize USB Monitor
-        self.usb_monitor = USBMonitor()
-        self.usb_monitor.connect("device-connected", self._on_usb_device_connected)
-        self.usb_monitor.connect("device-disconnected", self._on_usb_device_disconnected)
-        self.usb_monitor.start()
+        # In Flatpak, we rely on the udev proxy helper instead of direct USB monitoring
+        # because pyudev cannot access udev from inside the sandbox
+        import os
+
+        self._is_flatpak = os.path.exists("/.flatpak-info")
+
+        if not self._is_flatpak:
+            # Native mode: use direct USB monitoring
+            self.usb_monitor = USBMonitor()
+            self.usb_monitor.connect("device-connected", self._on_usb_device_connected)
+            self.usb_monitor.connect("device-disconnected", self._on_usb_device_disconnected)
+            self.usb_monitor.start()
+        else:
+            # Flatpak mode: USB events will come via udev proxy subscription
+            self.usb_monitor = None
+            logger.info("Running in Flatpak - USB monitoring via udev proxy helper")
 
         # Track USB device rows: serial -> widget
         self.usb_rows = {}
@@ -212,7 +225,7 @@ class AurynkWindow(Adw.ApplicationWindow):
         AboutWindow.show(self)
 
     def do_close(self):
-        if hasattr(self, "usb_monitor"):
+        if hasattr(self, "usb_monitor") and self.usb_monitor:
             self.usb_monitor.stop()
         unregister_device_change_callback(self._device_change_callback)
         super().do_close()
@@ -465,9 +478,11 @@ class AurynkWindow(Adw.ApplicationWindow):
             app.send_status_to_tray()
 
     def _refresh_usb_list(self):
-        devices = self.usb_monitor.get_connected_devices()
-        for device in devices:
-            self._add_usb_device_row(device)
+        if self.usb_monitor:
+            devices = self.usb_monitor.get_connected_devices()
+            for device in devices:
+                self._add_usb_device_row(device)
+        # In Flatpak mode, USB devices come via udev proxy subscription events
 
     def _add_usb_device_row(self, device):
         serial = device.get("ID_SERIAL")
@@ -550,8 +565,6 @@ class AurynkWindow(Adw.ApplicationWindow):
 
             if matched_serial:
                 dev_data["adb_serial"] = matched_serial
-                # Fetch full device info via ADB
-                self._fetch_usb_device_info(dev_data, matched_serial)
                 # Use normalized ADB serial as canonical key when available
                 try:
                     adb_key = self._norm_serial(matched_serial) or matched_serial
@@ -564,14 +577,48 @@ class AurynkWindow(Adw.ApplicationWindow):
         except Exception as e:
             logger.debug(f"Could not fetch USB device info: {e}")
 
+        # Create the UI row immediately with whatever data we have.
         row = self._create_device_row(dev_data, is_usb=True)
         self.usb_group.add(row)
-        # Store both row and device data for tray access using canonical key
-        self.usb_rows[key] = {"row": row, "data": dev_data}
+        # Create a Device object to manage ADB-backed details and signals.
+        device_obj = Device(initial=dev_data, adb_serial=dev_data.get("adb_serial"))
+        # Attach device_obj to row and store in usb_rows so other code can access it
+        self.usb_rows[key] = {"row": row, "data": dev_data, "device_obj": device_obj}
+        row._device = device_obj
         # Store device path -> key mapping for disconnect detection
         device_path = device.device_path
         self.usb_device_paths[device_path] = key
+
+        # Show USB group when device is added
         self.usb_group.set_visible(True)
+
+        # When the Device object emits 'info-updated', refresh the row labels
+        try:
+
+            def _on_info_updated(devobj):
+                try:
+                    new_data = devobj.to_dict()
+                    # update stored data and refresh labels
+                    if key in self.usb_rows:
+                        self.usb_rows[key]["data"] = new_data
+                        try:
+                            from aurynk.services.tray_service import _update_device_row_labels
+
+                            _update_device_row_labels(row, new_data)
+                        except Exception:
+                            pass
+                        app = self.get_application()
+                        if hasattr(app, "send_status_to_tray"):
+                            app.send_status_to_tray()
+                except Exception:
+                    pass
+
+            device_obj.connect("info-updated", _on_info_updated)
+            # Start the background fetch asynchronously (non-blocking)
+            if device_obj.adb_serial:
+                device_obj.fetch_details()
+        except Exception:
+            pass
 
         # Update tray status after adding USB device
         app = self.get_application()
@@ -652,6 +699,7 @@ class AurynkWindow(Adw.ApplicationWindow):
                     del self.usb_device_paths[path]
                     break
 
+        # Hide USB group when no USB devices
         if not self.usb_rows:
             self.usb_group.set_visible(False)
 
@@ -659,6 +707,62 @@ class AurynkWindow(Adw.ApplicationWindow):
         app = self.get_application()
         if hasattr(app, "send_status_to_tray"):
             app.send_status_to_tray()
+
+    def _background_fetch_and_update(self, key, adb_serial):
+        """Background thread: fetch ADB-backed device info and update UI."""
+        try:
+            # Ensure we have a dev_data object to populate
+            entry = self.usb_rows.get(key)
+            if not entry:
+                return
+            dev_data = entry.get("data", {})
+
+            # Reuse existing helper to fetch properties (this blocks but runs off-main-thread)
+            try:
+                self._fetch_usb_device_info(dev_data, adb_serial)
+            except Exception:
+                pass
+
+            # Update stored data and refresh labels on the main thread
+            GLib.idle_add(self._apply_updated_usb_info, key, dev_data)
+        except Exception:
+            pass
+
+    def _apply_updated_usb_info(self, key, dev_data):
+        """Apply updated dev_data to the row and refresh labels.
+
+        Called on the GTK main thread via GLib.idle_add.
+        """
+        try:
+            entry = self.usb_rows.get(key)
+            if not entry:
+                return False
+            row = entry.get("row") if isinstance(entry, dict) else entry
+            # Update stored data
+            try:
+                self.usb_rows[key]["data"] = dev_data
+            except Exception:
+                pass
+
+            # Update the row labels using the shared helper from tray_service
+            try:
+                from aurynk.services.tray_service import _update_device_row_labels
+
+                _update_device_row_labels(row, dev_data)
+            except Exception:
+                # Best-effort: no-op on failure
+                pass
+
+            # Update tray status if available
+            app = self.get_application()
+            if hasattr(app, "send_status_to_tray"):
+                app.send_status_to_tray()
+
+        except Exception:
+            pass
+        finally:
+            # return False to remove idle source if needed
+            return False
 
     def _fetch_usb_device_info(self, dev_data, adb_serial):
         """Fetch detailed USB device information via ADB."""
@@ -746,7 +850,7 @@ class AurynkWindow(Adw.ApplicationWindow):
         name_label.set_halign(Gtk.Align.START)
         info_box.append(name_label)
 
-        # Device details
+        # Device details (show for both USB and wireless)
         details = []
         if device.get("manufacturer"):
             details.append(device["manufacturer"])
@@ -844,7 +948,26 @@ class AurynkWindow(Adw.ApplicationWindow):
         details_btn.set_icon_name("preferences-system-details-symbolic")
         details_btn.set_tooltip_text(_("Details"))
         details_btn.set_valign(Gtk.Align.CENTER)
-        details_btn.connect("clicked", self._on_device_details_clicked, device)
+
+        # Use a small closure so the button resolves the most up-to-date
+        # device object or data at click time. This avoids stale dicts
+        # being passed when tray_service creates a Device object later.
+        def _details_clicked(btn):
+            try:
+                # Prefer a Device object attached to the row
+                target = getattr(row, "_device", None)
+                if target and hasattr(target, "to_dict"):
+                    self._on_device_details_clicked(btn, target)
+                else:
+                    # Fallback to the latest device data dict attached to the row
+                    self._on_device_details_clicked(btn, getattr(row, "_device_data", {}))
+            except Exception:
+                try:
+                    self._on_device_details_clicked(btn, getattr(row, "_device_data", {}))
+                except Exception:
+                    pass
+
+        details_btn.connect("clicked", lambda btn, *a: _details_clicked(btn))
         status_box.append(details_btn)
 
         row.append(status_box)
@@ -1052,8 +1175,44 @@ class AurynkWindow(Adw.ApplicationWindow):
         """Handle device details button click."""
         from aurynk.ui.windows.device_details import DeviceDetailsWindow
 
-        details_window = DeviceDetailsWindow(device, self)
-        details_window.present()
+        # If caller passed a Device object, prefer its live data. If a dict
+        # was passed (common when tray_service created the row), attempt to
+        # locate an associated Device object from `self.usb_rows` so we can
+        # show the most up-to-date information.
+        try:
+            # If it's a Device-like object with `to_dict`, use that
+            if hasattr(device, "to_dict"):
+                data = device.to_dict()
+                # mark as usb if it has an adb serial (or caller likely intended this)
+                if data.get("adb_serial"):
+                    data["is_usb"] = True
+            else:
+                # Try to find a Device object for this serial in usb_rows
+                serial = (
+                    device.get("adb_serial") or device.get("serial") or device.get("short_serial")
+                )
+                data = device
+                if serial:
+                    try:
+                        key = self._norm_serial(serial) or serial
+                    except Exception:
+                        key = serial
+                    entry = self.usb_rows.get(key) if hasattr(self, "usb_rows") else None
+                    if entry and isinstance(entry, dict) and entry.get("device_obj"):
+                        try:
+                            data = entry.get("device_obj").to_dict()
+                            data["is_usb"] = True
+                        except Exception:
+                            data = device
+            details_window = DeviceDetailsWindow(data, self)
+            details_window.present()
+        except Exception:
+            # Fallback to original behavior
+            try:
+                details_window = DeviceDetailsWindow(device, self)
+                details_window.present()
+            except Exception:
+                pass
 
     def _on_search_changed(self, search_entry):
         """Handle search entry text change."""
