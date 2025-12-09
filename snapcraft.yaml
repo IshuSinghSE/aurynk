@@ -1,6 +1,8 @@
 name: aurynk
 base: core24
-version: '1.2.0'
+version: '1.1.0'
+title: Aurynk
+contact: https://github.com/IshuSinghSE/aurynk/issues
 summary: Android Device Manager and Mirroring Tool for Linux
 description: |
   Aurynk is a modern Linux application for managing Android devices, pairing via ADB, and mirroring screens using scrcpy. It features a native GTK4/libadwaita interface, device details, wireless pairing, tray integration, and screenshot capture.
@@ -47,6 +49,21 @@ apps:
 
 parts:
   # ---------------------------------------------------------
+  # PART 0: Desktop entry + icon + launcher (provide early)
+  # ---------------------------------------------------------
+  desktop-entry:
+    plugin: dump
+    source: .
+    override-build: |
+      # Install desktop entry and icon into the part so they are
+      # available early during snap generation/validation.
+      install -D -m644 data/io.github.IshuSinghSE.aurynk.desktop.in $SNAPCRAFT_PART_INSTALL/usr/share/applications/io.github.IshuSinghSE.aurynk.desktop
+      install -D -m644 data/icons/io.github.IshuSinghSE.aurynk.png $SNAPCRAFT_PART_INSTALL/usr/share/icons/hicolor/256x256/apps/io.github.IshuSinghSE.aurynk.png
+    stage:
+      - usr/share/applications/io.github.IshuSinghSE.aurynk.desktop
+      - usr/share/icons/hicolor/256x256/apps/io.github.IshuSinghSE.aurynk.png
+
+  # ---------------------------------------------------------
   # PART 1: The Main Python Application
   # ---------------------------------------------------------
   aurynk:
@@ -76,6 +93,7 @@ parts:
       - gir1.2-gtk-4.0
       - gir1.2-adw-1
       # Fix for missing SVG loader and GStreamer symbols
+      - librsvg2-2
       - libgstreamer1.0-0
       - libgstreamer-plugins-base1.0-0
       # Fix for libproxy and networking
@@ -89,10 +107,7 @@ parts:
     override-build: |
       craftctl default
       # Install metadata manually to /usr/share
-      # Use .desktop.in as source since we don't have translations yet
-      install -D -m644 data/io.github.IshuSinghSE.aurynk.desktop.in $SNAPCRAFT_PART_INSTALL/usr/share/applications/io.github.IshuSinghSE.aurynk.desktop
       install -D -m644 data/io.github.IshuSinghSE.aurynk.metainfo.xml $SNAPCRAFT_PART_INSTALL/usr/share/metainfo/io.github.IshuSinghSE.aurynk.metainfo.xml
-      install -D -m644 data/icons/io.github.IshuSinghSE.aurynk.png $SNAPCRAFT_PART_INSTALL/usr/share/icons/hicolor/256x256/apps/io.github.IshuSinghSE.aurynk.png
       # Install tray helper script
       install -D -m755 scripts/aurynk_tray.py $SNAPCRAFT_PART_INSTALL/lib/python3.12/site-packages/scripts/aurynk_tray.py
     

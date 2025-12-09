@@ -1,0 +1,2 @@
+#!/bin/sh
+exec "$SNAP"/usr/bin/python3 -m aurynk "$@"
