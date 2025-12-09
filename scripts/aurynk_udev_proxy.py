@@ -375,6 +375,65 @@ class UdevProxyServer:
                         if ":" in p:
                             k, v = p.split(":", 1)
                             props[k] = v
+
+                    # Fetch detailed device info via adb shell getprop
+                    try:
+                        # Get manufacturer
+                        proc_mfg = await asyncio.create_subprocess_exec(
+                            "adb",
+                            "-s",
+                            adb_serial,
+                            "shell",
+                            "getprop",
+                            "ro.product.manufacturer",
+                            stdout=asyncio.subprocess.PIPE,
+                            stderr=asyncio.subprocess.PIPE,
+                        )
+                        out_mfg, _ = await asyncio.wait_for(proc_mfg.communicate(), timeout=2.0)
+                        manufacturer = out_mfg.decode("utf-8", errors="ignore").strip()
+                        if manufacturer:
+                            props["manufacturer"] = manufacturer
+                    except Exception:
+                        pass
+
+                    try:
+                        # Get model
+                        proc_model = await asyncio.create_subprocess_exec(
+                            "adb",
+                            "-s",
+                            adb_serial,
+                            "shell",
+                            "getprop",
+                            "ro.product.model",
+                            stdout=asyncio.subprocess.PIPE,
+                            stderr=asyncio.subprocess.PIPE,
+                        )
+                        out_model, _ = await asyncio.wait_for(proc_model.communicate(), timeout=2.0)
+                        model = out_model.decode("utf-8", errors="ignore").strip()
+                        if model:
+                            props["model"] = model
+                    except Exception:
+                        pass
+
+                    try:
+                        # Get Android version
+                        proc_ver = await asyncio.create_subprocess_exec(
+                            "adb",
+                            "-s",
+                            adb_serial,
+                            "shell",
+                            "getprop",
+                            "ro.build.version.release",
+                            stdout=asyncio.subprocess.PIPE,
+                            stderr=asyncio.subprocess.PIPE,
+                        )
+                        out_ver, _ = await asyncio.wait_for(proc_ver.communicate(), timeout=2.0)
+                        version = out_ver.decode("utf-8", errors="ignore").strip()
+                        if version:
+                            props["version"] = version
+                    except Exception:
+                        pass
+
                     info = {
                         "action": "adb_present",
                         "serial": adb_serial,
@@ -430,6 +489,19 @@ class UdevProxyServer:
                         # Add to client list if not already
                         if writer not in self.clients:
                             self.clients.add(writer)
+
+                        # Try a quick adb rescan so the initial subscribe reply
+                        # includes adb-derived properties when possible. Bound
+                        # the wait to avoid blocking subscriber connections for
+                        # too long (adb scans can be slow). If the rescan
+                        # times out or fails, fall back to current device map.
+                        try:
+                            await asyncio.wait_for(self._rescan_adb(), timeout=1.5)
+                        except asyncio.TimeoutError:
+                            LOG.info("adb rescan timed out while handling subscribe")
+                        except Exception:
+                            LOG.debug("adb rescan failed during subscribe", exc_info=True)
+
                         # Respond with current state (include devices)
                         # Return the current state and mark it explicitly as a
                         # 'state' message so subscribers inside the sandbox can

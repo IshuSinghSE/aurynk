@@ -570,6 +570,83 @@ def start_udev_subscription(app):
                                                     ):
                                                         dev_data = entry["data"]
                                                         try:
+                                                            # If adb-derived fields are missing, try to fill from
+                                                            # the raw udev properties included in the same state
+                                                            # message. This helps when the helper couldn't include
+                                                            # adb_props in time but udev provides ID_MODEL/ID_VENDOR.
+                                                            if (
+                                                                not dev_data.get("model")
+                                                                or not dev_data.get("manufacturer")
+                                                            ) and isinstance(
+                                                                msg.get("devices"), list
+                                                            ):
+                                                                try:
+                                                                    for raw in msg.get("devices"):
+                                                                        try:
+                                                                            raw_serial = (
+                                                                                raw.get("serial")
+                                                                                or raw.get(
+                                                                                    "adb_serial"
+                                                                                )
+                                                                                or raw.get(
+                                                                                    "short_serial"
+                                                                                )
+                                                                            )
+                                                                            if not raw_serial:
+                                                                                continue
+                                                                            # quick equality or suffix match
+                                                                            if (
+                                                                                raw_serial
+                                                                                == dev_data.get(
+                                                                                    "adb_serial"
+                                                                                )
+                                                                                or raw_serial
+                                                                                == dev_data.get(
+                                                                                    "serial"
+                                                                                )
+                                                                                or str(
+                                                                                    raw_serial
+                                                                                ).endswith(
+                                                                                    str(
+                                                                                        dev_data.get(
+                                                                                            "adb_serial"
+                                                                                        )
+                                                                                        or ""
+                                                                                    )
+                                                                                )
+                                                                            ):
+                                                                                props = (
+                                                                                    raw.get(
+                                                                                        "properties"
+                                                                                    )
+                                                                                    or {}
+                                                                                )
+                                                                                if not dev_data.get(
+                                                                                    "model"
+                                                                                ):
+                                                                                    dev_data[
+                                                                                        "model"
+                                                                                    ] = props.get(
+                                                                                        "ID_MODEL"
+                                                                                    ) or props.get(
+                                                                                        "ID_MODEL_FROM_DATABASE"
+                                                                                    )
+                                                                                if not dev_data.get(
+                                                                                    "manufacturer"
+                                                                                ):
+                                                                                    dev_data[
+                                                                                        "manufacturer"
+                                                                                    ] = props.get(
+                                                                                        "ID_VENDOR"
+                                                                                    ) or props.get(
+                                                                                        "ID_VENDOR_FROM_DATABASE"
+                                                                                    )
+                                                                                break
+                                                                        except Exception:
+                                                                            continue
+                                                                except Exception:
+                                                                    pass
+
                                                             row = win._create_device_row(
                                                                 dev_data, is_usb=True
                                                             )
