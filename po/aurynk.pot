@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: aurynk\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-30 00:18+0530\n"
+"POT-Creation-Date: 2025-12-01 01:51+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,817 +17,814 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#. Window properties
-#: aurynk/ui/windows/main_window.py:46
-#: data/io.github.IshuSinghSE.aurynk.desktop.in:2
-#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:6
-msgid "Aurynk"
-msgstr ""
-
-#: aurynk/ui/windows/main_window.py:162
+#: aurynk/ui/windows/main_window.py:161
 msgid "Main Menu"
 msgstr ""
 
 #. Primary menu section
-#: aurynk/ui/windows/main_window.py:166
+#: aurynk/ui/windows/main_window.py:165
 msgid "Preferences"
 msgstr ""
 
-#: aurynk/ui/windows/main_window.py:170
-msgid "About Aurynk"
+#: aurynk/ui/windows/main_window.py:169
+msgid "About"
 msgstr ""
 
-#: aurynk/ui/windows/main_window.py:181
+#: aurynk/ui/windows/main_window.py:180
 msgid "Add Device"
 msgstr ""
 
-#: aurynk/ui/windows/main_window.py:206
+#: aurynk/ui/windows/main_window.py:205
 msgid "Paired Devices"
 msgstr ""
 
-#: aurynk/ui/windows/main_window.py:263
+#: aurynk/ui/windows/main_window.py:262
 msgid "Click to add a device"
 msgstr ""
 
 #. use intermediate variable to avoid f-string escaping issues in older python
-#: aurynk/ui/windows/main_window.py:301
+#: aurynk/ui/windows/main_window.py:300
 msgid "Click \"Add Device\" to get started"
 msgstr ""
 
-#: aurynk/ui/windows/main_window.py:352 aurynk/services/tray_service.py:41
-#: aurynk/services/tray_service.py:103
+#: aurynk/ui/windows/main_window.py:351 aurynk/services/tray_service.py:42
+#: aurynk/services/tray_service.py:104
 msgid "Unknown Device"
 msgstr ""
 
-#: aurynk/ui/windows/main_window.py:384
+#: aurynk/ui/windows/main_window.py:383
 msgid "Disconnect"
 msgstr ""
 
-#: aurynk/ui/windows/main_window.py:387
+#: aurynk/ui/windows/main_window.py:386
 msgid "Connect"
 msgstr ""
 
-#: aurynk/ui/windows/main_window.py:396
+#: aurynk/ui/windows/main_window.py:395
 msgid "Screen Mirror"
 msgstr ""
 
-#: aurynk/ui/windows/main_window.py:409
+#: aurynk/ui/windows/main_window.py:408
 msgid "Details"
 msgstr ""
 
-#: aurynk/ui/windows/main_window.py:438 aurynk/ui/windows/device_details.py:256
-#: aurynk/services/device_monitor.py:454
+#: aurynk/ui/windows/main_window.py:437 aurynk/services/device_monitor.py:454
 msgid "Remove Device?"
 msgstr ""
 
-#: aurynk/ui/windows/main_window.py:439 aurynk/services/device_monitor.py:456
+#: aurynk/ui/windows/main_window.py:438
+#, python-brace-format
 msgid ""
 "Are you sure you want to remove\n"
-"{} ?"
+"{device} ?"
 msgstr ""
 
 #. Change action button back to Cancel
-#: aurynk/ui/windows/main_window.py:448 aurynk/ui/windows/device_details.py:269
-#: aurynk/ui/dialogs/pairing_dialog.py:96
-#: aurynk/ui/dialogs/pairing_dialog.py:207
+#: aurynk/ui/windows/main_window.py:449 aurynk/ui/windows/device_details.py:268
+#: aurynk/ui/dialogs/pairing_dialog.py:97
+#: aurynk/ui/dialogs/pairing_dialog.py:208
 #: aurynk/services/device_monitor.py:468
 msgid "Cancel"
 msgstr ""
 
-#: aurynk/ui/windows/main_window.py:449 aurynk/ui/windows/device_details.py:270
+#: aurynk/ui/windows/main_window.py:450 aurynk/ui/windows/device_details.py:269
 #: aurynk/services/device_monitor.py:469
 msgid "Remove"
 msgstr ""
 
 #. connecting is a status message, we can wrap it, but it has dynamic dots.
 #. "Connecting" should be translated.
-#: aurynk/ui/windows/main_window.py:590
+#: aurynk/ui/windows/main_window.py:591
 msgid "Connecting"
 msgstr ""
 
-#: aurynk/ui/windows/main_window.py:669
+#: aurynk/ui/windows/main_window.py:670
 msgid "Unpair Device?"
 msgstr ""
 
-#: aurynk/ui/windows/main_window.py:672
+#: aurynk/ui/windows/main_window.py:673
 msgid "Are you sure you want to unpair device {}?"
 msgstr ""
 
 #. Window properties
-#: aurynk/ui/windows/settings_window.py:31
+#: aurynk/ui/windows/settings_window.py:28
 msgid "Settings"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:66
+#: aurynk/ui/windows/settings_window.py:63
 msgid "Application"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:71
+#: aurynk/ui/windows/settings_window.py:68
 msgid "Appearance"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:75
+#: aurynk/ui/windows/settings_window.py:72
 msgid "Theme"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:76
+#: aurynk/ui/windows/settings_window.py:73
 msgid "Choose the application theme"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:78
+#: aurynk/ui/windows/settings_window.py:75
 msgid "System"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:78
+#: aurynk/ui/windows/settings_window.py:75
 msgid "Light"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:78
+#: aurynk/ui/windows/settings_window.py:75
 msgid "Dark"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:92
+#: aurynk/ui/windows/settings_window.py:89
 msgid "General"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:93
+#: aurynk/ui/windows/settings_window.py:90
 msgid "Application behavior settings"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:97
+#: aurynk/ui/windows/settings_window.py:94
 msgid "Auto Connect"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:98
+#: aurynk/ui/windows/settings_window.py:95
 msgid "Automatically connect to devices when detected"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:105
+#: aurynk/ui/windows/settings_window.py:102
 msgid "Show Notifications"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:106
+#: aurynk/ui/windows/settings_window.py:103
 msgid "Display system notifications for device events"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:113
+#: aurynk/ui/windows/settings_window.py:110
 msgid "Monitor Interval"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:114
+#: aurynk/ui/windows/settings_window.py:111
 msgid "Device monitoring interval in seconds"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:131
+#: aurynk/ui/windows/settings_window.py:128
 msgid "Behavior"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:135
+#: aurynk/ui/windows/settings_window.py:132
 msgid "Close to Tray"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:136
+#: aurynk/ui/windows/settings_window.py:133
 msgid "Hide window to system tray when closing (X)"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:143
+#: aurynk/ui/windows/settings_window.py:140
 msgid "Start Minimized"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:144
+#: aurynk/ui/windows/settings_window.py:141
 msgid "Start application minimized to tray"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:151
+#: aurynk/ui/windows/settings_window.py:148
 msgid "Start on System Startup"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:152
+#: aurynk/ui/windows/settings_window.py:149
 msgid "Automatically start Aurynk when you log in"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:163
+#: aurynk/ui/windows/settings_window.py:160
 #: data/io.github.IshuSinghSE.aurynk.metainfo.xml:43
 msgid "Device"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:168
+#: aurynk/ui/windows/settings_window.py:165
 msgid "Connection"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:169
+#: aurynk/ui/windows/settings_window.py:166
 msgid "ADB connection settings"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:173
+#: aurynk/ui/windows/settings_window.py:170
 msgid "ADB Path"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:174
+#: aurynk/ui/windows/settings_window.py:171
 msgid "Path to adb (leave blank for system default)"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:195
+#: aurynk/ui/windows/settings_window.py:192
 msgid "Connection Timeout"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:196
+#: aurynk/ui/windows/settings_window.py:193
 msgid "Timeout for ADB connections in seconds"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:211
+#: aurynk/ui/windows/settings_window.py:208
 msgid "Max Retry Attempts"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:212
+#: aurynk/ui/windows/settings_window.py:209
 msgid "Maximum number of connection retry attempts"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:229
+#: aurynk/ui/windows/settings_window.py:226
 msgid "Keep Alive Connection Interval"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:230
+#: aurynk/ui/windows/settings_window.py:227
 msgid "Keep the connection alive (0 to disable)"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:245
+#: aurynk/ui/windows/settings_window.py:242
 msgid "Security"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:249
+#: aurynk/ui/windows/settings_window.py:246
 msgid "Auto-unpair on Disconnect"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:250
+#: aurynk/ui/windows/settings_window.py:247
 msgid "Remove device from paired list when disconnected"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:257
+#: aurynk/ui/windows/settings_window.py:254
 msgid "Require Confirmation for Unpair"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:258
+#: aurynk/ui/windows/settings_window.py:255
 msgid "Show confirmation dialog before unpairing a device"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:269
+#: aurynk/ui/windows/settings_window.py:266
 msgid "Power Management"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:273
+#: aurynk/ui/windows/settings_window.py:270
 msgid "Auto Disconnect on Sleep"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:274
+#: aurynk/ui/windows/settings_window.py:271
 msgid "Disconnect devices when system goes to sleep"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:292
+#: aurynk/ui/windows/settings_window.py:289
 #: data/io.github.IshuSinghSE.aurynk.metainfo.xml:42
 msgid "Mirroring"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:297
+#: aurynk/ui/windows/settings_window.py:294
 msgid "Session Options"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:301
+#: aurynk/ui/windows/settings_window.py:298
 msgid "Scrcpy Path"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:302
+#: aurynk/ui/windows/settings_window.py:299
 msgid "Path to scrcpy binary (leave blank for system default)"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:317
+#: aurynk/ui/windows/settings_window.py:314
 msgid "Select scrcpy Binary"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:320
-#: aurynk/ui/windows/settings_window.py:1062
+#: aurynk/ui/windows/settings_window.py:317
+#: aurynk/ui/windows/settings_window.py:1059
 msgid "Executable files"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:350
+#: aurynk/ui/windows/settings_window.py:347
 msgid "Always on Top"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:351
+#: aurynk/ui/windows/settings_window.py:348
 msgid "Keep mirror window above others."
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:358
+#: aurynk/ui/windows/settings_window.py:355
 msgid "Fullscreen"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:359
+#: aurynk/ui/windows/settings_window.py:356
 msgid "Start in fullscreen mode."
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:366
+#: aurynk/ui/windows/settings_window.py:363
 msgid "Borderless Window"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:367
+#: aurynk/ui/windows/settings_window.py:364
 msgid "Remove window decorations."
 msgstr ""
 
 #. Translators: "Default" is a configuration option value meaning the standard or preset value
-#: aurynk/ui/windows/settings_window.py:374
-#: aurynk/ui/windows/settings_window.py:905
+#: aurynk/ui/windows/settings_window.py:371
+#: aurynk/ui/windows/settings_window.py:902
 msgid "Default"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:380
-#: aurynk/ui/windows/settings_window.py:480
+#: aurynk/ui/windows/settings_window.py:377
+#: aurynk/ui/windows/settings_window.py:477
 msgid "Custom..."
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:398
+#: aurynk/ui/windows/settings_window.py:395
 msgid "Window Initial Size"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:407
-#: aurynk/ui/windows/settings_window.py:411
-#: aurynk/ui/windows/settings_window.py:428
+#: aurynk/ui/windows/settings_window.py:404
+#: aurynk/ui/windows/settings_window.py:408
+#: aurynk/ui/windows/settings_window.py:425
 msgid "Width"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:409
-#: aurynk/ui/windows/settings_window.py:413
-#: aurynk/ui/windows/settings_window.py:428
+#: aurynk/ui/windows/settings_window.py:406
+#: aurynk/ui/windows/settings_window.py:410
+#: aurynk/ui/windows/settings_window.py:425
 msgid "Height"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:416
+#: aurynk/ui/windows/settings_window.py:413
 msgid "Custom Size"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:425
+#: aurynk/ui/windows/settings_window.py:422
 msgid "Let scrcpy decide"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:469
+#: aurynk/ui/windows/settings_window.py:466
 msgid "Window Initial Position"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:471
+#: aurynk/ui/windows/settings_window.py:468
 msgid "Center"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:472
+#: aurynk/ui/windows/settings_window.py:469
 msgid "Top Left"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:473
+#: aurynk/ui/windows/settings_window.py:470
 msgid "Top Center"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:474
+#: aurynk/ui/windows/settings_window.py:471
 msgid "Top Right"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:475
+#: aurynk/ui/windows/settings_window.py:472
 msgid "Center Left"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:476
+#: aurynk/ui/windows/settings_window.py:473
 msgid "Center Right"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:477
+#: aurynk/ui/windows/settings_window.py:474
 msgid "Bottom Left"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:478
+#: aurynk/ui/windows/settings_window.py:475
 msgid "Bottom Center"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:479
+#: aurynk/ui/windows/settings_window.py:476
 msgid "Bottom Right"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:507
+#: aurynk/ui/windows/settings_window.py:504
 msgid "X Position"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:509
+#: aurynk/ui/windows/settings_window.py:506
 msgid "Y Position"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:516
+#: aurynk/ui/windows/settings_window.py:513
 msgid "Custom Position"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:558
+#: aurynk/ui/windows/settings_window.py:555
 msgid "Disable Screensaver"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:559
+#: aurynk/ui/windows/settings_window.py:556
 msgid "Prevent computer screensaver during mirroring."
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:568
+#: aurynk/ui/windows/settings_window.py:565
 msgid "Stream Quality"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:572
+#: aurynk/ui/windows/settings_window.py:569
 msgid "Resolution Limit"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:573
+#: aurynk/ui/windows/settings_window.py:570
 msgid "Limit the maximum dimension of the video stream."
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:574
+#: aurynk/ui/windows/settings_window.py:571
 msgid "Native (Max)"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:599
+#: aurynk/ui/windows/settings_window.py:596
 msgid "Video Bitrate (Mbps)"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:600
+#: aurynk/ui/windows/settings_window.py:597
 msgid "Higher is better quality but uses more bandwidth."
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:607
+#: aurynk/ui/windows/settings_window.py:604
 msgid "Video bitrate in Mbps"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:618
+#: aurynk/ui/windows/settings_window.py:615
 msgid "Frame Rate Cap"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:619
+#: aurynk/ui/windows/settings_window.py:616
 msgid "Limit the frame rate to save resources."
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:620
+#: aurynk/ui/windows/settings_window.py:617
 msgid "Max"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:645
+#: aurynk/ui/windows/settings_window.py:642
 msgid "Video Codec"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:646
+#: aurynk/ui/windows/settings_window.py:643
 msgid "Codec for video encoding."
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:668
+#: aurynk/ui/windows/settings_window.py:665
 msgid "Audio Input"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:672
+#: aurynk/ui/windows/settings_window.py:669
 msgid "Enable Audio"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:674
+#: aurynk/ui/windows/settings_window.py:671
 msgid ""
 "Stream device audio to PC (experimental, may not work over wireless "
 "connection)."
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:686
+#: aurynk/ui/windows/settings_window.py:683
 msgid "Audio Source (experimental)"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:689
+#: aurynk/ui/windows/settings_window.py:686
 msgid ""
 "Choose between device output or mic (experimental, may not work over "
 "wireless connection)."
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:692
+#: aurynk/ui/windows/settings_window.py:689
 msgid "default"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:692
+#: aurynk/ui/windows/settings_window.py:689
 msgid "output"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:692
+#: aurynk/ui/windows/settings_window.py:689
 msgid "mic"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:712
+#: aurynk/ui/windows/settings_window.py:709
 msgid "Show Touches"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:714
+#: aurynk/ui/windows/settings_window.py:711
 msgid "Visual feedback for touches (only works for physical device input)."
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:745
+#: aurynk/ui/windows/settings_window.py:742
 msgid "Keep Device Screen On (experimental)"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:748
+#: aurynk/ui/windows/settings_window.py:745
 msgid ""
 "Keep device screen on during mirroring (may not work on all devices or "
 "wireless mode)."
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:765
+#: aurynk/ui/windows/settings_window.py:762
 msgid "Turn Device Screen Off"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:766
+#: aurynk/ui/windows/settings_window.py:763
 msgid "Mirror with device screen off."
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:781
+#: aurynk/ui/windows/settings_window.py:778
 msgid "View-only Mode"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:782
+#: aurynk/ui/windows/settings_window.py:779
 msgid "Disable device control (view only)"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:793
+#: aurynk/ui/windows/settings_window.py:790
 msgid "Keyboard/Mouse via OTG (experimental)"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:794
+#: aurynk/ui/windows/settings_window.py:791
 msgid "Control device using OTG keyboard/mouse"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:796
+#: aurynk/ui/windows/settings_window.py:793
 msgid "None"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:797
+#: aurynk/ui/windows/settings_window.py:794
 msgid "Keyboard (uhid)"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:798
+#: aurynk/ui/windows/settings_window.py:795
 msgid "Mouse (uhid)"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:799
+#: aurynk/ui/windows/settings_window.py:796
 msgid "Keyboard (aoa)"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:800
+#: aurynk/ui/windows/settings_window.py:797
 msgid "Mouse (aoa)"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:820
+#: aurynk/ui/windows/settings_window.py:817
 msgid "Recording"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:824
+#: aurynk/ui/windows/settings_window.py:821
 msgid "Record Mirroring"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:825
+#: aurynk/ui/windows/settings_window.py:822
 msgid "Enable/disable recording of mirroring session."
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:836
+#: aurynk/ui/windows/settings_window.py:833
 msgid "Record Format"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:837
+#: aurynk/ui/windows/settings_window.py:834
 msgid "Select recording format."
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:858
+#: aurynk/ui/windows/settings_window.py:855
 msgid "Recording Path"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:873
+#: aurynk/ui/windows/settings_window.py:870
 msgid "Choose Recording Directory"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:898
+#: aurynk/ui/windows/settings_window.py:895
 msgid "Advanced Options (experimental)"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:902
+#: aurynk/ui/windows/settings_window.py:899
 msgid "Hardware Acceleration"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:903
+#: aurynk/ui/windows/settings_window.py:900
 msgid "Use GPU for encoding."
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:923
+#: aurynk/ui/windows/settings_window.py:920
 msgid "No Window"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:924
+#: aurynk/ui/windows/settings_window.py:921
 msgid "Run without a window (background only)"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:935
+#: aurynk/ui/windows/settings_window.py:932
 msgid "No Video"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:936
+#: aurynk/ui/windows/settings_window.py:933
 msgid "Audio/control only (no video stream)"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:947
+#: aurynk/ui/windows/settings_window.py:944
 msgid "No Audio"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:948
+#: aurynk/ui/windows/settings_window.py:945
 msgid "Video/control only (no audio stream)"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:959
+#: aurynk/ui/windows/settings_window.py:956
 msgid "No Control"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:960
+#: aurynk/ui/windows/settings_window.py:957
 msgid "Mirror only, no input"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:1044
+#: aurynk/ui/windows/settings_window.py:1041
 msgid "Invalid path or not executable"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:1047
+#: aurynk/ui/windows/settings_window.py:1044
 msgid "Path to adb binary (leave blank for system default)"
 msgstr ""
 
-#: aurynk/ui/windows/settings_window.py:1056
+#: aurynk/ui/windows/settings_window.py:1053
 msgid "Select ADB Binary"
 msgstr ""
 
-#: aurynk/ui/windows/about_window.py:39
+#: aurynk/ui/windows/about_window.py:36
 msgid ""
 "Android Device Manager for Linux with wireless pairing and mirroring support"
 msgstr ""
 
 #. Add useful links
-#: aurynk/ui/windows/about_window.py:44
+#: aurynk/ui/windows/about_window.py:41
 msgid "Documentation"
 msgstr ""
 
-#: aurynk/ui/windows/about_window.py:45
+#: aurynk/ui/windows/about_window.py:42
 msgid "Source Code"
 msgstr ""
 
-#: aurynk/ui/windows/about_window.py:46
+#: aurynk/ui/windows/about_window.py:43
 msgid "Donate"
 msgstr ""
 
-#: aurynk/ui/windows/about_window.py:50
+#: aurynk/ui/windows/about_window.py:47
 msgid "Built with"
 msgstr ""
 
-#: aurynk/ui/windows/about_window.py:61
+#: aurynk/ui/windows/about_window.py:58
 msgid "Python Libraries"
 msgstr ""
 
-#: aurynk/ui/windows/about_window.py:72
+#: aurynk/ui/windows/about_window.py:69
 msgid "Special Thanks"
 msgstr ""
 
-#: aurynk/ui/windows/device_details.py:26
-msgid "Device: {}"
+#: aurynk/ui/windows/device_details.py:25
+#, python-brace-format
+msgid "Device: {name}"
 msgstr ""
 
-#: aurynk/ui/windows/device_details.py:26
-#: aurynk/ui/windows/device_details.py:124
-#: aurynk/ui/windows/device_details.py:126
-#: aurynk/ui/windows/device_details.py:129
-#: aurynk/ui/windows/device_details.py:131
+#: aurynk/ui/windows/device_details.py:25
+#: aurynk/ui/windows/device_details.py:123
+#: aurynk/ui/windows/device_details.py:125
+#: aurynk/ui/windows/device_details.py:128
+#: aurynk/ui/windows/device_details.py:130
+#: aurynk/ui/windows/device_details.py:184
 #: aurynk/ui/windows/device_details.py:185
 #: aurynk/ui/windows/device_details.py:186
-#: aurynk/ui/windows/device_details.py:187
-#: aurynk/services/device_monitor.py:107 aurynk/core/adb_manager.py:129
-#: aurynk/core/adb_manager.py:261
+#: aurynk/services/device_monitor.py:107 aurynk/core/adb_manager.py:142
+#: aurynk/core/adb_manager.py:291
 msgid "Unknown"
 msgstr ""
 
-#: aurynk/ui/windows/device_details.py:61
+#: aurynk/ui/windows/device_details.py:60
 msgid "Preview"
 msgstr ""
 
-#: aurynk/ui/windows/device_details.py:92
+#: aurynk/ui/windows/device_details.py:91
 msgid "Refresh Screenshot"
 msgstr ""
 
-#: aurynk/ui/windows/device_details.py:100
+#: aurynk/ui/windows/device_details.py:99
 msgid "Refresh All Device Data"
 msgstr ""
 
-#: aurynk/ui/windows/device_details.py:107
+#: aurynk/ui/windows/device_details.py:106
+#: aurynk/ui/windows/device_details.py:255
 msgid "Remove Device"
 msgstr ""
 
-#: aurynk/ui/windows/device_details.py:122
+#: aurynk/ui/windows/device_details.py:121
 msgid "Basic Information"
 msgstr ""
 
-#: aurynk/ui/windows/device_details.py:124
+#: aurynk/ui/windows/device_details.py:123
 msgid "Device Name"
 msgstr ""
 
-#: aurynk/ui/windows/device_details.py:126
+#: aurynk/ui/windows/device_details.py:125
 msgid "Manufacturer"
 msgstr ""
 
-#: aurynk/ui/windows/device_details.py:129
+#: aurynk/ui/windows/device_details.py:128
 msgid "Android Version"
 msgstr ""
 
-#: aurynk/ui/windows/device_details.py:131
+#: aurynk/ui/windows/device_details.py:130
 msgid "IP Address"
 msgstr ""
 
-#: aurynk/ui/windows/device_details.py:137
+#: aurynk/ui/windows/device_details.py:136
 msgid "Specifications"
 msgstr ""
 
-#: aurynk/ui/windows/device_details.py:140
+#: aurynk/ui/windows/device_details.py:139
 msgid "RAM"
 msgstr ""
 
-#: aurynk/ui/windows/device_details.py:140
-#: aurynk/ui/windows/device_details.py:142
-#: aurynk/ui/windows/device_details.py:145
+#: aurynk/ui/windows/device_details.py:139
+#: aurynk/ui/windows/device_details.py:141
+#: aurynk/ui/windows/device_details.py:144
 msgid "Loading..."
 msgstr ""
 
-#: aurynk/ui/windows/device_details.py:142
+#: aurynk/ui/windows/device_details.py:141
 msgid "Storage"
 msgstr ""
 
-#: aurynk/ui/windows/device_details.py:145
+#: aurynk/ui/windows/device_details.py:144
 msgid "Battery"
 msgstr ""
 
-#: aurynk/ui/windows/device_details.py:192
+#: aurynk/ui/windows/device_details.py:191
 msgid "Refreshing..."
 msgstr ""
 
 #. Use line break and wrapping for the body label
-#: aurynk/ui/windows/device_details.py:258
+#: aurynk/ui/windows/device_details.py:257
+#, python-brace-format
 msgid ""
 "Are you sure you want to remove \n"
-" {} ?"
+" {device} ?"
 msgstr ""
 
-#: aurynk/ui/windows/device_details.py:259
+#: aurynk/ui/windows/device_details.py:258
 msgid "this device"
 msgstr ""
 
-#: aurynk/ui/dialogs/pairing_dialog.py:20
+#: aurynk/ui/dialogs/pairing_dialog.py:21
 msgid "Pair New Device"
 msgstr ""
 
-#: aurynk/ui/dialogs/pairing_dialog.py:47
+#: aurynk/ui/dialogs/pairing_dialog.py:48
 msgid "How to Pair New Device"
 msgstr ""
 
 #. translators: <b> and </b> tags are used for bold text, please preserve them in the translation.
-#: aurynk/ui/dialogs/pairing_dialog.py:61
+#: aurynk/ui/dialogs/pairing_dialog.py:62
 msgid "1. On your phone, go to <b>Developer Options → Wireless Debugging</b>"
 msgstr ""
 
 #. translators: <b> and </b> tags are used for bold text, please preserve them in the translation.
-#: aurynk/ui/dialogs/pairing_dialog.py:68
+#: aurynk/ui/dialogs/pairing_dialog.py:69
 msgid "2. Tap <b>Pair device with QR code</b> and scan below"
 msgstr ""
 
 #. Status label (centered, subtle)
-#: aurynk/ui/dialogs/pairing_dialog.py:89
+#: aurynk/ui/dialogs/pairing_dialog.py:90
 msgid "Generating QR code..."
 msgstr ""
 
-#: aurynk/ui/dialogs/pairing_dialog.py:123
+#: aurynk/ui/dialogs/pairing_dialog.py:124
 msgid "Scan the QR code with your phone"
 msgstr ""
 
-#: aurynk/ui/dialogs/pairing_dialog.py:146 aurynk/ui/widgets/qr_view.py:80
+#: aurynk/ui/dialogs/pairing_dialog.py:147 aurynk/ui/widgets/qr_view.py:79
 msgid "Error: {}"
 msgstr ""
 
-#: aurynk/ui/dialogs/pairing_dialog.py:150
-msgid "Device found: {}"
+#: aurynk/ui/dialogs/pairing_dialog.py:151
+#, python-brace-format
+msgid "Device found: {name}"
 msgstr ""
 
-#: aurynk/ui/dialogs/pairing_dialog.py:169
+#: aurynk/ui/dialogs/pairing_dialog.py:170
 msgid "✓ Device paired successfully!"
 msgstr ""
 
-#: aurynk/ui/dialogs/pairing_dialog.py:186
+#: aurynk/ui/dialogs/pairing_dialog.py:187
 msgid "QR code expired. Try again."
 msgstr ""
 
 #. Change action button to Try Again
-#: aurynk/ui/dialogs/pairing_dialog.py:188
+#: aurynk/ui/dialogs/pairing_dialog.py:189
 msgid "Try Again"
 msgstr ""
 
 #. Fallback if qrcode library is not available
-#: aurynk/ui/widgets/qr_view.py:40
+#: aurynk/ui/widgets/qr_view.py:39
 msgid "QR code library not available"
 msgstr ""
 
@@ -835,40 +832,56 @@ msgstr ""
 msgid "Unlock device to auto-connect"
 msgstr ""
 
-#: aurynk/utils/notify.py:27
+#: aurynk/services/device_monitor.py:456
+msgid ""
+"Are you sure you want to remove\n"
+"{} ?"
+msgstr ""
+
+#: aurynk/utils/notify.py:28
 msgid "Device Connected"
 msgstr ""
 
-#: aurynk/utils/notify.py:27
-msgid "{} is now connected."
+#: aurynk/utils/notify.py:28
+#, python-brace-format
+msgid "{name} is now connected."
 msgstr ""
 
-#: aurynk/utils/notify.py:31
+#: aurynk/utils/notify.py:32
 msgid "Device Disconnected"
 msgstr ""
 
-#: aurynk/utils/notify.py:31
-msgid "{} is now disconnected."
+#: aurynk/utils/notify.py:33
+#, python-brace-format
+msgid "{name} is now disconnected."
 msgstr ""
 
-#: aurynk/utils/notify.py:35
+#: aurynk/utils/notify.py:37
 msgid "Device Error"
 msgstr ""
 
-#: aurynk/utils/notify.py:35
-msgid "{}: {}"
+#: aurynk/utils/notify.py:38
+#, python-brace-format
+msgid "{name}: {extra}"
 msgstr ""
 
-#: aurynk/utils/notify.py:38
+#: aurynk/utils/notify.py:42
 msgid "Device Event"
 msgstr ""
 
-#: aurynk/core/adb_manager.py:129
-msgid "✓ Device saved: {}"
+#: aurynk/core/adb_manager.py:142
+#, python-brace-format
+msgid "✓ Device saved: {name}"
 msgstr ""
 
-#: aurynk/core/scrcpy_runner.py:64
-msgid "Aurynk: {}"
+#: aurynk/core/scrcpy_runner.py:97
+#, python-brace-format
+msgid "Aurynk: {serial_number}"
+msgstr ""
+
+#: data/io.github.IshuSinghSE.aurynk.desktop.in:2
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:6
+msgid "Aurynk"
 msgstr ""
 
 #: data/io.github.IshuSinghSE.aurynk.desktop.in:3

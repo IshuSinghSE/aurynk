@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import os
 import socket
 import threading
@@ -12,7 +11,7 @@ import signal
 import sys
 
 from gi.repository import AyatanaAppIndicator3 as AppIndicator
-from gi.repository import Gtk
+from gi.repository import GLib, Gtk
 
 try:
     from aurynk.utils.logger import get_logger
@@ -149,14 +148,16 @@ class TrayHelper:
                     msg = data.decode()
                     if msg.strip() == "quit":
                         logger.info("Received 'quit'. Quitting tray helper.")
-                        Gtk.main_quit()
+                        # Schedule quit on the GTK main loop thread
+                        GLib.idle_add(Gtk.main_quit)
                         break
                     try:
                         status = json.loads(msg)
                         if "devices" in status:
-                            self.update_device_menu(status["devices"])
+                            # Schedule menu update on GTK main loop
+                            GLib.idle_add(self.update_device_menu, status["devices"])
                         else:
-                            self.update_device_menu([])
+                            GLib.idle_add(self.update_device_menu, [])
                     except Exception:
                         # Ignore legacy single-device logic
                         pass
@@ -171,23 +172,28 @@ class TrayHelper:
         if devices:
             for device in devices:
                 device_menu = Gtk.Menu()
+                is_usb = device.get("is_usb", False)
 
-                connect_item = Gtk.MenuItem(label="Connect")
-                connect_item.set_sensitive(not device.get("connected", False))
-                connect_item.connect("activate", self.on_connect_device, device)
-                connect_item.show()
-                device_menu.append(connect_item)
+                # Only show connect/disconnect for wireless devices
+                if not is_usb:
+                    connect_item = Gtk.MenuItem(label="Connect")
+                    connect_item.set_sensitive(not device.get("connected", False))
+                    connect_item.connect("activate", self.on_connect_device, device)
+                    connect_item.show()
+                    device_menu.append(connect_item)
 
-                disconnect_item = Gtk.MenuItem(label="Disconnect")
-                disconnect_item.set_sensitive(device.get("connected", False))
-                disconnect_item.connect("activate", self.on_disconnect_device, device)
-                disconnect_item.show()
-                device_menu.append(disconnect_item)
+                    disconnect_item = Gtk.MenuItem(label="Disconnect")
+                    disconnect_item.set_sensitive(device.get("connected", False))
+                    disconnect_item.connect("activate", self.on_disconnect_device, device)
+                    disconnect_item.show()
+                    device_menu.append(disconnect_item)
 
                 is_mirroring = device.get("mirroring", False)
                 mirror_label = "Stop Mirroring" if is_mirroring else "Start Mirroring"
                 mirror_item = Gtk.MenuItem(label=mirror_label)
-                mirror_item.set_sensitive(device.get("connected", False))
+                # USB devices are always ready to mirror, wireless need connection
+                is_usb = device.get("is_usb", False)
+                mirror_item.set_sensitive(is_usb or device.get("connected", False))
                 mirror_item.connect("activate", self.on_mirror_device, device)
                 mirror_item.show()
                 device_menu.append(mirror_item)
@@ -231,15 +237,23 @@ class TrayHelper:
         separator2.show()
         new_menu.append(separator2)
 
-        about_item = Gtk.MenuItem(label="About Aurynk")
+        about_item = Gtk.MenuItem(label="About")
         about_item.connect("activate", self.on_about)
         about_item.show()
         new_menu.append(about_item)
 
-        quit_item = Gtk.MenuItem(label="Quit Aurynk")
+        quit_item = Gtk.MenuItem(label="Quit")
         quit_item.connect("activate", self.on_quit)
         quit_item.show()
         new_menu.append(quit_item)
+
+        # Properly destroy old menu before replacing to avoid GTK warnings
+        old_menu = self.menu
+        if old_menu is not None:
+            # Detach from indicator first
+            self.indicator.set_menu(None)
+            # Let old menu cleanup happen in next idle cycle
+            GLib.idle_add(lambda: old_menu.destroy() if old_menu else None)
 
         # Replace the menu and set it on the indicator
         self.menu = new_menu

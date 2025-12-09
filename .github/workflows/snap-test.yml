@@ -7,8 +7,10 @@ on:
       - 'snap/**'
       - 'aurynk/**'
   pull_request:
+    branches: [ "main"]
     paths:
       - 'snap/**'
+  workflow_dispatch:
 
 jobs:
   snap-build:

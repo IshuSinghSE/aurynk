@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Syncs your Markdown CHANGELOG.md to debian/changelog in Debian format.
 - Uses the latest release from CHANGELOG.md as the top entry.
