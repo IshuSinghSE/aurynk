@@ -27,6 +27,7 @@
   </developer>
   <url type="homepage">https://github.com/IshuSinghSE/aurynk</url>
   <url type="bugtracker">https://github.com/IshuSinghSE/aurynk/issues</url>
+  <url type="translations">https://hosted.weblate.org/engage/aurynk/</url>
   <url type="donation">https://github.com/sponsors/IshuSinghSE</url>
   <launchable type="desktop-id">io.github.IshuSinghSE.aurynk.desktop</launchable>
   <provides>
@@ -73,22 +74,20 @@
         <p>Enhanced USB device support with complete device information display and improved Flatpak integration.</p>
         <p>🚀 New Features</p>
         <ul>
-          <li>Complete USB Device Details: Shows manufacturer, model, and Android version for USB-connected devices in Flatpak.</li>
-          <li>Smart USB Group Visibility: USB device section automatically shows/hides based on connected devices.</li>
-          <li>Improved udev Integration: Reliable USB device detection and removal handling via host helper service.</li>
-          <li>Device Signal Architecture: Asynchronous ADB data fetching with GObject signals for responsive UI updates.</li>
+          <li>USB support: Device can be connected via USB and automatically detected.</li>
+          <li>Smart USB Group Visibility: USB device section automatically show hides based on connected devices.</li>
         </ul>
         <p>🔧 Improvements</p>
         <ul>
-          <li>Enhanced Flatpak sandbox communication with host udev proxy.</li>
           <li>Better device row management with proper cleanup on disconnect.</li>
-          <li>Improved UI responsiveness when devices connect/disconnect.</li>
+          <li>Improved UI responsiveness when devices connect and disconnect.</li>
         </ul>
         <p>🐛 Bug Fixes</p>
         <ul>
           <li>Fixed USB devices not showing complete details in Flatpak.</li>
           <li>Fixed device rows not being removed when USB devices are unplugged.</li>
           <li>Fixed UI freezing while fetching device information.</li>
+          <li>App icon now appears correctly.</li>
         </ul>
       </description>
     </release>

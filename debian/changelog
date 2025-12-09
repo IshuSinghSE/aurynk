@@ -2,15 +2,13 @@ aurynk (1.2.0) noble; urgency=medium
   Enhanced USB device support with complete device information display and improved Flatpak integration.
   * Complete USB Device Details: Shows manufacturer, model, and Android version for USB-connected devices in Flatpak.
   * Smart USB Group Visibility: USB device section automatically shows/hides based on connected devices.
-  * Improved udev Integration: Reliable USB device detection and removal handling via host helper service.
-  * Device Signal Architecture: Asynchronous ADB data fetching with GObject signals for responsive UI updates.
-  * Enhanced Flatpak sandbox communication with host udev proxy.
   * Better device row management with proper cleanup on disconnect.
+  * Improved UI responsiveness when devices connect/disconnect.
   * Fixed USB devices not showing complete details in Flatpak.
   * Fixed device rows not being removed when USB devices are unplugged.
   * Fixed UI freezing while fetching device information.
 
- -- IshuSinghSE <ishu.111636@yahoo.com>  Mon, 09 Dec 2025 00:00:00 +0530
+ -- Ishu Singh <ishu.111636@yahoo.com>  Tue, 09 Dec 2025 18:46:52  +0530
 
 aurynk (1.1.0) noble; urgency=medium
   A massive update with a complete settings overhaul, advanced mirroring controls, and many new features to give you full control over your experience.
@@ -26,7 +24,7 @@ aurynk (1.1.0) noble; urgency=medium
   * User Interface: A completely refreshed and consistent user interface across the application.
   * Enhanced Stability: Improved settings management, device monitoring, and tray icon integration.
 
- -- Ishu Singh <ishu.111636@yahoo.com>  Wed, 26 Nov 2025 23:11:28  +0530
+ -- Ishu Singh <ishu.111636@yahoo.com>  Tue, 09 Dec 2025 18:46:52  +0530
 
 aurynk (1.0.5) noble; urgency=medium
   Critical bug fixes and improvements to enhance application stability and reliability, including a new logging system.
@@ -36,14 +34,14 @@ aurynk (1.0.5) noble; urgency=medium
   * Fixed GPU permission issues for the Flatpak version.
   * Added a centralized logging system for better debugging.
 
- -- Ishu Singh <ishu.111636@yahoo.com>  Wed, 26 Nov 2025 23:11:28  +0530
+ -- Ishu Singh <ishu.111636@yahoo.com>  Tue, 09 Dec 2025 18:46:52  +0530
 
 aurynk (1.0.4) noble; urgency=medium
   A maintenance release with documentation updates.
   * Updated the README with new screenshots.
   * General documentation improvements.
 
- -- Ishu Singh <ishu.111636@yahoo.com>  Wed, 26 Nov 2025 23:11:28  +0530
+ -- Ishu Singh <ishu.111636@yahoo.com>  Tue, 09 Dec 2025 18:46:52  +0530
 
 aurynk (1.0.3) noble; urgency=medium
   Under-the-hood improvements for better performance and modern platform support.
@@ -51,7 +49,7 @@ aurynk (1.0.3) noble; urgency=medium
   * Switched to an inline Ayatana stack.
   * Refreshed Flatpak and Debian build artifacts.
 
- -- Ishu Singh <ishu.111636@yahoo.com>  Wed, 26 Nov 2025 23:11:28  +0530
+ -- Ishu Singh <ishu.111636@yahoo.com>  Tue, 09 Dec 2025 18:46:52  +0530
 
 aurynk (1.0.2) noble; urgency=medium
   Important bug fixes to improve reliability and prevent crashes.
@@ -60,10 +58,10 @@ aurynk (1.0.2) noble; urgency=medium
   * Fixed an issue where the tray command listener couldn't be stopped.
   * Added a PID fallback for better tray icon reliability.
 
- -- Ishu Singh <ishu.111636@yahoo.com>  Wed, 26 Nov 2025 23:11:28  +0530
+ -- Ishu Singh <ishu.111636@yahoo.com>  Tue, 09 Dec 2025 18:46:52  +0530
 
 aurynk (0.1.0) noble; urgency=medium
   Initial release of Aurynk with device management, wireless pairing, low-latency mirroring, and screenshot support for Flatpak and Debian.
 
- -- Ishu Singh <ishu.111636@yahoo.com>  Wed, 26 Nov 2025 23:11:28  +0530
+ -- Ishu Singh <ishu.111636@yahoo.com>  Tue, 09 Dec 2025 18:46:52  +0530
 
