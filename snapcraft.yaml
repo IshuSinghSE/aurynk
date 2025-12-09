@@ -1,6 +1,6 @@
 name: aurynk
 base: core24
-version: '1.1.0'
+version: '1.2.0'
 summary: Android Device Manager and Mirroring Tool for Linux
 description: |
   Aurynk is a modern Linux application for managing Android devices, pairing via ADB, and mirroring screens using scrcpy. It features a native GTK4/libadwaita interface, device details, wireless pairing, tray integration, and screenshot capture.

@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2025-12-09
+
+Enhanced USB device support with complete device information display and improved Flatpak integration.
+
+### 🚀 New Features
+- **Complete USB Device Details:** Shows manufacturer, model, and Android version for USB-connected devices in Flatpak.
+- **Smart USB Group Visibility:** USB device section automatically shows/hides based on connected devices.
+- **Improved udev Integration:** Reliable USB device detection and removal handling via host helper service.
+- **Device Signal Architecture:** Asynchronous ADB data fetching with GObject signals for responsive UI updates.
+
+### 🔧 Improvements
+- **Enhanced Flatpak sandbox communication** with host udev proxy.
+- **Better device row management** with proper cleanup on disconnect.
+- **Improved UI responsiveness** when devices connect/disconnect.
+
+### 🐛 Bug Fixes
+- Fixed USB devices not showing complete details in Flatpak.
+- Fixed device rows not being removed when USB devices are unplugged.
+- Fixed UI freezing while fetching device information.
+
 ## [1.1.0] - 2025-11-26
 
 A massive update with a complete settings overhaul, advanced mirroring controls, and many new features to give you full control over your experience.
