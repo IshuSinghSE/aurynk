@@ -73,3 +73,17 @@ repo/
 flathub/
 ADB-QR/
 experiments/
+
+# Gradle
+.gradle/
+**/build/
+!src/**/build/
+
+# Rust
+rust_engine/target/
+**/*.rs.bk
+
+# Native libs
+*.so
+*.dll
+*.dylib

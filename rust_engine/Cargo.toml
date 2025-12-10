@@ -1,0 +1,12 @@
+[package]
+name = "rust_engine"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+cpal = "0.15"
+jni = "0.21"
+lazy_static = "1.4"

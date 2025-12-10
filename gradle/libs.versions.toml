@@ -1,0 +1,11 @@
+[versions]
+kotlin = "1.9.22"
+compose = "1.6.0"
+agp = "8.2.0"
+
+[libraries]
+# Add libraries if needed
+
+[plugins]
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose" }
