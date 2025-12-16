@@ -1,6 +1,5 @@
 from typing import Optional
 
-from aurynk.i18n import _
 from aurynk.utils.logger import get_logger
 
 logger = get_logger("Notify")
@@ -25,18 +24,15 @@ def notify_device_event(event: str, device: str = "", extra: str = "", error: bo
     try:
         if event == "connected":
             show_notification(
-                title=_("Device Connected"), body=_("{name} is now connected.").format(name=device)
+                title=_("Device Connected"), body=_("{} is now connected.").format(device)
             )
         elif event == "disconnected":
             show_notification(
-                title=_("Device Disconnected"),
-                body=_("{name} is now disconnected.").format(name=device),
+                title=_("Device Disconnected"), body=_("{} is now disconnected.").format(device)
             )
         elif event == "error":
             show_notification(
-                title=_("Device Error"),
-                body=_("{name}: {extra}").format(name=device, extra=extra),
-                icon=None,
+                title=_("Device Error"), body=_("{}: {}").format(device, extra), icon=None
             )
         else:
             show_notification(title=_("Device Event"), body=f"{event}: {device} {extra}")

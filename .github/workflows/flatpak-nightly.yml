@@ -3,7 +3,6 @@ name: Nightly Repo
 on:
   push:
     branches: [ "develop" ]
-  workflow_dispatch:
 
 permissions:
   contents: write
