@@ -1,8 +1,7 @@
+#!/usr/bin/env python3
 """Pairing dialog for adding new devices."""
 
 import gi
-
-from aurynk.i18n import _
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
@@ -148,7 +147,7 @@ class PairingDialog(Gtk.Dialog):
 
     def _on_device_found(self, address, pair_port, connect_port, password):
         """Handle device discovery."""
-        self._update_status(_("Device found: {name}").format(name=address))
+        self._update_status(_("Device found: {}").format(address))
 
         # Start pairing in background thread
         def pair():

@@ -1,3 +1,8 @@
+"""
+Settings Manager for Aurynk
+Handles application configuration with persistence and change notifications.
+"""
+
 import json
 import os
 from pathlib import Path
@@ -31,37 +36,23 @@ class SettingsManager:
             "max_retry_attempts": 5,
             "auto_disconnect_on_sleep": False,
             "keep_alive_interval": 0,
-            "auto_unpair_on_disconnect": False,
-            "require_confirmation_for_unpair": True,
-        },
-        "usb": {
-            "auto_detect": True,
-            "show_notifications": True,
-            "prefer_usb_over_wireless": True,
         },
         "scrcpy": {
             "always_on_top": False,
             "fullscreen": False,
             "window_borderless": False,
-            "window_title": "",
-            "window_geometry": "",
             "max_size": 0,
             "rotation": 0,
-            "stay_awake": True,
+            "stay_awake": False,
             "enable_audio": False,
-            "audio_source": "default",
             "video_codec": "h264",
             "video_bitrate": 8,
             "max_fps": 0,
             "show_touches": False,
             "turn_screen_off": False,
-            "no_control": False,
             "disable_screensaver": True,
-            "record": False,
             "record_format": "mp4",
             "record_path": "~/Videos/Aurynk",
-            "scrcpy_path": "",
-            "otg_mode": "None",
         },
     }
 
