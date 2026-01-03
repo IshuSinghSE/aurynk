@@ -1,9 +1,6 @@
-"""
-About Window for Aurynk
-Displays application information, credits, and links following GNOME HIG.
-"""
-
 import gi
+
+from aurynk.i18n import _
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")

@@ -2,24 +2,42 @@ name: Publish Snap (Edge)
 
 on:
   push:
-    branches: [ "develop" ] # Only runs when code hits develop
+    branches: [ "develop" ]
+  workflow_dispatch:
 
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency:
+      group: snap-edge-${{ github.ref }}
+      cancel-in-progress: true
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Build Snap
-      id: build
-      uses: snapcore/action-build@v1
-      with:
-        snapcraft-args: --use-lxd
+      - uses: actions/checkout@v4
 
-    - name: Publish to Edge
-      uses: snapcore/action-publish@v1
-      env:
-        SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_STORE_LOGIN }}
-      with:
-        snap: ${{ steps.build.outputs.snap }}
-        release: edge
+      - name: Build Snap
+        id: build
+        uses: snapcore/action-build@v1
+        with:
+          snapcraft-args: --use-lxd
+
+      - name: Upload Snap Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aurynk-snap
+          path: ${{ steps.build.outputs.snap }}
+
+      # Publish only if SNAP_STORE_LOGIN secret is present (prevents accidental publishes)
+      - name: Publish to Edge
+        if: ${{ secrets.SNAP_STORE_LOGIN != '' }}
+        uses: snapcore/action-publish@v1
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_STORE_LOGIN }}
+        with:
+          snap: ${{ steps.build.outputs.snap }}
+          release: edge
+
+      - name: Skip publish (no credentials)
+        if: ${{ secrets.SNAP_STORE_LOGIN == '' }}
+        run: |
+          echo "SNAP_STORE_LOGIN secret is not set — skipping publish to Snap Store."

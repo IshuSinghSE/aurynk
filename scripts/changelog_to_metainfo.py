@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Sync CHANGELOG.md to metainfo.xml <releases> section for Flathub/AppStream.
 Usage: python3 changelog_to_metainfo.py <CHANGELOG.md> <metainfo.xml>
@@ -11,10 +10,14 @@ from xml.etree import ElementTree as ET
 
 
 def markdown_to_html(text):
-    # Replace **bold** with <b>bold</b>
-    text = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text)
-    # Replace *italic* with <i>italic</i> (avoid matching inside bold)
-    text = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"<i>\1</i>", text)
+    # Escape XML/HTML special characters first
+    text = text.replace("&", "&amp;")
+    text = text.replace("<", "&lt;")
+    text = text.replace(">", "&gt;")
+    # Replace **bold** with bold (no <b> tag)
+    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
+    # Replace *italic* with italic (no <i> tag)
+    text = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"\1", text)
     return text
 
 
@@ -64,7 +67,7 @@ for match in release_re.finditer(changelog):
     if summary:
         desc_lines.append(f"<p>{summary}</p>")
     for section, bullets in section_bullets:
-        desc_lines.append(f"<p><b>{section}</b></p>")
+        desc_lines.append(f"<p>{section}</p>")
         desc_lines.append("<ul>")
         for b in bullets:
             desc_lines.append(f"  <li>{b}</li>")

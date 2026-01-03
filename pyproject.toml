@@ -1,6 +1,6 @@
 [project]
 name = "aurynk"
-version = "1.1.0"
+version = "1.2.0"
 description = "Android Device Manager for Linux with wireless pairing and device management"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -23,6 +23,7 @@ classifiers = [
 dependencies = [
     "pillow>=12.0.0",
     "pygobject>=3.54.5",
+    "pyudev>=0.24.0",
     "qrcode>=8.2",
     "zeroconf>=0.148.0",
 ]
@@ -39,7 +40,7 @@ Repository = "https://github.com/IshuSinghSE/aurynk.git"
 Issues = "https://github.com/IshuSinghSE/aurynk/issues"
 
 [project.scripts]
-aurynk = "aurynk.app:main"
+aurynk = "aurynk.application:main"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]

@@ -1,6 +1,6 @@
 project('aurynk',
-  version: '1.1.0',
-  meson_version: '>= 0.59.0'
+  version: '1.2.0',
+  meson_version: '>= 0.62.0'
 )
 
 python = import('python')
@@ -24,4 +24,3 @@ install_data('scripts/aurynk', install_dir: get_option('bindir'), install_mode: 
 
 # install tray helper script
 install_data('scripts/aurynk_tray.py', install_dir: python_dir / 'scripts', install_mode: 'rwxr-xr-x')
-

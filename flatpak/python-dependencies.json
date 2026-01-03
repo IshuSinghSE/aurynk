@@ -83,7 +83,7 @@
             "name": "python3-pycairo",
             "buildsystem": "simple",
             "build-commands": [
-                "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"pycairo==1.28.0\" --no-build-isolation"
+                "pip3 install --ignore-installed --force-reinstall --no-deps --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"pycairo==1.28.0\" --no-build-isolation"
             ],
             "sources": [
                 {
@@ -142,6 +142,21 @@
                     "type": "file",
                     "url": "https://files.pythonhosted.org/packages/67/46/10db987799629d01930176ae523f70879b63577060d63e05ebf9214aba4b/zeroconf-0.148.0.tar.gz",
                     "sha256": "03fcca123df3652e23d945112d683d2f605f313637611b7d4adf31056f681702"
+                }
+            ]
+        }
+        ,
+        {
+            "name": "python3-pyudev",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"pyudev==0.24.0\" --no-build-isolation"
+            ],
+            "sources": [
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/00/8d/810750cb2fc64d7e0dbefc106a9137b157616a95be3f0ea51ca3cf6c762a/pyudev-0.24.0.tar.gz",
+                    "sha256": "b2a3afe1c99ea751f8296652557eac559874da2a1b1ec0625178706ec5a345f3"
                 }
             ]
         }

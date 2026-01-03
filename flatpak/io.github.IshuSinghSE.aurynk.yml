@@ -19,6 +19,8 @@ finish-args:
   - --talk-name=org.ayatana.indicator.service
   # USB device access for ADB
   - --device=all
+  # Allow writing to Videos folder for recording
+  - --filesystem=xdg-videos:rw
 
 cleanup:
   - /include

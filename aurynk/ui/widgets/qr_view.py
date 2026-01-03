@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """QR code widget for displaying QR codes in the UI."""
 
 import io

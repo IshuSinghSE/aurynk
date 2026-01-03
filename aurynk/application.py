@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import os
 import socket
 import subprocess
@@ -10,8 +9,6 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-
-import signal
 
 from gi.repository import Adw, Gio, GLib
 
@@ -53,6 +50,42 @@ def start_tray_helper():
     subprocess.Popen(["python3", script_path], env=env)
 
 
+def start_udev_proxy_helper():
+    """Ensure direct adb access is available for USB workflows."""
+    try:
+        from aurynk.utils.adb_utils import get_adb_path
+
+        adb_path = get_adb_path()
+    except Exception:
+        pass
+
+    try:
+        result = subprocess.run(
+            [adb_path, "devices"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except FileNotFoundError:
+        logger.error("adb binary not found; USB features will be unavailable")
+        return False
+    except Exception as e:
+        logger.error(f"Failed to invoke adb: {e}")
+        return False
+
+    if result.returncode != 0:
+        stderr = (result.stderr or "").strip()
+        logger.error(
+            "adb devices exited with %s%s",
+            result.returncode,
+            f": {stderr}" if stderr else "",
+        )
+        return False
+
+    logger.info("Direct adb access verified; skipping legacy udev proxy helper")
+    return True
+
+
 class AurynkApp(Adw.Application):
     """Main application class."""
 
@@ -78,17 +111,31 @@ class AurynkApp(Adw.Application):
         def on_port_updated(address, new_port):
             """Update device storage when port changes."""
             try:
+                # Try to use active window controller first
                 win = self.props.active_window
+                controller = None
+
                 if win and hasattr(win, "adb_controller"):
-                    devices = win.adb_controller.load_paired_devices()
+                    controller = win.adb_controller
+                else:
+                    # Fallback: create temporary controller to ensure save happens
+                    from aurynk.core.adb_manager import ADBController
+
+                    controller = ADBController()
+
+                if controller:
+                    devices = controller.load_paired_devices()
                     for device in devices:
                         if device.get("address") == address:
                             device["connect_port"] = new_port
-                            win.adb_controller.save_paired_device(device)
+                            controller.save_paired_device(device)
                             logger.info(f"Updated port for {address} to {new_port}")
-                            # Refresh UI on main thread
-                            GLib.idle_add(win._refresh_device_list)
                             break
+
+                # Refresh UI if window exists
+                if win and hasattr(win, "_refresh_device_list"):
+                    GLib.idle_add(win._refresh_device_list)
+
             except Exception as e:
                 logger.error(f"Error updating port: {e}")
 
@@ -149,19 +196,7 @@ class AurynkApp(Adw.Application):
             target=tray_command_listener, args=(self,), daemon=True
         )
         self.tray_listener_thread.start()
-        # Give the listener thread time to bind the socket
-        import time
 
-        time.sleep(0.1)
-        # register signal handlers to quit the app cleanly on SIGINT/SIGTERM
-        try:
-            signal.signal(signal.SIGINT, lambda s, f: GLib.idle_add(self.quit))
-            signal.signal(signal.SIGTERM, lambda s, f: GLib.idle_add(self.quit))
-        except Exception:
-            pass
-
-    def show_pair_dialog(self):
-        """Show main window and open pairing dialog - called from tray icon."""
         # First, activate the app to show the window
         self.activate()
         # Then show the pairing dialog
@@ -249,7 +284,11 @@ class AurynkApp(Adw.Application):
         Adw.Application.do_startup(self)
         self._apply_theme()
         self._load_gresource()
+
+        # Start helper processes
         start_tray_helper()
+        start_udev_proxy_helper()
+
         # Expose a convenience method on the app instance so windows can call
         # `app.send_status_to_tray()` without importing the tray controller.
         from aurynk.services.tray_service import send_status_to_tray
@@ -259,6 +298,14 @@ class AurynkApp(Adw.Application):
         # Send initial device status to tray so menu is populated
         # Use the bound helper to send the initial status
         self.send_status_to_tray()
+        # Subscribe to USB monitor events to refresh UI automatically
+        try:
+            from aurynk.services.tray_service import start_udev_subscription
+
+            start_udev_subscription(self)
+        except Exception:
+            # best-effort; continue if subscription unavailable
+            logger.debug("USB monitoring subscription not available at startup")
 
     def _apply_theme(self):
         """Apply the theme from settings."""
