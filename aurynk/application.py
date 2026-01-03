@@ -10,8 +10,6 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
 
-import signal
-
 from gi.repository import Adw, Gio, GLib
 
 from aurynk.services.device_monitor import DeviceMonitor
@@ -56,12 +54,7 @@ def start_udev_proxy_helper():
     """Ensure direct adb access is available for USB workflows."""
     try:
         from aurynk.utils.adb_utils import get_adb_path
-    except Exception:
-        def get_adb_path():
-            return "adb"  # Fallback if settings infrastructure fails
 
-    adb_path = "adb"
-    try:
         adb_path = get_adb_path()
     except Exception:
         pass
@@ -203,19 +196,7 @@ class AurynkApp(Adw.Application):
             target=tray_command_listener, args=(self,), daemon=True
         )
         self.tray_listener_thread.start()
-        # Give the listener thread time to bind the socket
-        import time
 
-        time.sleep(0.1)
-        # register signal handlers to quit the app cleanly on SIGINT/SIGTERM
-        try:
-            signal.signal(signal.SIGINT, lambda s, f: GLib.idle_add(self.quit))
-            signal.signal(signal.SIGTERM, lambda s, f: GLib.idle_add(self.quit))
-        except Exception:
-            pass
-
-    def show_pair_dialog(self):
-        """Show main window and open pairing dialog - called from tray icon."""
         # First, activate the app to show the window
         self.activate()
         # Then show the pairing dialog
