@@ -15,10 +15,25 @@ if [ -z "$FLATHUB_DIR" ]; then
 fi
 
 
-echo "🚀 Preparing Flathub release for version v$VERSION..."
+if [ ! -d "$FLATHUB_DIR" ]; then
+    echo "Destination directory '$FLATHUB_DIR' does not exist"
+    exit 1
+fi
 
-# Get version from pyproject.toml (requires toml Python package)
-VERSION=$(python3 -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")
+trap 'rm -f /tmp/aurynk.tar.gz' EXIT
+
+# Get version from pyproject.toml
+VERSION=$(python3 - <<'PY'
+import tomllib
+from pathlib import Path
+
+with Path('pyproject.toml').open('rb') as fp:
+    data = tomllib.load(fp)
+
+print(data['project']['version'])
+PY
+)
+echo "🚀 Preparing Flathub release for version v$VERSION..."
 echo "Detected version: $VERSION"
 
 # 1. Calculate SHA256 of the release tarball
@@ -28,38 +43,7 @@ wget -q -O /tmp/aurynk.tar.gz "$TARBALL_URL"
 SHA256=$(sha256sum /tmp/aurynk.tar.gz | awk '{print $1}')
 echo "✅ SHA256: $SHA256"
 
-# 2. define the blocks we want to inject
-# The 'shared-modules' block that replaces all your manual Ayatana/Intltool builds
-FLATHUB_MODULES='  # Use flathub shared-modules for Ayatana AppIndicator
-  - shared-modules/libayatana-appindicator/libayatana-appindicator-gtk3.json'
-
-# The 'scrcpy' block is already clean in your local file? 
-# If not, we can force the "clean" hybrid block here.
-# For now, let's assume your local file uses the "Complex Shell Script" and we want the "Clean Hybrid" one.
-FLATHUB_SCRCPY='  # scrcpy - hybrid build: native client + prebuilt server
-  - name: scrcpy
-    buildsystem: meson
-    config-opts:
-      - -Dprebuilt_server=/app/share/scrcpy/scrcpy-server
-      - -Dcompile_server=false
-      - -Db_lto=true
-      - -Dbuildtype=release
-    sources:
-      - type: archive
-        url: https://github.com/Genymobile/scrcpy/archive/refs/tags/v3.3.3.tar.gz
-        sha256: 87fcd360a6bb6ca070ffd217bd33b33fb808b0a1572b464da51dde3fd3f6f60e
-      - type: file
-        url: https://github.com/Genymobile/scrcpy/releases/download/v3.3.3/scrcpy-server-v3.3.3
-        sha256: 7e70323ba7f259649dd4acce97ac4fefbae8102b2c6d91e2e7be613fd5354be0
-        dest-filename: scrcpy-server
-        dest: share/scrcpy'
-
-# The 'aurynk' source block (Archive instead of Dir)
-FLATHUB_SOURCE="      - type: archive
-        url: $TARBALL_URL
-        sha256: $SHA256"
-
-# 3. Perform the transformation
+# 2. Perform the transformation
 echo "🔄 Transforming manifest..."
 
 # Use python helper to parse and transform the YAML structure
@@ -90,8 +74,8 @@ scrcpy_block = [
     '  - name: scrcpy\n',
     '    buildsystem: meson\n',
     '    config-opts:\n',
-    '      - -Dprebuilt_server=/app/share/scrcpy/scrcpy-server\n',
-    '      - -Dcompile_server=false\n',
+    '      - -Dprebuilt_server=scrcpy-server\n',
+    '      - -Dcompile_server=true\n',
     '      - -Db_lto=true\n',
     '      - -Dbuildtype=release\n',
     '    sources:\n',
@@ -102,7 +86,6 @@ scrcpy_block = [
     '        url: https://github.com/Genymobile/scrcpy/releases/download/v3.3.3/scrcpy-server-v3.3.3\n',
     '        sha256: 7e70323ba7f259649dd4acce97ac4fefbae8102b2c6d91e2e7be613fd5354be0\n',
     '        dest-filename: scrcpy-server\n',
-    '        dest: /app/share/scrcpy\n',
     '\n'
 ]
 aurynk_block = [
@@ -179,6 +162,8 @@ while i < len(lines):
     i += 1
 
 with open(dest_file, 'w') as f:
+    if output and not output[-1].endswith('\n'):
+        output[-1] += '\n'
     f.writelines(output)
 "
 
