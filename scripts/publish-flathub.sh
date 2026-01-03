@@ -37,7 +37,7 @@ echo "🚀 Preparing Flathub release for version v$VERSION..."
 echo "Detected version: $VERSION"
 
 # 1. Calculate SHA256 of the release tarball
-TARBALL_URL="https://github.com/IshuSinghSE/aurynk/releases/download/v$VERSION/aurynk-$VERSION.tar.gz"
+TARBALL_URL="https://github.com/IshuSinghSE/aurynk/archive/refs/tags/v$VERSION.tar.gz"
 echo "📥 Downloading tarball to calculate SHA256..."
 wget -q -O /tmp/aurynk.tar.gz "$TARBALL_URL"
 SHA256=$(sha256sum /tmp/aurynk.tar.gz | awk '{print $1}')
