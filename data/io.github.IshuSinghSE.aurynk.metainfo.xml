@@ -27,7 +27,8 @@
   </developer>
   <url type="homepage">https://github.com/IshuSinghSE/aurynk</url>
   <url type="bugtracker">https://github.com/IshuSinghSE/aurynk/issues</url>
-  <url type="translations">https://hosted.weblate.org/engage/aurynk/</url>
+  <url type="vcs-browser">https://github.com/IshuSinghSE/aurynk</url>
+  <url type="translate">https://hosted.weblate.org/engage/aurynk/</url>
   <url type="donation">https://github.com/sponsors/IshuSinghSE</url>
   <launchable type="desktop-id">io.github.IshuSinghSE.aurynk.desktop</launchable>
   <provides>
