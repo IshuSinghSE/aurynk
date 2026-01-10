@@ -811,6 +811,8 @@ class SettingsWindow(Adw.PreferencesWindow):
                 )
 
                 if result.returncode == 0:
+                    print(f"DEBUG: Raw scrcpy output:\n{result.stdout}")  # Debug print
+                    print(f"DEBUG: Scrcpy stderr:\n{result.stderr}")  # Debug print
                     encoders = self._parse_encoder_list(result.stdout, encoder_type="video")
                     print(f"DEBUG: Found {len(encoders)} video encoders")  # Debug print
                     logger.info(f"Found {len(encoders)} video encoders")
@@ -989,6 +991,8 @@ class SettingsWindow(Adw.PreferencesWindow):
                 )
 
                 if result.returncode == 0:
+                    print(f"DEBUG: Raw scrcpy output (audio):\n{result.stdout}")  # Debug print
+                    print(f"DEBUG: Scrcpy stderr (audio):\n{result.stderr}")  # Debug print
                     encoders = self._parse_encoder_list(result.stdout, encoder_type="audio")
                     logger.info(f"Found {len(encoders)} audio encoders")
                     if encoders:
@@ -1539,6 +1543,7 @@ class SettingsWindow(Adw.PreferencesWindow):
         Returns:
             List of dictionaries with encoder information
         """
+        print(f"DEBUG: Parsing {encoder_type} encoders from output of length {len(output)}")  # Debug
         encoders = []
         current_codec = None
         in_section = False
@@ -1551,9 +1556,11 @@ class SettingsWindow(Adw.PreferencesWindow):
             # Detect section headers
             if "List of video encoders:" in line:
                 in_section = encoder_type == "video"
+                print(f"DEBUG: Found 'List of video encoders:', in_section={in_section}")  # Debug
                 continue
             elif "List of audio encoders:" in line:
                 in_section = encoder_type == "audio"
+                print(f"DEBUG: Found 'List of audio encoders:', in_section={in_section}")  # Debug
                 continue
 
             # Only process lines in the correct section
