@@ -1044,6 +1044,13 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         audio_group.add(audio_encoder_row)
 
+        # Add audio group to page
+        page.add(audio_group)
+
+        # --- Device Control & Input ---
+        control_group = Adw.PreferencesGroup()
+        control_group.set_title(_("Device Control & Input"))
+
         # Show Touches
         show_touches = Adw.SwitchRow()
         show_touches.set_title(_("Show Touches"))
@@ -1075,7 +1082,7 @@ class SettingsWindow(Adw.PreferencesWindow):
                 logging.warning(f"Failed to set show_touches via adb from settings: {e}")
 
         show_touches.connect("notify::active", on_show_touches_changed)
-        audio_group.add(show_touches)
+        control_group.add(show_touches)
 
         # Keep Device Screen On
         stay_awake = Adw.SwitchRow()
@@ -1095,7 +1102,7 @@ class SettingsWindow(Adw.PreferencesWindow):
                 turn_screen_off.set_active(False)
 
         stay_awake.connect("notify::active", on_stay_awake_changed)
-        audio_group.add(stay_awake)
+        control_group.add(stay_awake)
 
         # Turn Device Screen Off
         turn_screen_off = Adw.SwitchRow()
@@ -1111,7 +1118,7 @@ class SettingsWindow(Adw.PreferencesWindow):
                 stay_awake.set_active(False)
 
         turn_screen_off.connect("notify::active", on_turn_screen_off_changed)
-        audio_group.add(turn_screen_off)
+        control_group.add(turn_screen_off)
 
         # Read-only Mode
         readonly_mode = Adw.SwitchRow()
@@ -1123,7 +1130,7 @@ class SettingsWindow(Adw.PreferencesWindow):
             self.settings.set("scrcpy", "no_control", switch.get_active())
 
         readonly_mode.connect("notify::active", on_readonly_mode_changed)
-        audio_group.add(readonly_mode)
+        control_group.add(readonly_mode)
 
         # Use Keyboard & Mouse via OTG
         otg_row = Adw.ComboRow()
@@ -1147,10 +1154,10 @@ class SettingsWindow(Adw.PreferencesWindow):
                 self.settings.set("scrcpy", "otg_mode", otg_options[idx])
 
         otg_row.connect("notify::selected", on_otg_mode_changed)
-        audio_group.add(otg_row)
+        control_group.add(otg_row)
 
-        # Ensure group is added after all children
-        page.add(audio_group)
+        # Add control group to page
+        page.add(control_group)
 
         # --- Recording ---
         recording_group = Adw.PreferencesGroup()
@@ -1636,25 +1643,24 @@ class SettingsWindow(Adw.PreferencesWindow):
             list_box.add_css_class("boxed-list")
 
             # Group encoders by hardware/software for better UX
-            from itertools import groupby
 
             # Categorize encoders
             hw_encoders = []
             sw_encoders = []
-            
+
             for encoder in encoders:
                 info = encoder.get("info", "")
                 if "hw" in info:
                     hw_encoders.append(encoder)
                 else:
                     sw_encoders.append(encoder)
-            
+
             # Sort each group by codec
             hw_encoders.sort(key=lambda x: x.get("codec", ""))
             sw_encoders.sort(key=lambda x: x.get("codec", ""))
-            
+
             print(f"DEBUG: {len(hw_encoders)} hardware, {len(sw_encoders)} software encoders")
-            
+
             # Add Hardware encoders section
             if hw_encoders:
                 header_row = Adw.ActionRow()
@@ -1662,28 +1668,28 @@ class SettingsWindow(Adw.PreferencesWindow):
                 header_row.set_activatable(False)
                 header_row.add_css_class("header-row")
                 list_box.append(header_row)
-                
+
                 for encoder in hw_encoders:
                     print(f"DEBUG: Adding HW encoder: {encoder['name']}")
                     row = Adw.ActionRow()
-                    
+
                     # Format: encoder name with codec tag
                     codec = encoder.get("codec", "").upper()
                     title = encoder["name"]
                     row.set_title(title)
-                    
+
                     # Build clean subtitle with codec and vendor info
                     subtitle_parts = [f"[{codec}]"]
                     if "vendor" in encoder.get("info", ""):
                         subtitle_parts.append("Vendor")
                     if "alias" in encoder.get("info", ""):
                         subtitle_parts.append("Alias")
-                    
+
                     row.set_subtitle(" · ".join(subtitle_parts))
                     row.set_activatable(True)
                     row.encoder_name = encoder["name"]
                     list_box.append(row)
-            
+
             # Add Software encoders section
             if sw_encoders:
                 header_row = Adw.ActionRow()
@@ -1691,21 +1697,21 @@ class SettingsWindow(Adw.PreferencesWindow):
                 header_row.set_activatable(False)
                 header_row.add_css_class("header-row")
                 list_box.append(header_row)
-                
+
                 for encoder in sw_encoders:
                     print(f"DEBUG: Adding SW encoder: {encoder['name']}")
                     row = Adw.ActionRow()
-                    
+
                     # Format: encoder name with codec tag
                     codec = encoder.get("codec", "").upper()
                     title = encoder["name"]
                     row.set_title(title)
-                    
+
                     # Build clean subtitle with codec info
                     subtitle_parts = [f"[{codec}]"]
                     if "alias" in encoder.get("info", ""):
                         subtitle_parts.append("Alias")
-                    
+
                     row.set_subtitle(" · ".join(subtitle_parts))
                     row.set_activatable(True)
                     row.encoder_name = encoder["name"]
