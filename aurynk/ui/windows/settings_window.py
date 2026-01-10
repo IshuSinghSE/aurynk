@@ -1635,33 +1635,78 @@ class SettingsWindow(Adw.PreferencesWindow):
             list_box.set_selection_mode(Gtk.SelectionMode.SINGLE)
             list_box.add_css_class("boxed-list")
 
-            # Group encoders by codec
+            # Group encoders by hardware/software for better UX
             from itertools import groupby
 
-            encoders_sorted = sorted(encoders, key=lambda x: x.get("codec", ""))
-            print(f"DEBUG: Sorted {len(encoders_sorted)} encoders")  # Debug print
-
-            for codec, codec_encoders in groupby(encoders_sorted, key=lambda x: x.get("codec", "")):
-                # Convert iterator to list so we can iterate multiple times
-                codec_encoders_list = list(codec_encoders)
-                print(
-                    f"DEBUG: Processing codec {codec} with {len(codec_encoders_list)} encoders"
-                )  # Debug print
-
-                # Add codec header
+            # Categorize encoders
+            hw_encoders = []
+            sw_encoders = []
+            
+            for encoder in encoders:
+                info = encoder.get("info", "")
+                if "hw" in info:
+                    hw_encoders.append(encoder)
+                else:
+                    sw_encoders.append(encoder)
+            
+            # Sort each group by codec
+            hw_encoders.sort(key=lambda x: x.get("codec", ""))
+            sw_encoders.sort(key=lambda x: x.get("codec", ""))
+            
+            print(f"DEBUG: {len(hw_encoders)} hardware, {len(sw_encoders)} software encoders")
+            
+            # Add Hardware encoders section
+            if hw_encoders:
                 header_row = Adw.ActionRow()
-                header_row.set_title(f"Codec: {codec.upper()}")
+                header_row.set_title(_("🔧 Hardware Encoders (Recommended)"))
                 header_row.set_activatable(False)
+                header_row.add_css_class("header-row")
                 list_box.append(header_row)
-
-                # Add encoder rows
-                for encoder in codec_encoders_list:
-                    print(f"DEBUG: Adding encoder row: {encoder['name']}")  # Debug print
+                
+                for encoder in hw_encoders:
+                    print(f"DEBUG: Adding HW encoder: {encoder['name']}")
                     row = Adw.ActionRow()
-                    row.set_title(encoder["name"])
-                    # Add subtitle with additional info if available
-                    if encoder.get("info"):
-                        row.set_subtitle(encoder["info"])
+                    
+                    # Format: encoder name with codec tag
+                    codec = encoder.get("codec", "").upper()
+                    title = encoder["name"]
+                    row.set_title(title)
+                    
+                    # Build clean subtitle with codec and vendor info
+                    subtitle_parts = [f"[{codec}]"]
+                    if "vendor" in encoder.get("info", ""):
+                        subtitle_parts.append("Vendor")
+                    if "alias" in encoder.get("info", ""):
+                        subtitle_parts.append("Alias")
+                    
+                    row.set_subtitle(" · ".join(subtitle_parts))
+                    row.set_activatable(True)
+                    row.encoder_name = encoder["name"]
+                    list_box.append(row)
+            
+            # Add Software encoders section
+            if sw_encoders:
+                header_row = Adw.ActionRow()
+                header_row.set_title(_("💻 Software Encoders"))
+                header_row.set_activatable(False)
+                header_row.add_css_class("header-row")
+                list_box.append(header_row)
+                
+                for encoder in sw_encoders:
+                    print(f"DEBUG: Adding SW encoder: {encoder['name']}")
+                    row = Adw.ActionRow()
+                    
+                    # Format: encoder name with codec tag
+                    codec = encoder.get("codec", "").upper()
+                    title = encoder["name"]
+                    row.set_title(title)
+                    
+                    # Build clean subtitle with codec info
+                    subtitle_parts = [f"[{codec}]"]
+                    if "alias" in encoder.get("info", ""):
+                        subtitle_parts.append("Alias")
+                    
+                    row.set_subtitle(" · ".join(subtitle_parts))
                     row.set_activatable(True)
                     row.encoder_name = encoder["name"]
                     list_box.append(row)
