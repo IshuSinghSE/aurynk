@@ -226,6 +226,10 @@ class ScrcpyManager:
             video_codec = settings.get("scrcpy", "video_codec", "h264")
             cmd.extend(["--video-codec", video_codec])
 
+            video_encoder = settings.get("scrcpy", "video_encoder", "")
+            if video_encoder:
+                cmd.extend(["--video-encoder", video_encoder])
+
             video_bitrate = settings.get("scrcpy", "video_bitrate", 8)
             cmd.extend(["--video-bit-rate", f"{video_bitrate}M"])
 
@@ -584,6 +588,10 @@ class ScrcpyManager:
 
             video_codec = settings.get("scrcpy", "video_codec", "h264")
             cmd.extend(["--video-codec", video_codec])
+
+            video_encoder = settings.get("scrcpy", "video_encoder", "")
+            if video_encoder:
+                cmd.extend(["--video-encoder", video_encoder])
 
             video_bitrate = settings.get("scrcpy", "video_bitrate", 8)
             cmd.extend(["--video-bit-rate", f"{video_bitrate}M"])

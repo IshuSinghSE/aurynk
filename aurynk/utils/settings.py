@@ -51,6 +51,7 @@ class SettingsManager:
             "enable_audio": False,
             "audio_source": "default",
             "video_codec": "h264",
+            "video_encoder": "",
             "video_bitrate": 8,
             "max_fps": 0,
             "show_touches": False,

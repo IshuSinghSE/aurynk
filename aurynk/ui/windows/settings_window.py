@@ -735,6 +735,25 @@ class SettingsWindow(Adw.PreferencesWindow):
         codec_row.connect("notify::selected", on_codec_changed)
         quality_group.add(codec_row)
 
+        # Video Encoder
+        encoder_row = Adw.EntryRow()
+        encoder_row.set_title(_("Video Encoder"))
+        encoder_row.set_text(self.settings.get("scrcpy", "video_encoder", ""))
+        encoder_row.set_show_apply_button(True)
+
+        def on_encoder_changed(entry):
+            self.settings.set("scrcpy", "video_encoder", entry.get_text())
+
+        encoder_row.connect("apply", on_encoder_changed)
+        
+        # Add subtitle with examples
+        encoder_subtitle = _(
+            "Specify a custom video encoder (e.g., 'OMX.google.h264.encoder'). "
+            "Leave empty to use the default encoder for the selected codec."
+        )
+        encoder_row.set_subtitle(encoder_subtitle)
+        quality_group.add(encoder_row)
+
         page.add(quality_group)
 
         # --- Audio & Input ---
