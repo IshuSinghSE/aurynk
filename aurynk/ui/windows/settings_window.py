@@ -1047,9 +1047,9 @@ class SettingsWindow(Adw.PreferencesWindow):
         # Add audio group to page
         page.add(audio_group)
 
-        # --- Device Control & Input ---
+        # --- Device Control ---
         control_group = Adw.PreferencesGroup()
-        control_group.set_title(_("Device Control & Input"))
+        control_group.set_title(_("Device Control"))
 
         # Show Touches
         show_touches = Adw.SwitchRow()
