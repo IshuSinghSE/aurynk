@@ -194,7 +194,7 @@ class AurynkApp(Adw.Application):
         # Register encoder reset on device changes (pair/unpair)
         from aurynk.utils.device_events import register_device_change_callback
         from aurynk.utils.encoder_manager import reset_encoders_to_default
-        
+
         register_device_change_callback(reset_encoders_to_default)
         logger.debug("Registered encoder reset callback for device changes")
 
