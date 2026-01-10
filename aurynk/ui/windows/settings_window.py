@@ -202,6 +202,22 @@ class SettingsWindow(Adw.PreferencesWindow):
         connection_timeout.connect("notify::value", self._on_connection_timeout_changed)
         connection_group.add(connection_timeout)
 
+        # QR code timeout
+        qr_timeout = Adw.SpinRow()
+        qr_timeout.set_title(_("QR Code Timeout"))
+        qr_timeout.set_subtitle(_("How long to wait for QR code pairing in seconds"))
+        qr_adjustment = Gtk.Adjustment(
+            value=self.settings.get("adb", "qr_timeout", 60),
+            lower=30,
+            upper=300,
+            step_increment=10,
+            page_increment=30,
+        )
+        qr_timeout.set_adjustment(qr_adjustment)
+        qr_timeout.set_digits(0)
+        qr_timeout.connect("notify::value", self._on_qr_timeout_changed)
+        connection_group.add(qr_timeout)
+
         # Max retry attempts
         max_retry = Adw.SpinRow()
         max_retry.set_title(_("Max Retry Attempts"))
@@ -1378,6 +1394,10 @@ class SettingsWindow(Adw.PreferencesWindow):
     def _on_connection_timeout_changed(self, spin, _):
         """Handle connection timeout setting change."""
         self.settings.set("adb", "connection_timeout", int(spin.get_value()))
+
+    def _on_qr_timeout_changed(self, spin, _):
+        """Handle QR timeout setting change."""
+        self.settings.set("adb", "qr_timeout", int(spin.get_value()))
 
     def _on_adb_path_changed(self, entry, row):
         """Handle ADB path entry change."""

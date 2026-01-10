@@ -49,11 +49,13 @@ class PairingDialog(Gtk.Dialog):
 
         # QR Code pairing page
         qr_page = self._create_qr_page()
-        self.view_stack.add_titled(qr_page, "qr", _("QR Code"))
+        qr_stack_page = self.view_stack.add_titled(qr_page, "qr", _("QR Code"))
+        qr_stack_page.set_icon_name("qrscanner-symbolic")
 
         # Manual pairing page
         manual_page = self._create_manual_page()
-        self.view_stack.add_titled(manual_page, "manual", _("Manual"))
+        manual_stack_page = self.view_stack.add_titled(manual_page, "manual", _("Manual"))
+        manual_stack_page.set_icon_name("input-keyboard-symbolic")
 
         # ViewSwitcher for tabs
         switcher = Adw.ViewSwitcher()
@@ -75,9 +77,7 @@ class PairingDialog(Gtk.Dialog):
 
         # Title (centered, bold, large)
         title = Gtk.Label()
-        title.set_markup(
-            f'<span size="x-large" weight="bold">{_("Scan QR Code")}</span>'
-        )
+        title.set_markup(f'<span size="x-large" weight="bold">{_("Scan QR Code")}</span>')
         title.set_halign(Gtk.Align.CENTER)
         title.set_margin_bottom(8)
         page.append(title)
@@ -144,9 +144,7 @@ class PairingDialog(Gtk.Dialog):
 
         # Title
         title = Gtk.Label()
-        title.set_markup(
-            f'<span size="x-large" weight="bold">{_("Manual Pairing")}</span>'
-        )
+        title.set_markup(f'<span size="x-large" weight="bold">{_("Manual Pairing")}</span>')
         title.set_halign(Gtk.Align.CENTER)
         title.set_margin_bottom(8)
         page.append(title)
@@ -154,10 +152,11 @@ class PairingDialog(Gtk.Dialog):
         # Instructions
         instructions = Gtk.Label()
         instructions.set_markup(
-            f'<span size="medium">{_("Enter the IP address, port, and pairing code from Wireless Debugging")}</span>'
+            f'<span size="medium">{_("Enter the IP address, port, and pairing code")}\n{_("from Wireless Debugging settings")}</span>'
         )
         instructions.set_halign(Gtk.Align.CENTER)
         instructions.set_wrap(True)
+        instructions.set_justify(Gtk.Justification.CENTER)
         instructions.set_margin_bottom(20)
         instructions.get_style_context().add_class("dim-label")
         page.append(instructions)
@@ -318,44 +317,93 @@ class PairingDialog(Gtk.Dialog):
 
                 if pair_result.returncode != 0:
                     error_msg = pair_result.stderr.strip() or pair_result.stdout.strip()
-                    GLib.idle_add(self._update_manual_status,
-                                _("✗ Pairing failed: {error}").format(error=error_msg), True)
+                    GLib.idle_add(
+                        self._update_manual_status,
+                        _("✗ Pairing failed: {error}").format(error=error_msg),
+                        True,
+                    )
                     GLib.idle_add(self.manual_pair_btn.set_sensitive, True)
                     return
 
-                GLib.idle_add(self._update_manual_status, _("✓ Paired! Connecting..."))
+                GLib.idle_add(self._update_manual_status, _("✓ Paired! Discovering device..."))
 
-                # Step 2: Get the connect port by querying mDNS or asking user
-                # For now, try common connect port (usually pairing_port - 1)
-                connect_port = int(port) - 1 if int(port) > 1 else int(port)
+                # Step 2: Auto-discover the connection port via mDNS
+                import time
+
+                time.sleep(2)  # Give device time to advertise mDNS service
+
+                discovered_port = None
+                port_info = self.adb_controller.get_current_ports(ip, timeout=5)
+                if port_info and port_info.get("connect_port"):
+                    discovered_port = port_info["connect_port"]
+                else:
+                    # Fallback: check adb devices for this IP
+                    devices_cmd = [get_adb_path(), "devices", "-l"]
+                    devices_result = subprocess.run(
+                        devices_cmd, capture_output=True, text=True, timeout=5
+                    )
+                    for line in devices_result.stdout.splitlines():
+                        if ip in line and ":" in line:
+                            # Extract port from serial like "192.168.1.35:12345"
+                            serial = line.split()[0]
+                            if ":" in serial:
+                                discovered_port = int(serial.split(":")[-1])
+                                break
+
+                if not discovered_port:
+                    GLib.idle_add(
+                        self._update_manual_status,
+                        _(
+                            "⚠ Paired, but couldn't auto-detect connection port. Check device status."
+                        ),
+                        True,
+                    )
+                    GLib.idle_add(self.manual_pair_btn.set_sensitive, True)
+                    return
+
+                connect_port = discovered_port
+                GLib.idle_add(
+                    self._update_manual_status,
+                    _("✓ Found device at port {port}. Connecting...").format(port=connect_port),
+                )
 
                 # Try to connect
                 connect_cmd = [get_adb_path(), "connect", f"{ip}:{connect_port}"]
-                connect_result = subprocess.run(connect_cmd, capture_output=True, text=True, timeout=10)
+                connect_result = subprocess.run(
+                    connect_cmd, capture_output=True, text=True, timeout=10
+                )
 
                 output = (connect_result.stdout + connect_result.stderr).lower()
                 if "connected" in output and "unable" not in output:
-                    GLib.idle_add(self._update_manual_status, _("✓ Connected! Fetching device info..."))
+                    GLib.idle_add(
+                        self._update_manual_status, _("✓ Connected! Fetching device info...")
+                    )
 
                     # Fetch device info and save
                     device_info = self.adb_controller._fetch_device_info(ip, connect_port)
-                    device_info.update({
-                        "address": ip,
-                        "pair_port": int(port),
-                        "connect_port": connect_port,
-                        "password": code,
-                    })
+                    device_info.update(
+                        {
+                            "address": ip,
+                            "pair_port": int(port),
+                            "connect_port": connect_port,
+                            "password": code,
+                        }
+                    )
                     self.adb_controller.save_paired_device(device_info)
 
                     GLib.idle_add(self._on_pairing_complete)
                 else:
-                    GLib.idle_add(self._update_manual_status,
-                                _("⚠ Paired but connection failed. Try port {port}").format(port=connect_port), True)
+                    GLib.idle_add(
+                        self._update_manual_status,
+                        _("⚠ Could not connect to {ip}:{port}").format(ip=ip, port=connect_port),
+                        True,
+                    )
                     GLib.idle_add(self.manual_pair_btn.set_sensitive, True)
 
             except Exception as e:
-                GLib.idle_add(self._update_manual_status,
-                            _("✗ Error: {error}").format(error=str(e)), True)
+                GLib.idle_add(
+                    self._update_manual_status, _("✗ Error: {error}").format(error=str(e)), True
+                )
                 GLib.idle_add(self.manual_pair_btn.set_sensitive, True)
 
         threading.Thread(target=pair, daemon=True).start()
@@ -363,7 +411,12 @@ class PairingDialog(Gtk.Dialog):
     def _on_pairing_complete(self):
         """Handle successful pairing."""
         self.spinner.stop()
-        self._update_status(_("✓ Device paired successfully!"))
+        # Update the status on whichever tab is currently active
+        current_page = self.view_stack.get_visible_child_name()
+        if current_page == "manual":
+            self._update_manual_status(_("✓ Device paired successfully!"))
+        else:
+            self._update_qr_status(_("✓ Device paired successfully!"))
         # Close dialog after a short delay
         from aurynk.utils.device_events import notify_device_changed
 
