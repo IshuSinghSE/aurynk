@@ -812,12 +812,20 @@ class SettingsWindow(Adw.PreferencesWindow):
 
                 if result.returncode == 0:
                     encoders = self._parse_encoder_list(result.stdout, encoder_type="video")
-                    self._show_encoder_dialog(
-                        _("Available Video Encoders"),
-                        _("Select a video encoder from your device:"),
-                        encoders,
-                        encoder_row,
-                    )
+                    logger.info(f"Found {len(encoders)} video encoders")
+                    if encoders:
+                        self._show_encoder_dialog(
+                            _("Available Video Encoders"),
+                            _("Select a video encoder from your device:"),
+                            encoders,
+                            encoder_row,
+                        )
+                    else:
+                        self._show_encoder_dialog(
+                            _("No Encoders Found"),
+                            _("No video encoders were found on the device. The output may need manual parsing."),
+                            [],
+                        )
                 else:
                     error_msg = result.stderr or result.stdout or _("Unknown error")
                     self._show_encoder_dialog(
@@ -976,12 +984,20 @@ class SettingsWindow(Adw.PreferencesWindow):
 
                 if result.returncode == 0:
                     encoders = self._parse_encoder_list(result.stdout, encoder_type="audio")
-                    self._show_encoder_dialog(
-                        _("Available Audio Encoders"),
-                        _("Select an audio encoder from your device:"),
-                        encoders,
-                        audio_encoder_row,
-                    )
+                    logger.info(f"Found {len(encoders)} audio encoders")
+                    if encoders:
+                        self._show_encoder_dialog(
+                            _("Available Audio Encoders"),
+                            _("Select an audio encoder from your device:"),
+                            encoders,
+                            audio_encoder_row,
+                        )
+                    else:
+                        self._show_encoder_dialog(
+                            _("No Encoders Found"),
+                            _("No audio encoders were found on the device. The output may need manual parsing."),
+                            [],
+                        )
                 else:
                     error_msg = result.stderr or result.stdout or _("Unknown error")
                     self._show_encoder_dialog(
@@ -1584,11 +1600,13 @@ class SettingsWindow(Adw.PreferencesWindow):
         dialog = Adw.MessageDialog.new(self, title, message)
 
         if encoders:
+            logger.debug(f"Creating encoder dialog with {len(encoders)} encoders")
             # Create scrolled window with list
             scrolled = Gtk.ScrolledWindow()
             scrolled.set_min_content_height(300)
-            scrolled.set_min_content_width(400)
+            scrolled.set_min_content_width(450)
             scrolled.set_vexpand(True)
+            scrolled.set_hexpand(True)
 
             list_box = Gtk.ListBox()
             list_box.set_selection_mode(Gtk.SelectionMode.SINGLE)
@@ -1600,6 +1618,9 @@ class SettingsWindow(Adw.PreferencesWindow):
             encoders_sorted = sorted(encoders, key=lambda x: x.get("codec", ""))
 
             for codec, codec_encoders in groupby(encoders_sorted, key=lambda x: x.get("codec", "")):
+                # Convert iterator to list so we can iterate multiple times
+                codec_encoders_list = list(codec_encoders)
+
                 # Add codec header
                 header_row = Adw.ActionRow()
                 header_row.set_title(f"Codec: {codec.upper()}")
@@ -1607,7 +1628,7 @@ class SettingsWindow(Adw.PreferencesWindow):
                 list_box.append(header_row)
 
                 # Add encoder rows
-                for encoder in codec_encoders:
+                for encoder in codec_encoders_list:
                     row = Adw.ActionRow()
                     row.set_title(encoder["name"])
                     # Add subtitle with additional info if available
@@ -1628,6 +1649,15 @@ class SettingsWindow(Adw.PreferencesWindow):
                     else:
                         self.settings.set("scrcpy", "video_encoder", row.encoder_name)
                 dialog.close()
+
+            list_box.connect("row-activated", on_row_activated)
+            scrolled.set_child(list_box)
+            dialog.set_extra_child(scrolled)
+
+            dialog.add_response("close", _("Close"))
+            dialog.set_default_response("close")
+        else:
+            logger.warning("No encoders to display in dialog")   dialog.close()
 
             list_box.connect("row-activated", on_row_activated)
             scrolled.set_child(list_box)
