@@ -154,7 +154,7 @@ class DeviceStore:
             device_name = device.get("name", address) if device else address
             show_notification(
                 "Device removed",
-                f"{device_name}\n\nNote: To fully unpair, go to Wireless Debugging on your device and forget this computer.",
+                f"{device_name}\n\n Note: To fully unpair, go to Wireless Debugging on your device and forget this computer.",
             )
         except Exception:
             pass

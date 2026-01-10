@@ -11,6 +11,7 @@ import threading
 from gi.repository import Adw, GLib, Gtk
 
 from aurynk.core.adb_manager import ADBController
+from aurynk.ui.widgets.pin_entry import PinEntryBox
 from aurynk.ui.widgets.qr_view import create_qr_widget
 from aurynk.utils.settings import SettingsManager
 
@@ -161,34 +162,53 @@ class PairingDialog(Gtk.Dialog):
         instructions.get_style_context().add_class("dim-label")
         page.append(instructions)
 
-        # Form using Adwaita preferences group
-        form_group = Adw.PreferencesGroup()
-        form_group.set_margin_top(10)
-        form_group.set_margin_bottom(10)
+        # Main form box
+        form_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
+        form_box.set_margin_top(20)
+        form_box.set_margin_bottom(20)
+        form_box.set_margin_start(40)
+        form_box.set_margin_end(40)
 
-        # IP Address Entry
+        # IP Address Entry (traditional entry row)
+        ip_group = Adw.PreferencesGroup()
         ip_row = Adw.EntryRow()
         ip_row.set_title(_("IP Address"))
         ip_row.set_text("192.168.")
+        ip_row.set_tooltip_text(
+            _(
+                "Find this in: Settings → Developer Options → Wireless Debugging\n"
+                "Example: 192.168.1.100"
+            )
+        )
         self.ip_entry = ip_row
-        form_group.add(ip_row)
+        ip_group.add(ip_row)
+        form_box.append(ip_group)
 
-        # Port Entry
-        port_row = Adw.EntryRow()
-        port_row.set_title(_("Pairing Port"))
-        port_row.set_text("")
-        port_row.set_input_purpose(Gtk.InputPurpose.DIGITS)
-        self.port_entry = port_row
-        form_group.add(port_row)
+        # Port Entry (PIN-style with 5 boxes)
+        port_pin = PinEntryBox(
+            5,
+            _("Pairing Port"),
+            _(
+                "Tap 'Pair device with pairing code' and note the port number\n"
+                "Example: 45678 (valid for a few minutes only)"
+            ),
+        )
+        self.port_entry = port_pin
+        form_box.append(port_pin)
 
-        # Pairing Code Entry
-        code_row = Adw.EntryRow()
-        code_row.set_title(_("Pairing Code"))
-        code_row.set_text("")
-        self.code_entry = code_row
-        form_group.add(code_row)
+        # Pairing Code Entry (PIN-style with 6 boxes)
+        code_pin = PinEntryBox(
+            6,
+            _("Pairing Code"),
+            _(
+                "The 6-digit code shown when you tap 'Pair device with pairing code'\n"
+                "Example: 123456 (expires after pairing or timeout)"
+            ),
+        )
+        self.code_entry = code_pin
+        form_box.append(code_pin)
 
-        page.append(form_group)
+        page.append(form_box)
 
         # Status label
         self.manual_status_label = Gtk.Label(label="")
@@ -286,16 +306,20 @@ class PairingDialog(Gtk.Dialog):
     def _on_manual_pair(self, button):
         """Handle manual pairing button click."""
         ip = self.ip_entry.get_text().strip()
-        port = self.port_entry.get_text().strip()
-        code = self.code_entry.get_text().strip()
+        port = self.port_entry.get_value().strip()
+        code = self.code_entry.get_value().strip()
 
         # Validate inputs
         if not ip or not port or not code:
             self._update_manual_status(_("⚠ Please fill all fields"), error=True)
             return
 
-        if not port.isdigit():
-            self._update_manual_status(_("⚠ Port must be a number"), error=True)
+        if not port.isdigit() or len(port) != 5:
+            self._update_manual_status(_("⚠ Port must be a 5-digit number"), error=True)
+            return
+
+        if not code.isdigit() or len(code) != 6:
+            self._update_manual_status(_("⚠ Pairing code must be 6 digits"), error=True)
             return
 
         # Disable button and show progress
@@ -315,16 +339,47 @@ class PairingDialog(Gtk.Dialog):
                 pair_cmd = [get_adb_path(), "pair", f"{ip}:{port}", code]
                 pair_result = subprocess.run(pair_cmd, capture_output=True, text=True, timeout=15)
 
-                if pair_result.returncode != 0:
-                    error_msg = pair_result.stderr.strip() or pair_result.stdout.strip()
-                    GLib.idle_add(
-                        self._update_manual_status,
-                        _("✗ Pairing failed: {error}").format(error=error_msg),
-                        True,
-                    )
+                # Check if pairing succeeded (ignore "protocol fault" as it's often misleading)
+                error_output = pair_result.stderr.strip() or pair_result.stdout.strip()
+
+                # "protocol fault" is misleading - pairing often succeeds despite this message
+                # Check if it's a real failure by looking for other error indicators
+                is_protocol_fault_only = (
+                    pair_result.returncode != 0
+                    and "protocol fault" in error_output.lower()
+                    and "refused" not in error_output.lower()
+                    and "unreachable" not in error_output.lower()
+                )
+
+                if pair_result.returncode != 0 and not is_protocol_fault_only:
+                    # Real pairing error
+                    if "refused" in error_output.lower():
+                        error_msg = _(
+                            "Connection refused. Make sure Wireless Debugging is enabled."
+                        )
+                    elif "timed out" in error_output.lower() or "timeout" in error_output.lower():
+                        error_msg = _(
+                            "Connection timed out. Check if device is on the same network."
+                        )
+                    elif (
+                        "no route" in error_output.lower() or "unreachable" in error_output.lower()
+                    ):
+                        error_msg = _(
+                            "Cannot reach device. Verify the IP address and network connection."
+                        )
+                    else:
+                        # For other errors, show a generic message (log the details)
+                        error_msg = _("Pairing failed. Please verify IP, port, and code.")
+                        # Log the actual error for debugging
+                        import logging
+
+                        logging.getLogger(__name__).debug(f"Pairing error: {error_output}")
+
+                    GLib.idle_add(self._update_manual_status, f"✗ {error_msg}", True)
                     GLib.idle_add(self.manual_pair_btn.set_sensitive, True)
                     return
 
+                # If we get here, pairing succeeded (or is likely successful despite protocol fault message)
                 GLib.idle_add(self._update_manual_status, _("✓ Paired! Discovering device..."))
 
                 # Step 2: Auto-discover the connection port via mDNS
@@ -395,14 +450,27 @@ class PairingDialog(Gtk.Dialog):
                 else:
                     GLib.idle_add(
                         self._update_manual_status,
-                        _("⚠ Could not connect to {ip}:{port}").format(ip=ip, port=connect_port),
+                        _("⚠ Paired but unable to connect. Try reconnecting from main window."),
                         True,
                     )
                     GLib.idle_add(self.manual_pair_btn.set_sensitive, True)
 
-            except Exception as e:
+            except subprocess.TimeoutExpired:
                 GLib.idle_add(
-                    self._update_manual_status, _("✗ Error: {error}").format(error=str(e)), True
+                    self._update_manual_status,
+                    _("✗ Connection timed out. Check network and try again."),
+                    True,
+                )
+                GLib.idle_add(self.manual_pair_btn.set_sensitive, True)
+            except Exception as e:
+                # Log technical errors but show friendly message
+                import logging
+
+                logging.getLogger(__name__).debug(f"Manual pairing error: {e}")
+                GLib.idle_add(
+                    self._update_manual_status,
+                    _("✗ An error occurred. Please check your entries and try again."),
+                    True,
                 )
                 GLib.idle_add(self.manual_pair_btn.set_sensitive, True)
 
