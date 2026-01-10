@@ -812,8 +812,12 @@ class SettingsWindow(Adw.PreferencesWindow):
 
                 if result.returncode == 0:
                     encoders = self._parse_encoder_list(result.stdout, encoder_type="video")
+                    print(f"DEBUG: Found {len(encoders)} video encoders")  # Debug print
                     logger.info(f"Found {len(encoders)} video encoders")
                     if encoders:
+                        print(
+                            f"DEBUG: Calling _show_encoder_dialog with {len(encoders)} encoders"
+                        )  # Debug print
                         self._show_encoder_dialog(
                             _("Available Video Encoders"),
                             _("Select a video encoder from your device:"),
@@ -823,7 +827,9 @@ class SettingsWindow(Adw.PreferencesWindow):
                     else:
                         self._show_encoder_dialog(
                             _("No Encoders Found"),
-                            _("No video encoders were found on the device. The output may need manual parsing."),
+                            _(
+                                "No video encoders were found on the device. The output may need manual parsing."
+                            ),
                             [],
                         )
                 else:
@@ -995,7 +1001,9 @@ class SettingsWindow(Adw.PreferencesWindow):
                     else:
                         self._show_encoder_dialog(
                             _("No Encoders Found"),
-                            _("No audio encoders were found on the device. The output may need manual parsing."),
+                            _(
+                                "No audio encoders were found on the device. The output may need manual parsing."
+                            ),
                             [],
                         )
                 else:
@@ -1597,9 +1605,11 @@ class SettingsWindow(Adw.PreferencesWindow):
             encoders: List of encoder dictionaries
             entry_row: Optional EntryRow to populate with selected encoder
         """
+        print(f"DEBUG: _show_encoder_dialog called with {len(encoders)} encoders")  # Debug print
         dialog = Adw.MessageDialog.new(self, title, message)
 
         if encoders:
+            print("DEBUG: Creating scrolled window with encoder list")  # Debug print
             logger.debug(f"Creating encoder dialog with {len(encoders)} encoders")
             # Create scrolled window with list
             scrolled = Gtk.ScrolledWindow()
@@ -1616,10 +1626,14 @@ class SettingsWindow(Adw.PreferencesWindow):
             from itertools import groupby
 
             encoders_sorted = sorted(encoders, key=lambda x: x.get("codec", ""))
+            print(f"DEBUG: Sorted {len(encoders_sorted)} encoders")  # Debug print
 
             for codec, codec_encoders in groupby(encoders_sorted, key=lambda x: x.get("codec", "")):
                 # Convert iterator to list so we can iterate multiple times
                 codec_encoders_list = list(codec_encoders)
+                print(
+                    f"DEBUG: Processing codec {codec} with {len(codec_encoders_list)} encoders"
+                )  # Debug print
 
                 # Add codec header
                 header_row = Adw.ActionRow()
@@ -1629,6 +1643,7 @@ class SettingsWindow(Adw.PreferencesWindow):
 
                 # Add encoder rows
                 for encoder in codec_encoders_list:
+                    print(f"DEBUG: Adding encoder row: {encoder['name']}")  # Debug print
                     row = Adw.ActionRow()
                     row.set_title(encoder["name"])
                     # Add subtitle with additional info if available
@@ -1657,15 +1672,7 @@ class SettingsWindow(Adw.PreferencesWindow):
             dialog.add_response("close", _("Close"))
             dialog.set_default_response("close")
         else:
-            logger.warning("No encoders to display in dialog")   dialog.close()
-
-            list_box.connect("row-activated", on_row_activated)
-            scrolled.set_child(list_box)
-            dialog.set_extra_child(scrolled)
-
-            dialog.add_response("close", _("Close"))
-            dialog.set_default_response("close")
-        else:
+            logger.warning("No encoders to display in dialog")
             dialog.add_response("ok", _("OK"))
             dialog.set_default_response("ok")
 
