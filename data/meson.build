@@ -73,11 +73,3 @@ appstream_util = find_program('appstream-util', required: false)
 if appstream_util.found()
   test('Validate appdata file', appstream_util, args: ['validate', appdata_file])
 endif
-
-# Install autostart desktop entry for udev proxy (only for native installs, not Flatpak)
-# Flatpak users should use the systemd service instead
-install_data(
-  'aurynk-udev-proxy.desktop',
-  install_dir: datadir / 'applications',
-  install_mode: 'rw-r--r--'
-)
