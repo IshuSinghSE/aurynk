@@ -75,41 +75,87 @@ class DeviceStore:
 
     def remove_device(self, address: str):
         """
-        Remove a device from the store and disconnect if connected.
+        Remove a device from the store and disconnect/unpair if connected.
 
         Args:
             address (str): The IP address of the device to remove.
         """
         import subprocess
 
+        from aurynk.utils.adb_utils import get_adb_path
         from aurynk.utils.device_events import notify_device_changed
         from aurynk.utils.notify import show_notification
 
         # Find the device to get its connect_port
         device = next((d for d in self._devices if d.get("address") == address), None)
         should_disconnect = False
+        should_unpair = False
+        connect_port = None
+        pair_port = None
+
         if device:
             connect_port = device.get("connect_port")
+            pair_port = device.get("pair_port")
+
             # Check if device is connected
             if connect_port:
                 try:
-                    result = subprocess.run(["adb", "devices"], capture_output=True, text=True)
+                    result = subprocess.run(
+                        [get_adb_path(), "devices"], capture_output=True, text=True
+                    )
                     serial = f"{address}:{connect_port}"
                     if serial in result.stdout:
                         should_disconnect = True
+                        should_unpair = True
                 except Exception as e:
                     logger.error(f"Error checking device connection: {e}")
+
             # Disconnect using adb if connected
             if should_disconnect:
                 try:
-                    subprocess.run(["adb", "disconnect", f"{address}:{connect_port}"], check=False)
+                    logger.info(f"Disconnecting device {address}:{connect_port}")
+                    subprocess.run(
+                        [get_adb_path(), "disconnect", f"{address}:{connect_port}"], check=False
+                    )
                 except Exception as e:
                     logger.error(f"Error disconnecting device: {e}")
+
+            # Unpair from Android Wireless Debugging
+            if should_unpair and connect_port:
+                try:
+                    logger.info(f"Unpairing device {address}:{connect_port}")
+                    # Use the connection port for unpairing
+                    unpair_result = subprocess.run(
+                        [get_adb_path(), "unpair", f"{address}:{connect_port}"],
+                        capture_output=True,
+                        text=True,
+                        timeout=5,
+                    )
+                    if unpair_result.returncode == 0:
+                        logger.info(f"Successfully unpaired device {address}")
+                    else:
+                        # Try with pair_port if connect_port didn't work
+                        if pair_port and pair_port != connect_port:
+                            logger.info(f"Trying unpair with pair port {address}:{pair_port}")
+                            subprocess.run(
+                                [get_adb_path(), "unpair", f"{address}:{pair_port}"],
+                                capture_output=True,
+                                text=True,
+                                timeout=5,
+                                check=False,
+                            )
+                except Exception as e:
+                    logger.error(f"Error unpairing device: {e}")
+
         self._devices = [d for d in self._devices if d.get("address") != address]
         self._save_to_file()
         notify_device_changed()
         try:
-            show_notification("Device removed", address)
+            device_name = device.get("name", address) if device else address
+            show_notification(
+                "Device removed",
+                f"{device_name}\n\n Note: To fully unpair, go to Wireless Debugging on your device and forget this computer.",
+            )
         except Exception:
             pass
 
