@@ -747,12 +747,11 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         encoder_row.connect("apply", on_encoder_changed)
 
-        # Add subtitle with examples
-        encoder_subtitle = _(
-            "Specify a custom video encoder (e.g., 'OMX.google.h264.encoder', 'OMX.qcom.video.encoder.avc'). "
-            "Leave empty to use the default encoder for the selected codec."
+        # Add tooltip with examples
+        encoder_row.set_tooltip_text(
+            _("Specify a custom video encoder (e.g., 'OMX.google.h264.encoder', 'c2.mtk.avc.encoder'). "
+              "Leave empty to use the default encoder for the selected codec.")
         )
-        encoder_row.set_subtitle(encoder_subtitle)
 
         # Add button to list available encoders from connected device
         list_encoders_btn = Gtk.Button()
@@ -908,12 +907,11 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         audio_encoder_row.connect("apply", on_audio_encoder_changed)
 
-        # Add subtitle with examples
-        audio_encoder_subtitle = _(
-            "Specify a custom audio encoder (e.g., 'c2.android.opus.encoder', 'c2.android.aac.encoder'). "
-            "Leave empty to use the default encoder for audio."
+        # Add tooltip with examples
+        audio_encoder_row.set_tooltip_text(
+            _("Specify a custom audio encoder (e.g., 'c2.android.opus.encoder', 'c2.android.aac.encoder'). "
+              "Leave empty to use the default encoder for audio.")
         )
-        audio_encoder_row.set_subtitle(audio_encoder_subtitle)
 
         # Add button to list available audio encoders from connected device
         list_audio_encoders_btn = Gtk.Button()
