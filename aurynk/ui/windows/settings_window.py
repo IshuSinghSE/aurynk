@@ -749,8 +749,10 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Add tooltip with examples
         encoder_row.set_tooltip_text(
-            _("Specify a custom video encoder (e.g., 'OMX.google.h264.encoder', 'c2.mtk.avc.encoder'). "
-              "Leave empty to use the default encoder for the selected codec.")
+            _(
+                "Specify a custom video encoder (e.g., 'OMX.google.h264.encoder', 'c2.mtk.avc.encoder'). "
+                "Leave empty to use the default encoder for the selected codec."
+            )
         )
 
         # Add button to list available encoders from connected device
@@ -809,10 +811,10 @@ class SettingsWindow(Adw.PreferencesWindow):
                 )
 
                 if result.returncode == 0:
-                    encoders = self._parse_encoder_list(result.stdout)
+                    encoders = self._parse_encoder_list(result.stdout, encoder_type="video")
                     self._show_encoder_dialog(
-                        _("Available Encoders"),
-                        _("Select an encoder from your device:"),
+                        _("Available Video Encoders"),
+                        _("Select a video encoder from your device:"),
                         encoders,
                         encoder_row,
                     )
@@ -909,14 +911,18 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Add tooltip with examples
         audio_encoder_row.set_tooltip_text(
-            _("Specify a custom audio encoder (e.g., 'c2.android.opus.encoder', 'c2.android.aac.encoder'). "
-              "Leave empty to use the default encoder for audio.")
+            _(
+                "Specify a custom audio encoder (e.g., 'c2.android.opus.encoder', 'c2.android.aac.encoder'). "
+                "Leave empty to use the default encoder for audio."
+            )
         )
 
         # Add button to list available audio encoders from connected device
         list_audio_encoders_btn = Gtk.Button()
         list_audio_encoders_btn.set_icon_name("view-list-symbolic")
-        list_audio_encoders_btn.set_tooltip_text(_("List available audio encoders from connected device"))
+        list_audio_encoders_btn.set_tooltip_text(
+            _("List available audio encoders from connected device")
+        )
         list_audio_encoders_btn.set_valign(Gtk.Align.CENTER)
         list_audio_encoders_btn.add_css_class("flat")
 
@@ -943,7 +949,9 @@ class SettingsWindow(Adw.PreferencesWindow):
                 if not connected_devices:
                     self._show_encoder_dialog(
                         _("No Device Connected"),
-                        _("Please connect a device via USB or wireless to list available encoders."),
+                        _(
+                            "Please connect a device via USB or wireless to list available encoders."
+                        ),
                         [],
                     )
                     return
@@ -991,7 +999,9 @@ class SettingsWindow(Adw.PreferencesWindow):
             except FileNotFoundError:
                 self._show_encoder_dialog(
                     _("Scrcpy Not Found"),
-                    _("scrcpy command not found. Please install scrcpy or configure the path in settings."),
+                    _(
+                        "scrcpy command not found. Please install scrcpy or configure the path in settings."
+                    ),
                     [],
                 )
             except Exception as e:
@@ -1516,10 +1526,10 @@ class SettingsWindow(Adw.PreferencesWindow):
 
             # Detect section headers
             if "List of video encoders:" in line:
-                in_section = (encoder_type == "video")
+                in_section = encoder_type == "video"
                 continue
             elif "List of audio encoders:" in line:
-                in_section = (encoder_type == "audio")
+                in_section = encoder_type == "audio"
                 continue
 
             # Only process lines in the correct section
@@ -1541,7 +1551,7 @@ class SettingsWindow(Adw.PreferencesWindow):
                 encoder_part = line_stripped.split(encoder_flag, 1)[1]
                 # Take the part before any whitespace (which starts metadata)
                 encoder_name = encoder_part.split()[0] if encoder_part else ""
-                
+
                 # Extract additional info (hw/sw, vendor, alias)
                 info_parts = []
                 if "(hw)" in line_stripped:
@@ -1552,15 +1562,13 @@ class SettingsWindow(Adw.PreferencesWindow):
                     info_parts.append("vendor")
                 if "(alias" in line_stripped:
                     info_parts.append("alias")
-                
+
                 info = ", ".join(info_parts) if info_parts else ""
-                
+
                 if encoder_name:
-                    encoders.append({
-                        "name": encoder_name,
-                        "codec": current_codec or "unknown",
-                        "info": info
-                    })
+                    encoders.append(
+                        {"name": encoder_name, "codec": current_codec or "unknown", "info": info}
+                    )
 
         return encoders
 
@@ -1594,11 +1602,8 @@ class SettingsWindow(Adw.PreferencesWindow):
             for codec, codec_encoders in groupby(encoders_sorted, key=lambda x: x.get("codec", "")):
                 # Add codec header
                 header_row = Adw.ActionRow()
-                header_row.set_title(f"Codec: {codec}")
+                header_row.set_title(f"Codec: {codec.upper()}")
                 header_row.set_activatable(False)
-                header_label = Gtk.Label(label=f"Codec: {codec}")
-                header_label.add_css_class("heading")
-                header_row.set_child(header_label)
                 list_box.append(header_row)
 
                 # Add encoder rows

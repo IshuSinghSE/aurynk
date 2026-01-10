@@ -130,7 +130,7 @@ class PairingDialog(Gtk.Dialog):
         # Set timeout for QR code expiry
         if self.qr_timeout_id:
             GLib.source_remove(self.qr_timeout_id)
-        self.qr_timeout_id = GLib.timeout_add_seconds(30, self._on_qr_expired)
+        self.qr_timeout_id = GLib.timeout_add_seconds(60, self._on_qr_expired)
 
     def _discover_devices(self):
         """Start mDNS discovery for devices."""
