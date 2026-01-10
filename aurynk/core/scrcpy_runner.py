@@ -223,6 +223,11 @@ class ScrcpyManager:
                 cmd.extend(["--audio-source", "mic"])
             # If 'default', do not add the flag (let scrcpy use its default)
 
+            # Audio encoder
+            audio_encoder = settings.get("scrcpy", "audio_encoder", "")
+            if audio_encoder:
+                cmd.extend(["--audio-encoder", audio_encoder])
+
             video_codec = settings.get("scrcpy", "video_codec", "h264")
             cmd.extend(["--video-codec", video_codec])
 
@@ -585,6 +590,11 @@ class ScrcpyManager:
                 cmd.extend(["--audio-source", "output"])
             elif audio_source == "mic":
                 cmd.extend(["--audio-source", "mic"])
+
+            # Audio encoder
+            audio_encoder = settings.get("scrcpy", "audio_encoder", "")
+            if audio_encoder:
+                cmd.extend(["--audio-encoder", audio_encoder])
 
             video_codec = settings.get("scrcpy", "video_codec", "h264")
             cmd.extend(["--video-codec", video_codec])

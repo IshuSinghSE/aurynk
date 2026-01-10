@@ -50,6 +50,8 @@ class SettingsManager:
             "stay_awake": True,
             "enable_audio": False,
             "audio_source": "default",
+            "audio_codec": "opus",
+            "audio_encoder": "",
             "video_codec": "h264",
             "video_encoder": "",
             "video_bitrate": 8,

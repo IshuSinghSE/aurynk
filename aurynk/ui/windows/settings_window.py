@@ -784,7 +784,9 @@ class SettingsWindow(Adw.PreferencesWindow):
                 if not connected_devices:
                     self._show_encoder_dialog(
                         _("No Device Connected"),
-                        _("Please connect a device via USB or wireless to list available encoders."),
+                        _(
+                            "Please connect a device via USB or wireless to list available encoders."
+                        ),
                         [],
                     )
                     return
@@ -832,7 +834,9 @@ class SettingsWindow(Adw.PreferencesWindow):
             except FileNotFoundError:
                 self._show_encoder_dialog(
                     _("Scrcpy Not Found"),
-                    _("scrcpy command not found. Please install scrcpy or configure the path in settings."),
+                    _(
+                        "scrcpy command not found. Please install scrcpy or configure the path in settings."
+                    ),
                     [],
                 )
             except Exception as e:
@@ -847,6 +851,7 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         quality_group.add(encoder_row)
 
+        # Add quality group to page
         page.add(quality_group)
 
         # --- Audio & Input ---
@@ -890,6 +895,118 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         audio_source_row.connect("notify::selected", on_audio_source_changed)
         audio_group.add(audio_source_row)
+
+        # Audio Encoder
+        audio_encoder_row = Adw.EntryRow()
+        audio_encoder_row.set_title(_("Audio Encoder"))
+        audio_encoder_row.set_text(self.settings.get("scrcpy", "audio_encoder", ""))
+        audio_encoder_row.set_show_apply_button(True)
+
+        def on_audio_encoder_changed(entry):
+            encoder_value = entry.get_text().strip()
+            self.settings.set("scrcpy", "audio_encoder", encoder_value)
+
+        audio_encoder_row.connect("apply", on_audio_encoder_changed)
+
+        # Add subtitle with examples
+        audio_encoder_subtitle = _(
+            "Specify a custom audio encoder (e.g., 'c2.android.opus.encoder', 'c2.android.aac.encoder'). "
+            "Leave empty to use the default encoder for audio."
+        )
+        audio_encoder_row.set_subtitle(audio_encoder_subtitle)
+
+        # Add button to list available audio encoders from connected device
+        list_audio_encoders_btn = Gtk.Button()
+        list_audio_encoders_btn.set_icon_name("view-list-symbolic")
+        list_audio_encoders_btn.set_tooltip_text(_("List available audio encoders from connected device"))
+        list_audio_encoders_btn.set_valign(Gtk.Align.CENTER)
+        list_audio_encoders_btn.add_css_class("flat")
+
+        def on_list_audio_encoders_clicked(button):
+            """List available audio encoders from a connected device."""
+            import subprocess
+
+            from aurynk.utils.adb_utils import get_adb_path
+
+            try:
+                # First check if any device is connected
+                result = subprocess.run(
+                    [get_adb_path(), "devices"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+
+                connected_devices = []
+                for line in result.stdout.splitlines()[1:]:
+                    if "\tdevice" in line:
+                        connected_devices.append(line.split("\t")[0])
+
+                if not connected_devices:
+                    self._show_encoder_dialog(
+                        _("No Device Connected"),
+                        _("Please connect a device via USB or wireless to list available encoders."),
+                        [],
+                    )
+                    return
+
+                # Use the first connected device
+                device_serial = connected_devices[0]
+
+                # Get scrcpy path
+                scrcpy_path = self.settings.get("scrcpy", "scrcpy_path", "").strip()
+                if not scrcpy_path:
+                    import shutil
+
+                    scrcpy_path = shutil.which("scrcpy") or "scrcpy"
+
+                # Run scrcpy --list-encoders
+                result = subprocess.run(
+                    [scrcpy_path, "--serial", device_serial, "--list-encoders"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+
+                if result.returncode == 0:
+                    encoders = self._parse_encoder_list(result.stdout, encoder_type="audio")
+                    self._show_encoder_dialog(
+                        _("Available Audio Encoders"),
+                        _("Select an audio encoder from your device:"),
+                        encoders,
+                        audio_encoder_row,
+                    )
+                else:
+                    error_msg = result.stderr or result.stdout or _("Unknown error")
+                    self._show_encoder_dialog(
+                        _("Error"),
+                        _("Failed to list encoders:\n{error}").format(error=error_msg[:200]),
+                        [],
+                    )
+
+            except subprocess.TimeoutExpired:
+                self._show_encoder_dialog(
+                    _("Timeout"),
+                    _("Command timed out. Please ensure the device is connected and responsive."),
+                    [],
+                )
+            except FileNotFoundError:
+                self._show_encoder_dialog(
+                    _("Scrcpy Not Found"),
+                    _("scrcpy command not found. Please install scrcpy or configure the path in settings."),
+                    [],
+                )
+            except Exception as e:
+                self._show_encoder_dialog(
+                    _("Error"),
+                    _("Failed to list encoders: {error}").format(error=str(e)),
+                    [],
+                )
+
+        list_audio_encoders_btn.connect("clicked", on_list_audio_encoders_clicked)
+        audio_encoder_row.add_suffix(list_audio_encoders_btn)
+
+        audio_group.add(audio_encoder_row)
 
         # Show Touches
         show_touches = Adw.SwitchRow()
@@ -1380,45 +1497,78 @@ class SettingsWindow(Adw.PreferencesWindow):
             else:
                 logger.error(f"Error selecting folder: {e}")
 
-    def _parse_encoder_list(self, output: str) -> list:
+    def _parse_encoder_list(self, output: str, encoder_type: str = "video") -> list:
         """Parse the output of scrcpy --list-encoders.
-        
+
         Args:
             output: Raw output from scrcpy --list-encoders command
-            
+            encoder_type: Type of encoder to parse ("video" or "audio")
+
         Returns:
             List of dictionaries with encoder information
         """
         encoders = []
         current_codec = None
-        
+        in_section = False
+
         for line in output.splitlines():
-            line = line.strip()
-            if not line:
+            line_stripped = line.strip()
+            if not line_stripped:
                 continue
+
+            # Detect section headers
+            if "List of video encoders:" in line:
+                in_section = (encoder_type == "video")
+                continue
+            elif "List of audio encoders:" in line:
+                in_section = (encoder_type == "audio")
+                continue
+
+            # Only process lines in the correct section
+            if not in_section:
+                continue
+
+            # Detect codec headers (e.g., "--video-codec=h264:", "--audio-codec=opus:")
+            if encoder_type == "video" and line_stripped.startswith("--video-codec="):
+                current_codec = line_stripped.split("=")[1].rstrip(":")
+                continue
+            elif encoder_type == "audio" and line_stripped.startswith("--audio-codec="):
+                current_codec = line_stripped.split("=")[1].rstrip(":")
+                continue
+
+            # Parse encoder lines
+            encoder_flag = f"--{encoder_type}-encoder="
+            if encoder_flag in line_stripped:
+                # Extract encoder name (before any metadata like (hw), (sw), etc.)
+                encoder_part = line_stripped.split(encoder_flag, 1)[1]
+                # Take the part before any whitespace (which starts metadata)
+                encoder_name = encoder_part.split()[0] if encoder_part else ""
                 
-            # Detect codec headers (e.g., "--video-codec=h264:", "--video-codec=h265:")
-            if line.startswith("--video-codec="):
-                current_codec = line.split("=")[1].rstrip(":")
-                continue
-            
-            # Skip lines that are just dashes or don't contain encoder names
-            if line.startswith("--") or ":" not in line:
-                continue
-            
-            # Parse encoder lines (format: "  --video-encoder=OMX.google.h264.encoder")
-            if "--video-encoder=" in line:
-                encoder_name = line.split("=", 1)[1].strip()
-                encoders.append({
-                    "name": encoder_name,
-                    "codec": current_codec or "unknown"
-                })
-        
+                # Extract additional info (hw/sw, vendor, alias)
+                info_parts = []
+                if "(hw)" in line_stripped:
+                    info_parts.append("hw")
+                elif "(sw)" in line_stripped:
+                    info_parts.append("sw")
+                if "[vendor]" in line_stripped:
+                    info_parts.append("vendor")
+                if "(alias" in line_stripped:
+                    info_parts.append("alias")
+                
+                info = ", ".join(info_parts) if info_parts else ""
+                
+                if encoder_name:
+                    encoders.append({
+                        "name": encoder_name,
+                        "codec": current_codec or "unknown",
+                        "info": info
+                    })
+
         return encoders
 
     def _show_encoder_dialog(self, title: str, message: str, encoders: list, entry_row=None):
         """Show a dialog with available encoders.
-        
+
         Args:
             title: Dialog title
             message: Dialog message
@@ -1426,22 +1576,23 @@ class SettingsWindow(Adw.PreferencesWindow):
             entry_row: Optional EntryRow to populate with selected encoder
         """
         dialog = Adw.MessageDialog.new(self, title, message)
-        
+
         if encoders:
             # Create scrolled window with list
             scrolled = Gtk.ScrolledWindow()
             scrolled.set_min_content_height(300)
             scrolled.set_min_content_width(400)
             scrolled.set_vexpand(True)
-            
+
             list_box = Gtk.ListBox()
             list_box.set_selection_mode(Gtk.SelectionMode.SINGLE)
             list_box.add_css_class("boxed-list")
-            
+
             # Group encoders by codec
             from itertools import groupby
+
             encoders_sorted = sorted(encoders, key=lambda x: x.get("codec", ""))
-            
+
             for codec, codec_encoders in groupby(encoders_sorted, key=lambda x: x.get("codec", "")):
                 # Add codec header
                 header_row = Adw.ActionRow()
@@ -1451,29 +1602,38 @@ class SettingsWindow(Adw.PreferencesWindow):
                 header_label.add_css_class("heading")
                 header_row.set_child(header_label)
                 list_box.append(header_row)
-                
+
                 # Add encoder rows
                 for encoder in codec_encoders:
                     row = Adw.ActionRow()
                     row.set_title(encoder["name"])
+                    # Add subtitle with additional info if available
+                    if encoder.get("info"):
+                        row.set_subtitle(encoder["info"])
                     row.set_activatable(True)
                     row.encoder_name = encoder["name"]
                     list_box.append(row)
-            
+
             def on_row_activated(list_box, row):
                 if hasattr(row, "encoder_name") and entry_row:
                     entry_row.set_text(row.encoder_name)
-                    self.settings.set("scrcpy", "video_encoder", row.encoder_name)
+                    # Determine which encoder setting to update based on entry_row type
+                    # We'll use a simple check on the title
+                    title = entry_row.get_title()
+                    if "Audio" in title:
+                        self.settings.set("scrcpy", "audio_encoder", row.encoder_name)
+                    else:
+                        self.settings.set("scrcpy", "video_encoder", row.encoder_name)
                 dialog.close()
-            
+
             list_box.connect("row-activated", on_row_activated)
             scrolled.set_child(list_box)
             dialog.set_extra_child(scrolled)
-            
+
             dialog.add_response("close", _("Close"))
             dialog.set_default_response("close")
         else:
             dialog.add_response("ok", _("OK"))
             dialog.set_default_response("ok")
-        
+
         dialog.present()
