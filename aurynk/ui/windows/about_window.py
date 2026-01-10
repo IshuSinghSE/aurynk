@@ -40,6 +40,7 @@ class AboutWindow:
         # Add useful links
         about.add_link(_("Documentation"), "https://github.com/IshuSinghSE/aurynk/wiki")
         about.add_link(_("Source Code"), "https://github.com/IshuSinghSE/aurynk")
+        about.add_link(_("Report an Issue"), "https://github.com/IshuSinghSE/aurynk/issues/new")
         about.add_link(_("Donate"), "https://github.com/sponsors/IshuSinghSE")
 
         # Credits for technologies used
@@ -78,6 +79,18 @@ class AboutWindow:
         debug_info = _get_debug_info()
         if debug_info:
             about.set_debug_info(debug_info)
+            about.set_debug_info_filename("aurynk-debug-info.txt")
+
+        # Add privacy disclaimer
+        about.set_release_notes(
+            _(
+                "<b>Privacy Notice</b>\n\n"
+                "Aurynk does not collect, store, or transmit any personal information, "
+                "device data, or usage statistics. All data remains on your local system.\n\n"
+                "The debug information shown above is only displayed locally and is never "
+                "sent anywhere unless you manually choose to share it (e.g., when reporting issues)."
+            )
+        )
 
         about.present()
 
