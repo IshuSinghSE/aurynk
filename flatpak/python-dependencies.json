@@ -83,7 +83,7 @@
             "name": "python3-pycairo",
             "buildsystem": "simple",
             "build-commands": [
-                "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"pycairo==1.28.0\" --no-build-isolation"
+                "pip3 install --ignore-installed --force-reinstall --no-deps --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"pycairo==1.28.0\" --no-build-isolation"
             ],
             "sources": [
                 {

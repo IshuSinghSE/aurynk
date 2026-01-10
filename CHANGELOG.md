@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2025-12-09
+
+Enhanced USB device support with complete device information display and improved Flatpak integration.
+
+### 🚀 New Features
+- **USB support:** Device can be connected via USB and automatically detected.
+- **Smart USB Group Visibility:** USB device section automatically show hides based on connected devices.
+
+### 🔧 Improvements
+- **Better device row management** with proper cleanup on disconnect.
+- **Improved UI responsiveness** when devices connect and disconnect.
+
+### 🐛 Bug Fixes
+- Fixed USB devices not showing complete details in Flatpak.
+- Fixed device rows not being removed when USB devices are unplugged.
+- Fixed UI freezing while fetching device information.
+- App icon now appears correctly.
+
 ## [1.1.0] - 2025-11-26
 
 A massive update with a complete settings overhaul, advanced mirroring controls, and many new features to give you full control over your experience.

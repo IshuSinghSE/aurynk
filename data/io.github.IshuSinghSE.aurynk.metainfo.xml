@@ -27,6 +27,8 @@
   </developer>
   <url type="homepage">https://github.com/IshuSinghSE/aurynk</url>
   <url type="bugtracker">https://github.com/IshuSinghSE/aurynk/issues</url>
+  <url type="vcs-browser">https://github.com/IshuSinghSE/aurynk</url>
+  <url type="translate">https://hosted.weblate.org/engage/aurynk/</url>
   <url type="donation">https://github.com/sponsors/IshuSinghSE</url>
   <launchable type="desktop-id">io.github.IshuSinghSE.aurynk.desktop</launchable>
   <provides>
@@ -68,6 +70,28 @@
   <content_rating type="oars-1.1" />
   <translation type="gettext">io.github.IshuSinghSE.aurynk</translation>
   <releases>
+    <release version="1.2.0" date="2025-12-09">
+      <description>
+        <p>Enhanced USB device support with complete device information display and improved Flatpak integration.</p>
+        <p>🚀 New Features</p>
+        <ul>
+          <li>USB support: Device can be connected via USB and automatically detected.</li>
+          <li>Smart USB Group Visibility: USB device section automatically show hides based on connected devices.</li>
+        </ul>
+        <p>🔧 Improvements</p>
+        <ul>
+          <li>Better device row management with proper cleanup on disconnect.</li>
+          <li>Improved UI responsiveness when devices connect and disconnect.</li>
+        </ul>
+        <p>🐛 Bug Fixes</p>
+        <ul>
+          <li>Fixed USB devices not showing complete details in Flatpak.</li>
+          <li>Fixed device rows not being removed when USB devices are unplugged.</li>
+          <li>Fixed UI freezing while fetching device information.</li>
+          <li>App icon now appears correctly.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.1.0" date="2025-11-26">
       <description>
         <p>A massive update with a complete settings overhaul, advanced mirroring controls, and many new features to give you full control over your experience.</p>

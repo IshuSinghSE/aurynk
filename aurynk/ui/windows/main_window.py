@@ -35,23 +35,27 @@ class AurynkWindow(Adw.ApplicationWindow):
         # Initialize ADB controller
         self.adb_controller = ADBController()
 
-        # Initialize USB Monitor
-        # In Flatpak, we rely on the udev proxy helper instead of direct USB monitoring
-        # because pyudev cannot access udev from inside the sandbox
+        # Initialize USB monitor even inside Flatpak now that --device=all is granted.
         import os
 
         self._is_flatpak = os.path.exists("/.flatpak-info")
 
-        if not self._is_flatpak:
-            # Native mode: use direct USB monitoring
-            self.usb_monitor = USBMonitor()
-            self.usb_monitor.connect("device-connected", self._on_usb_device_connected)
-            self.usb_monitor.connect("device-disconnected", self._on_usb_device_disconnected)
-            self.usb_monitor.start()
-        else:
-            # Flatpak mode: USB events will come via udev proxy subscription
+        self.usb_monitor = None
+        try:
+            monitor = USBMonitor()
+            monitor.connect("device-connected", self._on_usb_device_connected)
+            monitor.connect("device-disconnected", self._on_usb_device_disconnected)
+            monitor.start()
+            for existing in monitor.get_connected_devices():
+                try:
+                    GLib.idle_add(self._add_usb_device_row, existing)
+                except Exception:
+                    logger.debug("Failed to seed USB device row", exc_info=True)
+            self.usb_monitor = monitor
+            logger.info("USB monitor started for direct device access")
+        except Exception:
+            logger.exception("USB monitor unavailable; falling back to manual refreshes")
             self.usb_monitor = None
-            logger.info("Running in Flatpak - USB monitoring via udev proxy helper")
 
         # Track USB device rows: serial -> widget
         self.usb_rows = {}
@@ -482,7 +486,6 @@ class AurynkWindow(Adw.ApplicationWindow):
             devices = self.usb_monitor.get_connected_devices()
             for device in devices:
                 self._add_usb_device_row(device)
-        # In Flatpak mode, USB devices come via udev proxy subscription events
 
     def _add_usb_device_row(self, device):
         serial = device.get("ID_SERIAL")

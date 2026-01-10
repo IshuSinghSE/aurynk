@@ -10,8 +10,6 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
 
-import signal
-
 from gi.repository import Adw, Gio, GLib
 
 from aurynk.services.device_monitor import DeviceMonitor
@@ -53,60 +51,39 @@ def start_tray_helper():
 
 
 def start_udev_proxy_helper():
-    """Start the udev proxy helper process if not already running.
+    """Ensure direct adb access is available for USB workflows."""
+    try:
+        from aurynk.utils.adb_utils import get_adb_path
 
-    Only starts on native (non-Flatpak) installations. Flatpak users should
-    install and enable the systemd user service instead.
-    """
-    # Skip in Flatpak - user should use systemd service
-    if os.path.exists("/.flatpak-info"):
-        logger.debug("Running in Flatpak - udev proxy should be managed by systemd")
-        return False
-
-    xdg_runtime = os.environ.get("XDG_RUNTIME_DIR")
-    if not xdg_runtime:
-        logger.warning("XDG_RUNTIME_DIR not set, cannot start udev proxy")
-        return False
-
-    proxy_socket = os.path.join(xdg_runtime, "aurynk-udev.sock")
-
-    # Check if already running
-    if os.path.exists(proxy_socket):
-        try:
-            # Try to connect to verify it's alive
-            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
-                s.settimeout(1.0)
-                s.connect(proxy_socket)
-            logger.info("Udev proxy helper already running. Reusing existing instance.")
-            return True
-        except Exception:
-            try:
-                os.unlink(proxy_socket)
-                logger.info("Removed stale udev proxy socket.")
-            except Exception as e:
-                logger.error(f"Could not remove stale udev proxy socket: {e}")
-
-    # Start new udev proxy helper
-    script_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "scripts", "aurynk_udev_proxy.py")
-    )
-
-    if not os.path.exists(script_path):
-        logger.warning(f"Udev proxy script not found at {script_path}")
-        return False
+        adb_path = get_adb_path()
+    except Exception:
+        pass
 
     try:
-        subprocess.Popen(
-            ["python3", script_path],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
+        result = subprocess.run(
+            [adb_path, "devices"],
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
-        logger.info("Started udev proxy helper")
-        return True
-    except Exception as e:
-        logger.error(f"Failed to start udev proxy helper: {e}")
+    except FileNotFoundError:
+        logger.error("adb binary not found; USB features will be unavailable")
         return False
+    except Exception as e:
+        logger.error(f"Failed to invoke adb: {e}")
+        return False
+
+    if result.returncode != 0:
+        stderr = (result.stderr or "").strip()
+        logger.error(
+            "adb devices exited with %s%s",
+            result.returncode,
+            f": {stderr}" if stderr else "",
+        )
+        return False
+
+    logger.info("Direct adb access verified; skipping legacy udev proxy helper")
+    return True
 
 
 class AurynkApp(Adw.Application):
@@ -219,19 +196,7 @@ class AurynkApp(Adw.Application):
             target=tray_command_listener, args=(self,), daemon=True
         )
         self.tray_listener_thread.start()
-        # Give the listener thread time to bind the socket
-        import time
 
-        time.sleep(0.1)
-        # register signal handlers to quit the app cleanly on SIGINT/SIGTERM
-        try:
-            signal.signal(signal.SIGINT, lambda s, f: GLib.idle_add(self.quit))
-            signal.signal(signal.SIGTERM, lambda s, f: GLib.idle_add(self.quit))
-        except Exception:
-            pass
-
-    def show_pair_dialog(self):
-        """Show main window and open pairing dialog - called from tray icon."""
         # First, activate the app to show the window
         self.activate()
         # Then show the pairing dialog
@@ -333,14 +298,14 @@ class AurynkApp(Adw.Application):
         # Send initial device status to tray so menu is populated
         # Use the bound helper to send the initial status
         self.send_status_to_tray()
-        # Subscribe to host udev proxy events to refresh UI automatically
+        # Subscribe to USB monitor events to refresh UI automatically
         try:
             from aurynk.services.tray_service import start_udev_subscription
 
             start_udev_subscription(self)
         except Exception:
             # best-effort; continue if subscription unavailable
-            logger.debug("Udev proxy subscription not available at startup")
+            logger.debug("USB monitoring subscription not available at startup")
 
     def _apply_theme(self):
         """Apply the theme from settings."""
@@ -375,10 +340,6 @@ class AurynkApp(Adw.Application):
         else:
             logger.debug(f"Window exists, visible: {win.get_visible()}")
 
-        # On first activation, check if running in Flatpak and udev helper is available
-        if self._first_activation and os.path.exists("/.flatpak-info"):
-            self._check_udev_helper_flatpak(win)
-
         if self._first_activation:
             # On first activation, only show window if not start_minimized
             if not start_minimized:
@@ -391,42 +352,6 @@ class AurynkApp(Adw.Application):
         else:
             # On subsequent activations (e.g., from tray), always show window
             win.present()
-
-    def _check_udev_helper_flatpak(self, win):
-        """Check if udev helper is running and show notification if not (Flatpak only)."""
-        xdg_runtime = os.environ.get("XDG_RUNTIME_DIR")
-        if not xdg_runtime:
-            return
-
-        proxy_socket = os.path.join(xdg_runtime, "aurynk-udev.sock")
-
-        # Check if socket exists and is connectable
-        helper_running = False
-        if os.path.exists(proxy_socket):
-            try:
-                with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
-                    s.settimeout(1.0)
-                    s.connect(proxy_socket)
-                helper_running = True
-            except Exception:
-                pass
-
-        if not helper_running:
-            # Show in-app notification about missing helper
-            def show_helper_notification():
-                try:
-                    notification = Gio.Notification.new("USB Device Support")
-                    notification.set_body(
-                        "For USB device detection in Flatpak, enable the helper:\n"
-                        "systemctl --user enable --now aurynk-udev-proxy.socket"
-                    )
-                    notification.set_priority(Gio.NotificationPriority.NORMAL)
-                    self.send_notification("usb-helper", notification)
-                except Exception as e:
-                    logger.debug(f"Could not send notification: {e}")
-
-            # Delay notification slightly so window can initialize
-            GLib.timeout_add_seconds(2, show_helper_notification)
 
     def _load_gresource(self):
         """Load the compiled GResource file."""

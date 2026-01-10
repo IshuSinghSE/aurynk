@@ -1,286 +1,189 @@
 # Contributing to Aurynk
 
-Thank you for your interest in contributing to Aurynk! This document provides all the technical information developers need to contribute to the project.
+Welcome, and thank you for helping move Aurynk forward. This guide keeps contributors aligned on tooling, workflow, and release practices.
 
-## 📋 Table of Contents
+## Contents
 
-- [Development Setup](#-development-setup)
-- [Project Structure](#-project-structure)
-- [Building from Source](#-building-from-source)
-- [Code Style](#-code-style)
-- [Testing](#-testing)
-- [Packaging](#-packaging)
-- [Submitting Changes](#-submitting-changes)
+- [Quick Start](#quick-start)
+- [Requirements](#requirements)
+- [Repository Layout](#repository-layout)
+- [Environment Setup](#environment-setup)
+- [Everyday Tasks](#everyday-tasks)
+- [Packaging Guides](#packaging-guides)
+- [Release Checklist](#release-checklist)
+- [Submitting Changes](#submitting-changes)
+- [Support](#support)
 
-## 🛠 Development Setup
+## Quick Start
 
-### Requirements
-
-#### Runtime Dependencies
-- Python 3.11 or newer
-- GTK 4
-- libadwaita 1.0 or newer
-- PyGObject
-- Android Debug Bridge (adb)
-
-#### Build Dependencies
-- Meson (>= 0.59.0)
-- Ninja
-- GLib development files
-- GTK4 development files
-
-### Setting up the Development Environment
-
-1. **Clone the repository:**
+1. Clone and enter the repository:
    ```bash
    git clone https://github.com/IshuSinghSE/aurynk.git
    cd aurynk
    ```
-
-2. **Install system dependencies:**
+2. Create a development branch for your change:
    ```bash
-   # Ubuntu/Debian:
-   sudo apt install python3-dev python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 \
-                    android-tools-adb meson ninja-build
-
-   # Fedora:
-   sudo dnf install python3-devel python3-gobject gtk4-devel libadwaita-devel \
-                    android-tools meson ninja-build
-
-   # Arch:
-   sudo pacman -S python python-gobject gtk4 libadwaita android-tools meson ninja
+   git checkout -b feature/my-improvement
    ```
-
-3. **Install Python dependencies:**
+3. Prepare a virtual environment (recommended) and install dependencies:
    ```bash
-   # Create virtual environment (recommended)
    python -m venv .venv
-   source .venv/bin/activate  # or `.venv/bin/activate.fish` for Fish shell
-
-   # Install project with dev dependencies
+   source .venv/bin/activate
    pip install -e ".[dev]"
    ```
-
-4. **Compile GResources:**
-   ```bash
-   glib-compile-resources --sourcedir=data data/io.github.IshuSinghSE.aurynk.gresource.xml \
-       --target=data/io.github.IshuSinghSE.aurynk.gresource
-   ```
-
-5. **Run the application:**
+4. Launch the application:
    ```bash
    python -m aurynk
    ```
 
-## 📁 Project Structure
+You should now see the Aurynk window and can begin iterating on features or fixes.
+
+## Requirements
+
+### Runtime
+- Python 3.11 or newer
+- GTK 4 and libadwaita 1.4+
+- PyGObject bindings
+- Android Debug Bridge (`adb`) available on the host PATH
+
+### Build & Tooling
+- Meson ≥ 0.59 and Ninja (for packaged builds)
+- GLib and GTK4 development headers
+- `pip`, `ruff`, and `pytest`
+- Optional: Flatpak SDK/Platform `org.gnome.Platform//49` for sandbox testing
+
+## Repository Layout
 
 ```
-aurynk/                             # Project root (Git repository)
-├── aurynk/                         # Python package (importable code)
-│   ├── __init__.py
-│   ├── __main__.py                 # Module entry point
-│   ├── app.py                      # AurynkApp(Adw.Application)
-│   ├── windows/
-│   │   ├── main_window.py          # AurynkWindow(Adw.ApplicationWindow)
-│   │   └── device_details_window.py
-│   ├── dialogs/
-│   │   └── pairing_dialog.py       # Device pairing dialog
-│   ├── widgets/
-│   │   └── qr_widget.py            # QR code display widget
-│   ├── lib/
-│   │   ├── adb_controller.py       # ADB/device management logic
-│   │   ├── tray_controller.py      # System tray integration
-│   │   └── scrcpy_manager.py       # Screen mirroring functionality
-│   └── utils/
-│       ├── adb_pairing.py          # Wireless pairing utilities
-│       ├── device_events.py        # Device event handling
-│       └── device_store.py         # Device data persistence
-│
-├── data/                           # Application data files
-│   ├── io.github.IshuSinghSE.aurynk.gresource.xml
-│   ├── io.github.IshuSinghSE.aurynk.desktop.in
-│   ├── io.github.IshuSinghSE.aurynk.appdata.xml
-│   ├── icons/                      # Application icons
-│   ├── styles/                     # CSS stylesheets
-│   └── ui/                         # GTK UI files
-│       ├── main_window.ui
-│       └── device_details_window.ui
-│
-├── scripts/                        # Helper scripts
-│   ├── aurynk                      # Main launcher script
-│   └── aurynk_tray.py             # GTK3 system tray helper
-│
-├── flatpak/                        # Flatpak packaging
-│   ├── io.github.IshuSinghSE.aurynk.yml
-│   └── appindicator/              # Local AyatanaAppIndicator dependencies
-│
-├── debian/                         # Debian/Ubuntu packaging
-├── snap/                          # Snap packaging
-├── vendor/                        # Prebuilt binaries (scrcpy)
-├── meson.build                    # Build system configuration
-├── pyproject.toml                 # Python project metadata
+aurynk/
+├── aurynk/                  # Python package
+│   ├── application.py       # Adw.Application entry point
+│   ├── core/                # Scrcpy integration and runtime helpers
+│   ├── services/            # Background services (USB monitor, tray, etc.)
+│   ├── ui/                  # GTK windows, dialogs, widgets
+│   ├── utils/               # Shared utilities and logging
+│   └── models/              # Data models (Device, settings)
+├── data/                    # GResources, icons, desktop/metainfo
+├── flatpak/                 # Flatpak manifest and patches
+├── debian/                  # Debian packaging metadata
+├── scripts/                 # Convenience scripts and release helpers
+├── tests/                   # Pytest-based regression tests
+├── meson.build              # Meson build definition
+├── pyproject.toml           # Project metadata & dependencies
 └── README.md
 ```
 
-## 🏗️ Building from Source
+## Environment Setup
 
-### Development Build (Meson)
+1. **Install system dependencies** (example for Ubuntu/Debian):
+   ```bash
+   sudo apt install python3-dev python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 \
+       android-tools-adb meson ninja-build
+   ```
+   Use the equivalent packages for Fedora (`dnf`) or Arch (`pacman`).
 
+2. **Create and activate a virtual environment** (see Quick Start).
+
+3. **Install Python dependencies**:
+   ```bash
+   pip install -e ".[dev]"
+   ```
+
+4. **Rebuild resources when UI files change**:
+   ```bash
+   glib-compile-resources \
+       --sourcedir=data \
+       data/io.github.IshuSinghSE.aurynk.gresource.xml \
+       --target=data/io.github.IshuSinghSE.aurynk.gresource
+   ```
+   Meson and Flatpak builds do this automatically, but running the command is handy during rapid iteration.
+
+5. **Keep your branch current**:
+   ```bash
+   git fetch origin
+   git rebase origin/develop   # or origin/main, depending on target branch
+   ```
+
+## Everyday Tasks
+
+- **Run from source**:
+  ```bash
+  python -m aurynk
+  ```
+
+- **Run tests**:
+  ```bash
+  pytest
+  ```
+
+- **Lint and format**:
+  ```bash
+  ruff check .
+  ruff format .
+  ```
+
+- **Check type safety** (optional but encouraged when adding complex logic):
+  ```bash
+  mypy aurynk
+  ```
+  (Add annotations as you go to keep future work smoother.)
+
+## Packaging Guides
+
+### Meson install (system integration)
 ```bash
 meson setup build --prefix=/usr
 meson compile -C build
 sudo meson install -C build
 ```
 
-### Debian Package
-
+### Flatpak workflow
 ```bash
-dpkg-buildpackage -us -uc -b
-sudo dpkg -i ../aurynk_0.1.0-1_all.deb
-```
+# Ensure the GNOME runtime remote exists for your user
+flatpak --user remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
-### Flatpak
-
-```bash
-# Local build
-flatpak-builder --force-clean build-dir flatpak/io.github.IshuSinghSE.aurynk.yml
-
-# Install locally
+# Build and install into the user collection
 flatpak-builder --user --install --force-clean build-dir flatpak/io.github.IshuSinghSE.aurynk.yml
 
-# Create bundle
+# Launch the sandboxed build
+flatpak run io.github.IshuSinghSE.aurynk
+```
+To export into a local repo for testing or distribution:
+```bash
 flatpak-builder --repo=repo --force-clean build-dir flatpak/io.github.IshuSinghSE.aurynk.yml
 flatpak build-bundle repo aurynk.flatpak io.github.IshuSinghSE.aurynk
 ```
+If the manifest references an icon, confirm it is installed under `data/icons/hicolor/.../apps/` so the Flatpak export step succeeds without warnings.
 
-## 🎨 Code Style
-
-This project uses `ruff` for linting and formatting:
-
+### Debian package
 ```bash
-# Install dev dependencies if not already done
-pip install -e ".[dev]"
-
-# Check code style
-ruff check .
-
-# Format code
-ruff format .
-
-# Check and fix automatically
-ruff check --fix .
+dpkg-buildpackage -us -uc -b
+sudo dpkg -i ../aurynk_*_all.deb
 ```
 
-### Code Style Guidelines
+## Release Checklist
 
-- **Line length:** 100 characters maximum
-- **Import organization:** Use `ruff`'s import sorting
-- **Type hints:** Encouraged for new code
-- **Docstrings:** Use for public functions and classes
-- **Comments:** Explain complex logic and business rules
+1. Update version numbers in `pyproject.toml`, `meson.build`, Debian metadata, and Flatpak manifest.
+2. Regenerate resources, screenshots, or translations as needed (`glib-compile-resources`, `po` updates).
+3. Run the full test matrix: `pytest`, linting, and both native and Flatpak builds.
+4. Refresh Flatpak hashes and archives after dependency bumps.
+5. Tag the release and push (`git tag vX.Y.Z && git push --tags`).
+6. Publish release notes on GitHub and submit packaging updates (Flathub, distro repos).
 
-## 🧪 Testing
+## Submitting Changes
 
-### Manual Testing
+1. Keep commits focused; prefer a logical change per commit.
+2. Write imperative commit messages with a concise subject (< 50 chars) and an optional detailed body.
+3. Update or add tests when fixing bugs or adding features.
+4. Ensure `ruff check` and `pytest` pass before opening a pull request.
+5. Open the PR against the appropriate branch (`develop` for feature work unless instructed otherwise).
+6. Describe the motivation, implementation details, and testing performed. Attach screenshots for UI updates.
+7. Stay responsive to review feedback and rebase instead of merging to keep history clean.
 
-1. **Test wireless pairing:**
-   - Ensure QR code generation works
-   - Test pairing with various Android versions
-   - Verify connection persistence
+## Support
 
-2. **Test device management:**
-   - Check device information display
-   - Test screenshot capture
-   - Verify refresh functionality
+- Report bugs or request features through [GitHub Issues](https://github.com/IshuSinghSE/aurynk/issues).
+- Ask questions or discuss ideas in [GitHub Discussions](https://github.com/IshuSinghSE/aurynk/discussions).
+- For security concerns, email [ishu.111636@yahoo.com](mailto:ishu.111636@yahoo.com).
 
-3. **Test system tray integration:**
-   - Verify tray icon appears
-   - Test menu functionality
-   - Check minimize-to-tray behavior
-
-### Automated Testing
-
-*Testing framework setup is planned for future releases.*
-
-## 📦 Packaging
-
-### Flatpak Manifest Structure
-
-The Flatpak manifest (`flatpak/io.github.IshuSinghSE.aurynk.yml`) includes:
-
-- **Python dependencies:** Managed via pip modules
-- **ADB tools:** Android Debug Bridge
-- **AyatanaAppIndicator:** System tray support (local build)
-- **Prebuilt scrcpy:** Screen mirroring binaries
-
-### Release Process
-
-1. **Update version** in `pyproject.toml` and `meson.build`
-2. **Test packaging** across different formats
-3. **Create GitHub release** with proper tagging
-4. **Update Flatpak manifest** SHA256 hashes
-5. **Submit to Flathub** (for stable releases)
-
-## 🚀 Submitting Changes
-
-### Pull Request Process
-
-1. **Fork the repository** on GitHub
-2. **Create a feature branch** from `main`:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-3. **Make your changes** following the code style guidelines
-4. **Test your changes** thoroughly
-5. **Commit with descriptive messages:**
-   ```bash
-   git commit -m "Add wireless debugging timeout handling
-   
-   - Increase pairing timeout to 30 seconds
-   - Add user feedback for connection status  
-   - Handle network interruption gracefully"
-   ```
-6. **Push to your fork** and create a Pull Request
-7. **Respond to review feedback** promptly
-
-### Commit Message Guidelines
-
-- **Use imperative mood:** "Add feature" not "Added feature"
-- **Keep first line under 50 characters**
-- **Add detailed description** for complex changes
-- **Reference issues:** "Fixes #123" or "Closes #456"
-
-### What to Include in PRs
-
-- **Clear description** of the change and motivation
-- **Test steps** for reviewers to verify the change
-- **Screenshots** for UI changes
-- **Updated documentation** if applicable
-
-## 🐛 Reporting Issues
-
-When reporting bugs or requesting features:
-
-1. **Search existing issues** to avoid duplicates
-2. **Use issue templates** when available
-3. **Provide system information:**
-   - Linux distribution and version
-   - Python version (`python --version`)
-   - GTK version
-   - Android device information (if relevant)
-4. **Include steps to reproduce** the issue
-5. **Add relevant logs** or error messages
-
-## 📞 Getting Help
-
-- 🐛 **Bug Reports:** [GitHub Issues](https://github.com/IshuSinghSE/aurynk/issues)
-- 💬 **Questions:** [GitHub Discussions](https://github.com/IshuSinghSE/aurynk/discussions)
-- 📧 **Security Issues:** Email [ishu.111636@yahoo.com](mailto:ishu.111636@yahoo.com)
-
-## 📄 License
-
-By contributing to Aurynk, you agree that your contributions will be licensed under the GPL-3.0-or-later license.
-
----
-
-Thank you for contributing to Aurynk! 🎉
+By contributing, you agree your work is licensed under GPL-3.0-or-later. Thank you for helping Aurynk grow!
