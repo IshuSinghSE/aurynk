@@ -1543,7 +1543,9 @@ class SettingsWindow(Adw.PreferencesWindow):
         Returns:
             List of dictionaries with encoder information
         """
-        print(f"DEBUG: Parsing {encoder_type} encoders from output of length {len(output)}")  # Debug
+        print(
+            f"DEBUG: Parsing {encoder_type} encoders from output of length {len(output)}"
+        )  # Debug
         encoders = []
         current_codec = None
         in_section = False
@@ -1567,16 +1569,20 @@ class SettingsWindow(Adw.PreferencesWindow):
             if not in_section:
                 continue
 
-            # Detect codec headers (e.g., "--video-codec=h264:", "--audio-codec=opus:")
-            if encoder_type == "video" and line_stripped.startswith("--video-codec="):
-                current_codec = line_stripped.split("=")[1].rstrip(":")
-                continue
-            elif encoder_type == "audio" and line_stripped.startswith("--audio-codec="):
-                current_codec = line_stripped.split("=")[1].rstrip(":")
-                continue
-
-            # Parse encoder lines
+            # Parse lines that contain both codec and encoder (newer scrcpy format)
+            # Example: --video-codec=h264 --video-encoder=c2.mtk.avc.encoder (hw) [vendor]
+            codec_flag = f"--{encoder_type}-codec="
             encoder_flag = f"--{encoder_type}-encoder="
+
+            if codec_flag in line_stripped and encoder_flag in line_stripped:
+                # Extract codec from the line
+                codec_part = line_stripped.split(codec_flag)[1].split()[0]
+                current_codec = codec_part
+                print(f"DEBUG: Found codec on same line: {current_codec}")  # Debug
+
+                # Continue to parse encoder from same line (fall through to encoder parsing)
+
+            # Parse encoder lines (works for both old format and new format after extracting codec)
             if encoder_flag in line_stripped:
                 # Extract encoder name (before any metadata like (hw), (sw), etc.)
                 encoder_part = line_stripped.split(encoder_flag, 1)[1]
