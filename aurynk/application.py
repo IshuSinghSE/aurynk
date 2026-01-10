@@ -191,6 +191,13 @@ class AurynkApp(Adw.Application):
         self.power_monitor.register_callback("sleep", _on_system_sleep)
         self.power_monitor.start()
 
+        # Register encoder reset on device changes (pair/unpair)
+        from aurynk.utils.device_events import register_device_change_callback
+        from aurynk.utils.encoder_manager import reset_encoders_to_default
+
+        register_device_change_callback(reset_encoders_to_default)
+        logger.debug("Registered encoder reset callback for device changes")
+
         # Start tray command listener thread from tray_controller
         self.tray_listener_thread = threading.Thread(
             target=tray_command_listener, args=(self,), daemon=True
