@@ -74,4 +74,69 @@ class AboutWindow:
             ],
         )
 
+        # Add debug information for troubleshooting
+        debug_info = _get_debug_info()
+        if debug_info:
+            about.set_debug_info(debug_info)
+
         about.present()
+
+
+def _get_debug_info():
+    """Get debug information including ADB and scrcpy versions.
+
+    Returns:
+        str: Formatted debug information or empty string if unavailable
+    """
+    import subprocess
+
+    from aurynk.utils.adb_utils import get_adb_path
+
+    info_lines = []
+
+    # Get Aurynk version
+    info_lines.append(f"Aurynk: {__version__}")
+
+    # Get ADB version
+    try:
+        adb_path = get_adb_path()
+        result = subprocess.run(
+            [adb_path, "version"],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.returncode == 0:
+            # ADB output format: "Android Debug Bridge version X.X.XX"
+            version_line = result.stdout.strip().split('\n')[0]
+            info_lines.append(f"ADB: {version_line}")
+        else:
+            info_lines.append("ADB: Not found or error")
+    except Exception as e:
+        info_lines.append(f"ADB: Error - {str(e)}")
+
+    # Get scrcpy version
+    try:
+        from aurynk.utils.settings import SettingsManager
+        settings = SettingsManager()
+        scrcpy_path = settings.get("scrcpy", "scrcpy_path", "").strip()
+        if not scrcpy_path:
+            import shutil
+            scrcpy_path = shutil.which("scrcpy") or "scrcpy"
+
+        result = subprocess.run(
+            [scrcpy_path, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.returncode == 0:
+            # scrcpy output format: "scrcpy X.X.X <url>"
+            version_line = result.stderr.strip().split('\n')[0] if result.stderr else result.stdout.strip().split('\n')[0]
+            info_lines.append(f"scrcpy: {version_line}")
+        else:
+            info_lines.append("scrcpy: Not found or error")
+    except Exception as e:
+        info_lines.append(f"scrcpy: Error - {str(e)}")
+
+    return "\n".join(info_lines)
