@@ -4,35 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [1.2.1] - 2026-01-11
 
-Documentation improvements, packaging fixes, and enhanced developer experience.
+Kept the experience intuitive for general users. Key changes focused on pairing, encoders, troubleshooting, and small fixes:
 
-### 📚 Documentation
-- **New BUILDING.md:** Comprehensive build guide for all platforms (Flatpak, Debian, Snap, Meson, Python)
-- **New TESTING.md:** Complete testing guide with pytest, coverage, debugging, and CI/CD information
-- **Enhanced CONTRIBUTING.md:** Updated with modern structure, better guidelines, and references to new docs
-- **Organized Documentation:** Moved detailed guides to `docs/` folder for better organization
+- Fix file paths and packaging (tray script installation, consistent install locations)
+- Added video encoder support
+- Added audio encoder support
+- Show detailed troubleshooting information in documentation
+- Major pairing improvements: enhanced pairing flow and manual pairing using a pairing code
+- Increased QR pairing expiry to 60 seconds
+- Minor bug fixes and documentation updates
 
-### 🔧 Fixes
-- **Issue #62:** Fixed aurynk_tray.py installation path to follow proper Python packaging conventions
-  - Now installs to `/usr/lib/python3/dist-packages/aurynk/scripts/` instead of `/usr/lib/python3/dist-packages/scripts/`
-  - Updated application.py to check installed location first, then development location
-  - Updated Debian, Meson, and Snap packaging configurations
-
-### 🧹 Cleanup
-- Removed empty `aurynk/lib/` and `aurynk/tools/` folders
-- Cleaned up Python cache files (`__pycache__` directories)
-- Updated repository structure documentation
-
-### 📦 Packaging
-- Updated Snap packaging with proper USB device access (`adb-support` + `udev` plugs)
-- Improved tray script installation across all packaging methods
-- Better consistency between Flatpak, Debian, and Snap packages
-
-### 🎯 Developer Experience
-- Clearer contribution guidelines with step-by-step instructions
-- Better documentation structure and navigation
-- Improved build instructions for multiple platforms
-- Enhanced testing documentation with practical examples
 
 ## [1.2.0] - 2025-12-09
 
