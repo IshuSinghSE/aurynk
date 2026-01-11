@@ -1,3 +1,16 @@
+aurynk (1.2.1) noble; urgency=medium
+  Documentation improvements, packaging fixes, and enhanced developer experience.
+  * New BUILDING.md: Comprehensive build guide for all platforms.
+  * New TESTING.md: Complete testing guide with pytest, coverage, and debugging.
+  * Enhanced CONTRIBUTING.md: Updated with modern structure and better guidelines.
+  * Fixed Issue #62: aurynk_tray.py now follows proper Python packaging conventions.
+  * Updated Snap packaging with proper USB device access (adb-support + udev).
+  * Removed empty lib/ and tools/ folders from aurynk package.
+  * Improved tray script installation across all packaging methods.
+  * Better documentation structure with docs/ folder organization.
+
+ -- Ishu Singh <ishu.111636@yahoo.com>  Sat, 11 Jan 2026 00:00:00 +0530
+
 aurynk (1.2.0) noble; urgency=medium
   Enhanced USB device support with complete device information display and improved Flatpak integration.
   * Complete USB Device Details: Shows manufacturer, model, and Android version for USB-connected devices in Flatpak.

@@ -1,6 +1,6 @@
 name: aurynk
 base: core24
-version: '1.1.0'
+version: '1.2.1'
 title: Aurynk
 contact: https://github.com/IshuSinghSE/aurynk/issues
 summary: Android Device Manager and Mirroring Tool for Linux
