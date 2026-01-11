@@ -23,4 +23,4 @@ install_subdir('aurynk', install_dir: python_dir)
 install_data('scripts/aurynk', install_dir: get_option('bindir'), install_mode: 'rwxr-xr-x', rename: 'aurynk')
 
 # install tray helper script
-install_data('scripts/aurynk_tray.py', install_dir: python_dir / 'scripts', install_mode: 'rwxr-xr-x')
+install_data('scripts/aurynk_tray.py', install_dir: python_dir / 'aurynk' / 'scripts', install_mode: 'rwxr-xr-x')

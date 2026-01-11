@@ -39,9 +39,13 @@ def start_tray_helper():
                 logger.error(f"Could not remove stale tray socket: {e}")
     # Start new tray helper. Pass our PID so the helper can signal us as a
     # fallback if socket-based IPC fails to deliver a quit request.
-    script_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "scripts", "aurynk_tray.py")
-    )
+    # First try to find it in the installed location (under aurynk/scripts/)
+    script_path = os.path.join(os.path.dirname(__file__), "scripts", "aurynk_tray.py")
+    if not os.path.exists(script_path):
+        # Fallback to development location
+        script_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "scripts", "aurynk_tray.py")
+        )
     env = os.environ.copy()
     try:
         env["AURYNK_APP_PID"] = str(os.getpid())

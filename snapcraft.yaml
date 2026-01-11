@@ -44,8 +44,9 @@ apps:
       - home
       - opengl
       - audio-playback
-      # CRITICAL: This allows access to the ADB daemon and USB devices
+      # USB device detection and ADB access
       - adb-support
+      - udev
 
 parts:
   # ---------------------------------------------------------
@@ -108,8 +109,8 @@ parts:
       craftctl default
       # Install metadata manually to /usr/share
       install -D -m644 data/io.github.IshuSinghSE.aurynk.metainfo.xml $SNAPCRAFT_PART_INSTALL/usr/share/metainfo/io.github.IshuSinghSE.aurynk.metainfo.xml
-      # Install tray helper script
-      install -D -m755 scripts/aurynk_tray.py $SNAPCRAFT_PART_INSTALL/lib/python3.12/site-packages/scripts/aurynk_tray.py
+      # Install tray helper script in proper location
+      install -D -m755 scripts/aurynk_tray.py $SNAPCRAFT_PART_INSTALL/lib/python3.12/site-packages/aurynk/scripts/aurynk_tray.py
     
     # THE OPTIMIZER: This strips junk from the final package
     prime:
