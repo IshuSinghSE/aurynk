@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.1] - 2026-01-11
+
+Kept the experience intuitive for general users. Key changes focused on pairing, encoder support, troubleshooting, and minor bug fixes.
+
+### 🚀 New Features
+- Manual pairing: connect using a pairing code (manual pairing flow)
+- Added video encoder support
+- Added audio encoder support
+
+### 🔧 Improvements
+- Major pairing flow improvements and UX refinements
+- Increased QR pairing expiry time to 60 seconds
+- Added more troubleshooting info in about section
+
+### 🐛 Bug Fixes
+- Minor bug fixes and documentation updates
+
 ## [1.2.0] - 2025-12-09
 
 Enhanced USB device support with complete device information display and improved Flatpak integration.

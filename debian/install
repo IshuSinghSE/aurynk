@@ -24,7 +24,7 @@ data/ui/device_details_window.ui usr/share/aurynk/
 data/io.github.IshuSinghSE.aurynk.gresource usr/share/aurynk/
 
 # Scripts
-scripts/aurynk_tray.py usr/lib/python3/dist-packages/scripts/
+scripts/aurynk_tray.py usr/lib/python3/dist-packages/aurynk/scripts/
 
 # Do NOT include unwanted folders
 # .venv

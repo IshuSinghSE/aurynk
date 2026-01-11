@@ -177,12 +177,44 @@ sudo pacman -S android-tools
 
 ## 🤝 Contributing
 
-Want to help make Aurynk better? Check out [CONTRIBUTING.md](CONTRIBUTING.md) for:
+Want to help make Aurynk better? We'd love your contribution!
 
-- 🔨 Development setup
-- 🏗️ Building from source
-- 📝 Code style guidelines
-- 🚀 How to submit changes
+**📚 Documentation:**
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines and workflow
+- **[BUILDING.md](docs/BUILDING.md)** - Detailed build instructions for all platforms
+- **[TESTING.md](docs/TESTING.md)** - Testing guide and debugging tips
+
+**🛠️ Quick Start for Contributors:**
+
+```bash
+# Clone the repository
+git clone https://github.com/IshuSinghSE/aurynk.git
+cd aurynk
+
+# Create virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install in development mode
+pip install -e ".[dev]"
+
+# Run from source
+python -m aurynk
+
+# Run tests
+pytest
+
+# Format code
+ruff format .
+```
+
+**What can you contribute?**
+- 🐛 Fix bugs or report issues
+- ✨ Add new features
+- 📖 Improve documentation
+- 🌍 Add translations
+- 🎨 Improve UI/UX
+- 🧪 Write tests
 
 ## 🌍 Translations
 
