@@ -21,7 +21,8 @@ data/ui/main_window.ui usr/share/aurynk/
 data/ui/device_details_window.ui usr/share/aurynk/
 
 # GResource
-data/io.github.IshuSinghSE.aurynk.gresource usr/share/aurynk/
+# Use the XML source so Debian build picks up the resource definition reliably
+data/io.github.IshuSinghSE.aurynk.gresource.xml usr/share/aurynk/
 
 # Scripts
 scripts/aurynk_tray.py usr/lib/python3/dist-packages/aurynk/scripts/
