@@ -4,16 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [1.2.1] - 2026-01-11
 
-Kept the experience intuitive for general users. Key changes focused on pairing, encoders, troubleshooting, and small fixes:
+Kept the experience intuitive for general users. Key changes focused on pairing, encoder support, troubleshooting, and small fixes.
 
-- Fix file paths and packaging (tray script installation, consistent install locations)
+### 🚀 New Features
 - Added video encoder support
 - Added audio encoder support
-- Show detailed troubleshooting information in documentation
-- Major pairing improvements: enhanced pairing flow and manual pairing using a pairing code
-- Increased QR pairing expiry to 60 seconds
-- Minor bug fixes and documentation updates
+- Manual pairing: connect using a pairing code (manual pairing flow)
 
+### 🔧 Improvements
+- Fixed file paths and packaging (consistent tray script install locations across packages)
+- Major pairing flow improvements and UX refinements
+- Increased QR pairing expiry time to 60 seconds
+- Documentation: added detailed troubleshooting information and reorganized docs into `docs/`
+
+### 🐛 Bug Fixes
+- Minor bug fixes and documentation updates
 
 ## [1.2.0] - 2025-12-09
 
