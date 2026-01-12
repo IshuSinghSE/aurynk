@@ -84,11 +84,15 @@ class AboutWindow:
         # Add privacy disclaimer
         about.set_release_notes(
             _(
-                "<b>Privacy Notice</b>\n\n"
-                "Aurynk does not collect, store, or transmit any personal information, "
-                "device data, or usage statistics. All data remains on your local system.\n\n"
-                "The debug information shown above is only displayed locally and is never "
-                "sent anywhere unless you manually choose to share it (e.g., when reporting issues)."
+                "<ul>"
+                "<li>Manual pairing: connect using a pairing code (manual pairing flow)</li>"
+                "<li>Added video encoder support</li>"
+                "<li>Added audio encoder support</li>"
+                "<li>Major pairing flow improvements and UX refinements</li>"
+                "<li>Increased QR pairing expiry time to 60 seconds</li>"
+                "<li>Added more troubleshooting info in about section</li>"
+                "<li>Minor bug fixes and documentation updates</li>"
+                "</ul>"
             )
         )
 
