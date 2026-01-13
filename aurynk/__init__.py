@@ -1,4 +1,4 @@
 # Aurynk - Android Device Manager for Linux
 # Copyright (C) 2025
 
-__version__ = "1.2.1"
+__version__ = "1.2.2"
