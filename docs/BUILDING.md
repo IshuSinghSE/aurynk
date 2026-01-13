@@ -97,7 +97,10 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 # Install dependencies
+pip install -r pyproject.toml
+
 pip install -e ".[dev]"
+
 
 # Run the application
 python -m aurynk
