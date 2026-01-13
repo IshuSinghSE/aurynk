@@ -331,4 +331,11 @@ def _get_debug_info():
         except Exception:
             info_lines.append(f"{package}: Not found")
 
+    # === Environment Variables ===
+    info_lines.append("\n=== Environment Variables ===")
+    info_lines.append(f"- LANG: {os.environ.get('LANG')}")
+    for env in os.environ:
+        if env.startswith(("GTK_", "ADB_", "ANDROID_")):
+            info_lines.append(f"- {env}:  {os.environ.get(env)}")
+
     return "\n".join(info_lines)
