@@ -46,7 +46,8 @@ apps:
       - audio-playback
       # USB device detection and ADB access
       - adb-support
-      - udev
+      - hardware-observe
+      - raw-usb
 
 parts:
   # ---------------------------------------------------------
