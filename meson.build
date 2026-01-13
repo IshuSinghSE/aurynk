@@ -1,5 +1,5 @@
 project('aurynk',
-  version: '1.2.1',
+  version: '1.2.2',
   meson_version: '>= 0.62.0'
 )
 
