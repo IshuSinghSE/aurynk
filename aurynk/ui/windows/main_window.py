@@ -483,9 +483,20 @@ class AurynkWindow(Adw.ApplicationWindow):
                 try:
                     donate_btn.connect("clicked", self._on_donate_clicked)
                     donate_btn.add_css_class("donate-button")
+                    # Use bundled SVG as button child for crisper/filled appearance
+                    try:
+                        img = Gtk.Image.new_from_resource(
+                            "/io/github/IshuSinghSE/aurynk/icons/io.github.IshuSinghSE.aurynk.sponsor.svg"
+                        )
+                        img.set_pixel_size(24)
+                        donate_btn.set_child(img)
+                    except Exception:
+                        # fallback to symbolic icon if resource missing
+                        donate_btn.set_icon_name("emblem-favorite-symbolic")
+
                     css_provider = Gtk.CssProvider()
                     css = b"""
-                        .donate-button image { color: #da61a2; min-width: 20px; min-height: 20px; width: 20px; height: 20px; }
+                        .donate-button image { color: #da61a2; min-width: 24px; min-height: 24px; width: 24px; height: 24px; }
                         .donate-button { padding: 4px; min-width: 0; min-height: 0; }
                         """
                     css_provider.load_from_data(css)
@@ -546,13 +557,21 @@ class AurynkWindow(Adw.ApplicationWindow):
         # Donate (heart) icon-only button — colored to match design
         donate_btn = Gtk.Button()
         donate_btn.set_tooltip_text(_("Sponsor the project"))
-        donate_btn.set_icon_name("emblem-favorite-symbolic")
         donate_btn.add_css_class("donate-button")
         donate_btn.connect("clicked", self._on_donate_clicked)
+        try:
+            img = Gtk.Image.new_from_resource(
+                "/io/github/IshuSinghSE/aurynk/icons/io.github.IshuSinghSE.aurynk.sponsor.svg"
+            )
+            img.set_pixel_size(32)
+            donate_btn.set_child(img)
+        except Exception:
+            # Fallback to symbolic icon if resource not available
+            donate_btn.set_icon_name("emblem-favorite-symbolic")
 
         # Inject small CSS for donate button color and compact spacing
         css = b"""
-            .donate-button image { color: #da61a2; min-width: 20px; min-height: 20px; width: 32px; height: 32px; }
+            .donate-button image { color: #da61a2; min-width: 32px; min-height: 32px; width: 32px; height: 32px; }
             .donate-button { padding: 4px; min-width: 0; min-height: 0; }
             """
         css_provider = Gtk.CssProvider()

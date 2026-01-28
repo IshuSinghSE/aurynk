@@ -16,6 +16,7 @@ data/icons/io.github.IshuSinghSE.aurynk.tray.svg usr/share/aurynk/icons/
 data/icons/io.github.IshuSinghSE.aurynk.tray-black.svg usr/share/aurynk/icons/
 data/icons/io.github.IshuSinghSE.aurynk.tray-white.svg usr/share/aurynk/icons/
 data/icons/io.github.IshuSinghSE.aurynk.tray-filled.svg usr/share/aurynk/icons/
+data/icons/io.github.IshuSinghSE.aurynk.sponsor.svg usr/share/aurynk/icons/
 
 # Styles
 data/styles/aurynk.css usr/share/aurynk/

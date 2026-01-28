@@ -35,6 +35,9 @@ tray_variants = [
   'io.github.IshuSinghSE.aurynk.tray-filled.svg'
 ]
 
+# Sponsor icon (filled heart)
+tray_variants += ['io.github.IshuSinghSE.aurynk.sponsor.svg']
+
 foreach variant : tray_variants
   install_data(
     'icons/' + variant,
