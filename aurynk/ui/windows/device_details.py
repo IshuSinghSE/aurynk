@@ -85,20 +85,23 @@ class DeviceDetailsWindow(Adw.Window):
         actions_box.set_halign(Gtk.Align.CENTER)
         actions_box.set_margin_top(12)
 
-        # Refresh screenshot button (icon only)
-        refresh_screenshot_btn = Gtk.Button()
-        refresh_screenshot_btn.set_icon_name("view-refresh-symbolic")
-        refresh_screenshot_btn.set_tooltip_text(_("Refresh Screenshot"))
-        refresh_screenshot_btn.add_css_class("suggested-action")
-        refresh_screenshot_btn.connect("clicked", self._on_refresh_screenshot)
-        actions_box.append(refresh_screenshot_btn)
+        # Refresh screenshot button (icon only) - camera icon for clarity
+        self.refresh_screenshot_btn = Gtk.Button()
+        self.refresh_screenshot_btn.set_icon_name("camera-photo-symbolic")
+        self.refresh_screenshot_btn.set_tooltip_text(_("Capture screenshot only"))
+        self.refresh_screenshot_btn.add_css_class("suggested-action")
+        self.refresh_screenshot_btn.connect("clicked", self._on_refresh_screenshot)
+        actions_box.append(self.refresh_screenshot_btn)
 
-        # Refresh all data button (icon only)
-        refresh_btn = Gtk.Button()
-        refresh_btn.set_icon_name("system-reboot-symbolic")
-        refresh_btn.set_tooltip_text(_("Refresh All Device Data"))
-        refresh_btn.connect("clicked", self._on_refresh_all)
-        actions_box.append(refresh_btn)
+        # Refresh all data button (icon only) - refresh icon to distinguish from screenshot
+        self.refresh_btn = Gtk.Button()
+        self.refresh_btn.set_icon_name("view-refresh-symbolic")
+        self.refresh_btn.set_tooltip_text(_("Refresh device info and screenshot"))
+        self.refresh_btn.connect("clicked", self._on_refresh_all)
+        actions_box.append(self.refresh_btn)
+
+        # Check if device is connected and enable/disable buttons accordingly
+        self._update_button_states()
 
         # Remove device button (icon only) - only show for wireless devices
         if not self.device.get("is_usb"):
@@ -172,6 +175,44 @@ class DeviceDetailsWindow(Adw.Window):
         row.set_subtitle(str(value))
         group.add(row)
         return row
+
+    def _update_button_states(self):
+        """Enable or disable buttons based on device connection status."""
+        is_connected = self._check_device_connected()
+
+        self.refresh_screenshot_btn.set_sensitive(is_connected)
+        self.refresh_btn.set_sensitive(is_connected)
+
+        if not is_connected:
+            self.refresh_screenshot_btn.set_tooltip_text(_("Device not connected"))
+            self.refresh_btn.set_tooltip_text(_("Device not connected"))
+        else:
+            self.refresh_screenshot_btn.set_tooltip_text(_("Capture screenshot only"))
+            self.refresh_btn.set_tooltip_text(_("Refresh device info and screenshot"))
+
+    def _check_device_connected(self):
+        """Check if the device is currently connected via ADB."""
+        import subprocess
+
+        try:
+            result = subprocess.run(["adb", "devices"], capture_output=True, text=True, timeout=2)
+
+            # Get the device identifier to check
+            if self.device.get("is_usb"):
+                device_id = self.device.get("adb_serial", "")
+            else:
+                device_id = f"{self.device.get('address')}:{self.device.get('connect_port')}"
+
+            # Check if device is in the list
+            for line in result.stdout.strip().split("\n")[1:]:
+                if "\t" in line:
+                    serial, status = line.split("\t", 1)
+                    if serial.strip() == device_id and status.strip() == "device":
+                        return True
+
+            return False
+        except Exception:
+            return False
 
     def _fetch_device_data(self):
         """Fetch device specifications in background."""
@@ -291,8 +332,12 @@ class DeviceDetailsWindow(Adw.Window):
 
     def _on_refresh_screenshot(self, button):
         """Handle refresh screenshot button click."""
+        # Check if device is connected
+        if not self._check_device_connected():
+            self._update_button_states()
+            return
+
         button.set_sensitive(False)
-        button.set_label(_("Refreshing..."))
 
         def capture():
             # Check if this is a USB device or wireless device
@@ -325,11 +370,16 @@ class DeviceDetailsWindow(Adw.Window):
         """Update screenshot UI."""
         if screenshot_path:
             self.screenshot_image.set_from_file(screenshot_path)
-        button.set_sensitive(True)
-        button.set_icon_name("view-refresh-symbolic")
+        # Re-check connection state and update button states
+        self._update_button_states()
 
     def _on_refresh_all(self, button):
         """Handle refresh all data button click."""
+        # Check if device is connected
+        if not self._check_device_connected():
+            self._update_button_states()
+            return
+
         button.set_sensitive(False)
 
         def refresh():
@@ -372,7 +422,8 @@ class DeviceDetailsWindow(Adw.Window):
         self._update_specs_ui(specs)
         if screenshot_path:
             self.screenshot_image.set_from_file(screenshot_path)
-        button.set_sensitive(True)
+        # Re-check connection state and update button states
+        self._update_button_states()
 
     def _on_remove_device(self, button):
         """Handle remove device button click."""

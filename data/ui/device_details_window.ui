@@ -52,8 +52,9 @@
                 
                 <child>
                   <object class="GtkButton" id="refresh_screenshot_btn">
-                    <property name="label">Refresh Screenshot</property>
-                    <property name="icon-name">view-refresh-symbolic</property>
+                    <property name="label">Capture Screenshot</property>
+                    <property name="icon-name">camera-photo-symbolic</property>
+                    <property name="tooltip-text">Capture screenshot only</property>
                     <style>
                       <class name="suggested-action"/>
                     </style>
@@ -96,8 +97,9 @@
                     
                     <child>
                       <object class="GtkButton" id="refresh_all_btn">
-                        <property name="label">Refresh All Data</property>
+                        <property name="label">Refresh All</property>
                         <property name="icon-name">view-refresh-symbolic</property>
+                        <property name="tooltip-text">Refresh device info and screenshot</property>
                       </object>
                     </child>
                     
