@@ -296,6 +296,10 @@ class AurynkApp(Adw.Application):
         self._apply_theme()
         self._load_gresource()
 
+        # Set up keyboard accelerators for window actions
+        self.set_accels_for_action("win.shortcuts", ["<Primary>question"])
+        self.set_accels_for_action("win.preferences", ["<Primary>comma"])
+
         # Start helper processes
         start_tray_helper()
         start_udev_proxy_helper()
