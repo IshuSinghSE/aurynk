@@ -1172,6 +1172,33 @@ class SettingsWindow(Adw.PreferencesWindow):
         otg_row.connect("notify::selected", on_otg_mode_changed)
         control_group.add(otg_row)
 
+        # Gamepad Support
+        gamepad_row = Adw.ComboRow()
+        gamepad_row.set_title(_("Gamepad (experimental)"))
+        gamepad_row.set_subtitle(_("Simulate physical gamepad using UHID or AOA protocol"))
+        gamepad_options = [
+            _("Disabled"),
+            _("UHID"),
+            _("AOA"),
+        ]
+        gamepad_model = Gtk.StringList.new(gamepad_options)
+        gamepad_row.set_model(gamepad_model)
+
+        # Map internal values to display values
+        gamepad_map = {"disabled": 0, "uhid": 1, "aoa": 2}
+        gamepad_reverse_map = ["disabled", "uhid", "aoa"]
+
+        current_gamepad = self.settings.get("scrcpy", "gamepad_mode", "disabled")
+        gamepad_row.set_selected(gamepad_map.get(current_gamepad, 0))
+
+        def on_gamepad_mode_changed(combo, _):
+            idx = combo.get_selected()
+            if 0 <= idx < len(gamepad_reverse_map):
+                self.settings.set("scrcpy", "gamepad_mode", gamepad_reverse_map[idx])
+
+        gamepad_row.connect("notify::selected", on_gamepad_mode_changed)
+        control_group.add(gamepad_row)
+
         # Add control group to page
         page.add(control_group)
 

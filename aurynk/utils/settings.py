@@ -65,6 +65,7 @@ class SettingsManager:
             "record_path": "~/Videos/Aurynk",
             "scrcpy_path": "",
             "otg_mode": "None",
+            "gamepad_mode": "disabled",
         },
     }
 

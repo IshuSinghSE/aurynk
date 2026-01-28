@@ -301,6 +301,13 @@ class ScrcpyManager:
             if settings.get("scrcpy", "no_control", False):
                 cmd.append("--no-control")
 
+            # Gamepad mode
+            gamepad_mode = settings.get("scrcpy", "gamepad_mode", "disabled")
+            if gamepad_mode == "uhid":
+                cmd.append("--gamepad=uhid")
+            elif gamepad_mode == "aoa":
+                cmd.append("--gamepad=aoa")
+
             logger.info(f"Starting scrcpy with command: {' '.join(cmd)}")
 
             proc = subprocess.Popen(cmd, env=env)
@@ -659,6 +666,13 @@ class ScrcpyManager:
 
             if settings.get("scrcpy", "no_control", False):
                 cmd.append("--no-control")
+
+            # Gamepad mode
+            gamepad_mode = settings.get("scrcpy", "gamepad_mode", "disabled")
+            if gamepad_mode == "uhid":
+                cmd.append("--gamepad=uhid")
+            elif gamepad_mode == "aoa":
+                cmd.append("--gamepad=aoa")
 
             logger.info(f"Starting USB scrcpy with command: {' '.join(cmd)}")
 
