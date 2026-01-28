@@ -22,6 +22,7 @@ class SettingsManager:
             "auto_connect_retries": 3,
             "auto_connect_retry_delay": 5,
             "show_notifications": True,
+            "notify_device_on_mirroring": True,
             "close_to_tray": True,
             "start_minimized": False,
             "theme": "system",

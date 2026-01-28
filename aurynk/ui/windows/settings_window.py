@@ -104,6 +104,14 @@ class SettingsWindow(Adw.PreferencesWindow):
         show_notifications.connect("notify::active", self._on_show_notifications_changed)
         general_group.add(show_notifications)
 
+        # Notify device on mirroring switch
+        notify_device = Adw.SwitchRow()
+        notify_device.set_title(_("Notify Device On Mirroring"))
+        notify_device.set_subtitle(_("Send notification to device when mirroring starts/stops"))
+        notify_device.set_active(self.settings.get("app", "notify_device_on_mirroring", True))
+        notify_device.connect("notify::active", self._on_notify_device_changed)
+        general_group.add(notify_device)
+
         # Monitor interval
         monitor_interval = Adw.SpinRow()
         monitor_interval.set_title(_("Monitor Interval"))
@@ -1364,6 +1372,10 @@ class SettingsWindow(Adw.PreferencesWindow):
     def _on_show_notifications_changed(self, switch, _):
         """Handle show notifications setting change."""
         self.settings.set("app", "show_notifications", switch.get_active())
+
+    def _on_notify_device_changed(self, switch, _):
+        """Handle notify device on mirroring setting change."""
+        self.settings.set("app", "notify_device_on_mirroring", switch.get_active())
 
     def _on_monitor_interval_changed(self, spin, _):
         """Handle monitor interval setting change."""
