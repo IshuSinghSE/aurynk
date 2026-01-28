@@ -1081,9 +1081,11 @@ class AurynkWindow(Adw.ApplicationWindow):
                         logger.warning(f"Connection failed: {output.strip()}")
 
                 # Check final connection status
+                connection_success = False
                 if (
                     "connected" in output or "already connected" in output
                 ) and "unable" not in output:
+                    connection_success = True
                     # Update stored port if it changed
                     if discovered_port and discovered_port != device.get("connect_port"):
                         device["connect_port"] = discovered_port
@@ -1110,6 +1112,7 @@ class AurynkWindow(Adw.ApplicationWindow):
                             device["connect_port"] = new_port
                             self.adb_controller.save_paired_device(device)
                             logger.info(f"✓ Connected and updated port to {new_port}")
+                            connection_success = True
                         else:
                             logger.error(
                                 "Connection still failed. Please ensure device is on the network."
@@ -1118,6 +1121,11 @@ class AurynkWindow(Adw.ApplicationWindow):
                         logger.error(
                             f"Could not find device at {address}. Make sure wireless debugging is enabled."
                         )
+
+                # Show error dialog if connection failed
+                if not connection_success:
+                    error_msg = self._parse_connection_error(output)
+                    GLib.idle_add(self._show_connection_error_dialog, device.get("name", address), error_msg)
 
                 # Restore button state on main thread
                 GLib.idle_add(self._restore_connect_button, button, original_label)
@@ -1420,6 +1428,18 @@ class AurynkWindow(Adw.ApplicationWindow):
                 scrcpy.stop_mirror_by_serial(usb_serial)
             else:
                 logger.info(f"Starting mirror for USB device {usb_serial}")
+                
+                # Check if USB device is authorized before attempting to mirror
+                is_authorized, state = self._check_usb_authorization(usb_serial)
+                
+                if not is_authorized:
+                    if state == "unauthorized":
+                        # Show USB authorization dialog
+                        self._show_usb_unauthorized_dialog(device_name)
+                        return
+                    else:
+                        logger.warning(f"USB device {usb_serial} in unexpected state: {state}")
+                
                 started = scrcpy.start_mirror_usb(usb_serial, device_name)
                 if not started:
                     # Show a user-facing dialog explaining common causes and remediation
@@ -1445,6 +1465,89 @@ class AurynkWindow(Adw.ApplicationWindow):
             logger.error("adb devices command timed out")
         except Exception as e:
             logger.error(f"Error starting USB mirror: {e}")
+
+    def _parse_connection_error(self, output: str) -> str:
+        """Parse ADB connection error output and return user-friendly message."""
+        output_lower = output.lower()
+        
+        if "refused" in output_lower or "cannot connect" in output_lower:
+            return _("Connection refused. Make sure Wireless Debugging is enabled on your device.")
+        elif "timed out" in output_lower or "timeout" in output_lower:
+            return _("Connection timed out. Check if your device is on the same network and Wireless Debugging is enabled.")
+        elif "no route" in output_lower or "unreachable" in output_lower:
+            return _("Cannot reach device. Verify the device is on the same Wi-Fi network.")
+        elif "unable" in output_lower:
+            return _("Unable to connect. The device may have changed ports. Try removing and re-pairing the device.")
+        else:
+            return _("Connection failed. Ensure Wireless Debugging is enabled and the device is on the same network.")
+
+    def _show_connection_error_dialog(self, device_name: str, error_message: str):
+        """Show error dialog when wireless connection fails."""
+        try:
+            from gi.repository import Adw
+
+            dialog = Adw.MessageDialog.new(self)
+            dialog.set_heading(_("Connection Failed"))
+            body = _("Failed to connect to {device}.\n\n{error}\n\nTroubleshooting:\n" 
+                     "  • Ensure Wireless Debugging is enabled\n"
+                     "  • Check both devices are on the same Wi-Fi\n"
+                     "  • Try removing and re-pairing the device").format(
+                device=device_name, error=error_message)
+
+            dialog.set_body(body)
+            dialog.set_default_size(400, 200)
+            body_label = dialog.get_body_label() if hasattr(dialog, "get_body_label") else None
+            if body_label:
+                body_label.set_line_wrap(True)
+                body_label.set_max_width_chars(50)
+
+            dialog.add_response("ok", _("OK"))
+            dialog.connect("response", lambda d, r: d.destroy())
+            dialog.present()
+        except Exception as e:
+            logger.error(f"Failed to show connection error dialog: {e}")
+
+    def _check_usb_authorization(self, usb_serial: str) -> tuple[bool, str]:
+        """Check if USB device is authorized. Returns (is_authorized, state)."""
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["adb", "devices"], capture_output=True, text=True, timeout=3
+            )
+            for line in result.stdout.strip().split("\n")[1:]:
+                if "\t" in line:
+                    serial, state = line.split("\t", 1)
+                    state = state.strip()
+                    if serial == usb_serial:
+                        return (state == "device", state)
+            return (False, "not_found")
+        except Exception:
+            return (False, "error")
+
+    def _show_usb_unauthorized_dialog(self, device_name: str):
+        """Show dialog when USB device is not authorized."""
+        try:
+            from gi.repository import Adw
+
+            dialog = Adw.MessageDialog.new(self)
+            dialog.set_heading(_("USB Debugging Not Authorized"))
+            body = _("Device {device} is connected via USB but not authorized.\n\n"
+                     "Please check your device and tap 'Allow' to authorize USB debugging.\n\n"
+                     "Note: You may need to enable 'Always allow from this computer' for persistent authorization.").format(
+                device=device_name)
+
+            dialog.set_body(body)
+            dialog.set_default_size(400, 180)
+            body_label = dialog.get_body_label() if hasattr(dialog, "get_body_label") else None
+            if body_label:
+                body_label.set_line_wrap(True)
+                body_label.set_max_width_chars(50)
+
+            dialog.add_response("ok", _("OK"))
+            dialog.connect("response", lambda d, r: d.destroy())
+            dialog.present()
+        except Exception as e:
+            logger.error(f"Failed to show USB unauthorized dialog: {e}")
 
     def _show_scrcpy_unavailable_dialog(self, serial: str):
         """Show a concise dialog describing why scrcpy may not have started.
