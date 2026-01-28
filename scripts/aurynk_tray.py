@@ -76,13 +76,10 @@ class TrayHelper:
                 logger.info(f"Using tray icon ({icon_style}): {icon_path}")
                 return icon_path
 
-        # Fallback to old icon paths
+        # Fallback to default SVG icon
         icon_paths = [
             os.path.join(
-                project_root, "data/icons/hicolor/48x48/apps/io.github.IshuSinghSE.aurynk.tray.png"
-            ),
-            os.path.join(
-                project_root, "data/icons/hicolor/32x32/apps/io.github.IshuSinghSE.aurynk.tray.png"
+                project_root, "data/icons/io.github.IshuSinghSE.aurynk.tray.svg"
             ),
             os.path.join(
                 project_root, "data/icons/hicolor/48x48/apps/io.github.IshuSinghSE.aurynk.png"
