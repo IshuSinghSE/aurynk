@@ -112,6 +112,19 @@ class SettingsWindow(Adw.PreferencesWindow):
         notify_device.connect("notify::active", self._on_notify_device_changed)
         general_group.add(notify_device)
 
+        # Tray icon style
+        tray_icon_row = Adw.ComboRow()
+        tray_icon_row.set_title(_("Tray Icon Style"))
+        tray_icon_row.set_subtitle(_("Choose the appearance of the system tray icon"))
+        tray_icon_model = Gtk.StringList.new([_("Default"), _("Black"), _("White"), _("Filled")])
+        tray_icon_row.set_model(tray_icon_model)
+
+        current_style = self.settings.get("app", "tray_icon_style", "default")
+        style_map = {"default": 0, "black": 1, "white": 2, "filled": 3}
+        tray_icon_row.set_selected(style_map.get(current_style, 0))
+        tray_icon_row.connect("notify::selected", self._on_tray_icon_style_changed)
+        general_group.add(tray_icon_row)
+
         # Monitor interval
         monitor_interval = Adw.SpinRow()
         monitor_interval.set_title(_("Monitor Interval"))
@@ -1376,6 +1389,23 @@ class SettingsWindow(Adw.PreferencesWindow):
     def _on_notify_device_changed(self, switch, _):
         """Handle notify device on mirroring setting change."""
         self.settings.set("app", "notify_device_on_mirroring", switch.get_active())
+
+    def _on_tray_icon_style_changed(self, combo, _):
+        """Handle tray icon style setting change."""
+        selected = combo.get_selected()
+        style_map = ["default", "black", "white", "filled"]
+        if 0 <= selected < len(style_map):
+            self.settings.set("app", "tray_icon_style", style_map[selected])
+            # Show info that tray needs restart
+            from gi.repository import Adw
+
+            toast = Adw.Toast()
+            toast.set_title(_("Restart tray to apply icon change"))
+            toast.set_timeout(3)
+            # Get the parent window to show toast
+            parent = self.get_root()
+            if parent and hasattr(parent, "add_toast"):
+                parent.add_toast(toast)
 
     def _on_monitor_interval_changed(self, spin, _):
         """Handle monitor interval setting change."""

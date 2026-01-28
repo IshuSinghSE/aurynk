@@ -26,6 +26,7 @@ class SettingsManager:
             "close_to_tray": True,
             "start_minimized": False,
             "theme": "system",
+            "tray_icon_style": "default",
         },
         "adb": {
             "connection_timeout": 10,

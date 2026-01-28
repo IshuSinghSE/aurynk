@@ -48,7 +48,35 @@ class TrayHelper:
         script_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(script_dir)
 
-        # Try different icon sizes
+        # Read icon style from settings
+        icon_style = self._get_icon_style_from_settings()
+
+        # Map style to filename
+        style_file_map = {
+            "default": "io.github.IshuSinghSE.aurynk.tray.png",
+            "black": "io.github.IshuSinghSE.aurynk.tray-black.png",
+            "white": "io.github.IshuSinghSE.aurynk.tray-white.png",
+            "filled": "io.github.IshuSinghSE.aurynk.tray-filled.png",
+        }
+
+        icon_filename = style_file_map.get(icon_style, "io.github.IshuSinghSE.aurynk.tray.png")
+
+        # Try locations in order:
+        # 1. Development: data/icons/
+        # 2. Installed: /usr/share/aurynk/icons/ (or Flatpak equivalent)
+        # 3. Fallback to old hicolor paths
+        icon_search_paths = [
+            os.path.join(project_root, f"data/icons/{icon_filename}"),
+            f"/usr/share/aurynk/icons/{icon_filename}",
+            f"/app/share/aurynk/icons/{icon_filename}",  # Flatpak path
+        ]
+
+        for icon_path in icon_search_paths:
+            if os.path.exists(icon_path):
+                logger.info(f"Using tray icon ({icon_style}): {icon_path}")
+                return icon_path
+
+        # Fallback to old icon paths
         icon_paths = [
             os.path.join(
                 project_root, "data/icons/hicolor/48x48/apps/io.github.IshuSinghSE.aurynk.tray.png"
@@ -69,6 +97,24 @@ class TrayHelper:
         # Fall back to theme name (for installed version)
         logger.warning("Could not find icon file, falling back to theme name")
         return "io.github.IshuSinghSE.aurynk"
+
+    def _get_icon_style_from_settings(self):
+        """Read the tray icon style from settings file."""
+        try:
+            import json
+            from pathlib import Path
+
+            config_dir = Path.home() / ".config" / "aurynk"
+            settings_file = config_dir / "settings.json"
+
+            if settings_file.exists():
+                with open(settings_file, "r") as f:
+                    settings = json.load(f)
+                    return settings.get("app", {}).get("tray_icon_style", "color")
+        except Exception as e:
+            logger.debug(f"Could not read icon style from settings: {e}")
+
+        return "default"  # Default
 
     def build_menu(self):
         menu = Gtk.Menu()

@@ -32,6 +32,21 @@ install_data(
   install_dir: datadir / 'icons' / 'hicolor' / 'scalable' / 'apps'
 )
 
+# Install tray icon variants (32x32 in data/icons/)
+tray_variants = [
+  'io.github.IshuSinghSE.aurynk.tray.png',
+  'io.github.IshuSinghSE.aurynk.tray-black.png',
+  'io.github.IshuSinghSE.aurynk.tray-white.png',
+  'io.github.IshuSinghSE.aurynk.tray-filled.png'
+]
+
+foreach variant : tray_variants
+  install_data(
+    'icons/' + variant,
+    install_dir: pkgdatadir / 'icons'
+  )
+endforeach
+
 # Compile GResource
 gnome = import('gnome')
 gresource = gnome.compile_resources(
