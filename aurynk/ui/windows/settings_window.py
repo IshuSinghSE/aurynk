@@ -112,12 +112,94 @@ class SettingsWindow(Adw.PreferencesWindow):
         notify_device.connect("notify::active", self._on_notify_device_changed)
         general_group.add(notify_device)
 
-        # Tray icon style
+        # Tray icon style with icon previews
+        from gi.repository import Gio, GObject
+
+        class TrayIconOption(GObject.Object):
+            __gtype_name__ = "TrayIconOption"
+
+            def __init__(self, label, icon_name):
+                super().__init__()
+                self._label = label
+                self._icon_name = icon_name
+
+            @GObject.Property(type=str)
+            def label(self):
+                return self._label
+
+            @GObject.Property(type=str)
+            def icon_name(self):
+                return self._icon_name
+
+        # Create model with icons
+        tray_icon_model = Gio.ListStore.new(TrayIconOption)
+        tray_icon_model.append(TrayIconOption(_("Default"), "io.github.IshuSinghSE.aurynk.tray"))
+        tray_icon_model.append(
+            TrayIconOption(_("Black"), "io.github.IshuSinghSE.aurynk.tray-black")
+        )
+        tray_icon_model.append(
+            TrayIconOption(_("White"), "io.github.IshuSinghSE.aurynk.tray-white")
+        )
+        tray_icon_model.append(
+            TrayIconOption(_("Filled"), "io.github.IshuSinghSE.aurynk.tray-filled")
+        )
+
         tray_icon_row = Adw.ComboRow()
         tray_icon_row.set_title(_("Tray Icon Style"))
         tray_icon_row.set_subtitle(_("Choose the appearance of the system tray icon"))
-        tray_icon_model = Gtk.StringList.new([_("Default"), _("Black"), _("White"), _("Filled")])
         tray_icon_row.set_model(tray_icon_model)
+
+        # Set expression to display label
+        label_expression = Gtk.PropertyExpression.new(TrayIconOption, None, "label")
+        tray_icon_row.set_expression(label_expression)
+
+        # Create factory for custom rendering with icon previews
+        factory = Gtk.SignalListItemFactory()
+
+        def setup_list_item(factory, list_item):
+            box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            icon = Gtk.Image()
+            icon.set_pixel_size(16)
+            label = Gtk.Label()
+            label.set_xalign(0)
+            box.append(icon)
+            box.append(label)
+            list_item.set_child(box)
+
+        def bind_list_item(factory, list_item):
+            import os
+
+            from gi.repository import GdkPixbuf
+
+            item = list_item.get_item()
+            box = list_item.get_child()
+            icon = box.get_first_child()
+            label = icon.get_next_sibling()
+
+            # Load icon from SVG file path for better quality
+            icon_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
+                "data",
+                "icons",
+                f"{item.icon_name}.svg",
+            )
+
+            try:
+                if os.path.exists(icon_path):
+                    pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(icon_path, 16, 16, True)
+                    icon.set_from_pixbuf(pixbuf)
+                else:
+                    # Fallback to icon name
+                    icon.set_from_icon_name(item.icon_name)
+            except Exception:
+                # Fallback to icon name
+                icon.set_from_icon_name(item.icon_name)
+
+            label.set_label(item.label)
+
+        factory.connect("setup", setup_list_item)
+        factory.connect("bind", bind_list_item)
+        tray_icon_row.set_factory(factory)
 
         current_style = self.settings.get("app", "tray_icon_style", "default")
         style_map = {"default": 0, "black": 1, "white": 2, "filled": 3}
@@ -1399,8 +1481,10 @@ class SettingsWindow(Adw.PreferencesWindow):
             # Show info that tray needs restart
             from gi.repository import Adw
 
+            from aurynk.i18n import _ as translate_text
+
             toast = Adw.Toast()
-            toast.set_title(_("Restart tray to apply icon change"))
+            toast.set_title(translate_text("Restart tray to apply icon change"))
             toast.set_timeout(3)
             # Get the parent window to show toast
             parent = self.get_root()

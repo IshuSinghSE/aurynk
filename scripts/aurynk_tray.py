@@ -51,15 +51,15 @@ class TrayHelper:
         # Read icon style from settings
         icon_style = self._get_icon_style_from_settings()
 
-        # Map style to filename
+        # Map style to filename (using SVG for better quality)
         style_file_map = {
-            "default": "io.github.IshuSinghSE.aurynk.tray.png",
-            "black": "io.github.IshuSinghSE.aurynk.tray-black.png",
-            "white": "io.github.IshuSinghSE.aurynk.tray-white.png",
-            "filled": "io.github.IshuSinghSE.aurynk.tray-filled.png",
+            "default": "io.github.IshuSinghSE.aurynk.tray.svg",
+            "black": "io.github.IshuSinghSE.aurynk.tray-black.svg",
+            "white": "io.github.IshuSinghSE.aurynk.tray-white.svg",
+            "filled": "io.github.IshuSinghSE.aurynk.tray-filled.svg",
         }
 
-        icon_filename = style_file_map.get(icon_style, "io.github.IshuSinghSE.aurynk.tray.png")
+        icon_filename = style_file_map.get(icon_style, "io.github.IshuSinghSE.aurynk.tray.svg")
 
         # Try locations in order:
         # 1. Development: data/icons/
