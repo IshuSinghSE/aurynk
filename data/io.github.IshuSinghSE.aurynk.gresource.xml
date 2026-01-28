@@ -17,6 +17,7 @@
     <!-- UI Templates -->
     <file preprocess="xml-stripblanks">ui/main_window.ui</file>
     <file preprocess="xml-stripblanks">ui/device_details_window.ui</file>
+    <file preprocess="xml-stripblanks">ui/shortcuts_window.ui</file>
     
     <!-- CSS Styles -->
     <file>styles/aurynk.css</file>

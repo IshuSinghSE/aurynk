@@ -15,6 +15,7 @@ from aurynk.models.device import Device
 from aurynk.services.usb_monitor import USBMonitor
 from aurynk.ui.windows.about_window import AboutWindow
 from aurynk.ui.windows.settings_window import SettingsWindow
+from aurynk.ui.windows.shortcuts_window import show_shortcuts_window
 from aurynk.utils.adb_utils import is_device_connected
 from aurynk.utils.device_events import (
     register_device_change_callback,
@@ -209,6 +210,11 @@ class AurynkWindow(Adw.ApplicationWindow):
 
     def _setup_actions(self):
         """Setup window actions."""
+        # Keyboard shortcuts action
+        shortcuts_action = Gio.SimpleAction.new("shortcuts", None)
+        shortcuts_action.connect("activate", self._on_shortcuts_clicked)
+        self.add_action(shortcuts_action)
+
         # Preferences action
         preferences_action = Gio.SimpleAction.new("preferences", None)
         preferences_action.connect("activate", self._on_preferences_clicked)
@@ -218,6 +224,10 @@ class AurynkWindow(Adw.ApplicationWindow):
         about_action = Gio.SimpleAction.new("about", None)
         about_action.connect("activate", self._on_about_clicked)
         self.add_action(about_action)
+
+    def _on_shortcuts_clicked(self, action, param):
+        """Show keyboard shortcuts window."""
+        show_shortcuts_window(parent=self)
 
     def _on_preferences_clicked(self, action, param):
         """Open settings window."""
@@ -318,6 +328,7 @@ class AurynkWindow(Adw.ApplicationWindow):
         menu = Gio.Menu()
 
         # Primary menu section
+        menu.append(_("Keyboard Shortcuts"), "win.shortcuts")
         menu.append(_("Preferences"), "win.preferences")
 
         # About section (separated as per GNOME HIG)

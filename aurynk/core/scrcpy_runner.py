@@ -199,7 +199,10 @@ class ScrcpyManager:
                 cmd.append("--fullscreen")
             if settings.get("scrcpy", "window_borderless"):
                 cmd.append("--window-borderless")
-
+            # Shortcut modifier key
+            shortcut_mod = settings.get("scrcpy", "shortcut_mod", "")
+            if shortcut_mod and shortcut_mod != "lalt":  # lalt is default, no need to specify
+                cmd.extend(["--shortcut-mod", shortcut_mod])
             max_size = settings.get("scrcpy", "max_size", 0)
             if max_size > 0:
                 cmd.extend(["--max-size", str(max_size)])
@@ -617,6 +620,11 @@ class ScrcpyManager:
                 cmd.append("--fullscreen")
             if settings.get("scrcpy", "window_borderless"):
                 cmd.append("--window-borderless")
+
+            # Shortcut modifier key
+            shortcut_mod = settings.get("scrcpy", "shortcut_mod", "")
+            if shortcut_mod and shortcut_mod != "lalt":  # lalt is default, no need to specify
+                cmd.extend(["--shortcut-mod", shortcut_mod])
 
             max_size = settings.get("scrcpy", "max_size", 0)
             if max_size > 0:

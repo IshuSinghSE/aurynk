@@ -1452,6 +1452,36 @@ class SettingsWindow(Adw.PreferencesWindow):
         no_control.connect("notify::active", on_no_control_changed)
         advanced_group.add(no_control)
 
+        # Shortcut Modifier Key
+        shortcut_mod_row = Adw.ComboRow()
+        shortcut_mod_row.set_title(_("Shortcut Key (experimental)"))
+        shortcut_mod_row.set_subtitle(_("Change the MOD key for scrcpy shortcuts (default: lalt)"))
+        # Options for shortcut-mod
+        shortcut_mod_options = [
+            "lalt",  # Default - Left Alt
+            "ralt",  # Right Alt
+            "lctrl",  # Left Ctrl
+            "rctrl",  # Right Ctrl
+            "lsuper",  # Left Super (Windows/Cmd key)
+            "rsuper",  # Right Super
+        ]
+        shortcut_mod_model = Gtk.StringList.new(shortcut_mod_options)
+        shortcut_mod_row.set_model(shortcut_mod_model)
+        current_shortcut_mod = self.settings.get("scrcpy", "shortcut_mod", "lalt")
+        shortcut_mod_row.set_selected(
+            shortcut_mod_options.index(current_shortcut_mod)
+            if current_shortcut_mod in shortcut_mod_options
+            else 0
+        )
+
+        def on_shortcut_mod_changed(combo, _):
+            idx = combo.get_selected()
+            if 0 <= idx < len(shortcut_mod_options):
+                self.settings.set("scrcpy", "shortcut_mod", shortcut_mod_options[idx])
+
+        shortcut_mod_row.connect("notify::selected", on_shortcut_mod_changed)
+        advanced_group.add(shortcut_mod_row)
+
         page.add(advanced_group)
         self.add(page)
 
