@@ -41,6 +41,13 @@
                 <property name="pixel-size">40</property>
               </object>
             </child>
+              <child>
+                <object class="GtkButton" id="donate_button">
+                  <property name="icon-name">emblem-favorite-symbolic</property>
+                  <property name="valign">center</property>
+                  <property name="tooltip-text">Sponsor the project</property>
+                </object>
+              </child>
           </object>
         </child>
         <!-- Remove the center title (middle Aurynk label) -->

@@ -477,6 +477,25 @@ class AurynkWindow(Adw.ApplicationWindow):
             add_device_btn = builder.get_object("add_device_button")
             if add_device_btn:
                 add_device_btn.connect("clicked", self._on_add_device_clicked)
+            # Connect donate button from template if present and apply styling
+            donate_btn = builder.get_object("donate_button")
+            if donate_btn:
+                try:
+                    donate_btn.connect("clicked", self._on_donate_clicked)
+                    donate_btn.add_css_class("donate-button")
+                    css_provider = Gtk.CssProvider()
+                    css = b"""
+                        .donate-button image { color: #da61a2; min-width: 20px; min-height: 20px; width: 20px; height: 20px; }
+                        .donate-button { padding: 4px; min-width: 0; min-height: 0; }
+                        """
+                    css_provider.load_from_data(css)
+                    Gtk.StyleContext.add_provider_for_display(
+                        Gdk.Display.get_default(),
+                        css_provider,
+                        Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+                    )
+                except Exception:
+                    pass
             # No search entry, no app logo/name in template path
             self._refresh_device_list()
             self._refresh_usb_list()
@@ -519,10 +538,32 @@ class AurynkWindow(Adw.ApplicationWindow):
         menu.append_section(None, about_section)
 
         menu_button.set_menu_model(menu)
-        header_bar.pack_end(menu_button)
+        header_bar.pack_start(menu_button)
 
         # Header content box
         header_content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+
+        # Donate (heart) icon-only button — colored to match design
+        donate_btn = Gtk.Button()
+        donate_btn.set_tooltip_text(_("Sponsor the project"))
+        donate_btn.set_icon_name("emblem-favorite-symbolic")
+        donate_btn.add_css_class("donate-button")
+        donate_btn.connect("clicked", self._on_donate_clicked)
+
+        # Inject small CSS for donate button color and compact spacing
+        css = b"""
+            .donate-button image { color: #da61a2; min-width: 20px; min-height: 20px; width: 32px; height: 32px; }
+            .donate-button { padding: 4px; min-width: 0; min-height: 0; }
+            """
+        css_provider = Gtk.CssProvider()
+        try:
+            css_provider.load_from_data(css)
+            Gtk.StyleContext.add_provider_for_display(
+                Gdk.Display.get_default(), css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+            )
+        except Exception:
+            # If CSS cannot be loaded for any reason, fall back silently
+            pass
 
         # Add Device button
         add_device_btn = Gtk.Button()
@@ -532,6 +573,7 @@ class AurynkWindow(Adw.ApplicationWindow):
         add_device_btn.connect("clicked", self._on_add_device_clicked)
 
         # header_content.append(app_header_box)
+        header_content.append(donate_btn)
         header_content.append(add_device_btn)
         header_bar.set_title_widget(header_content)
 
@@ -1376,6 +1418,16 @@ class AurynkWindow(Adw.ApplicationWindow):
 
         dialog = PairingDialog(self)
         dialog.present()
+
+    def _on_donate_clicked(self, button):
+        """Open project's sponsor/donate page in default browser."""
+        url = "https://github.com/sponsors/IshuSinghSE"
+        try:
+            # Try using Gio if available
+            Gio.AppInfo.launch_default_for_uri(url, None)
+        except Exception:
+            # Fallback to xdg-open
+            GLib.spawn_command_line_async(f'xdg-open "{url}"')
 
     def _on_device_details_clicked(self, button, device):
         """Handle device details button click."""
