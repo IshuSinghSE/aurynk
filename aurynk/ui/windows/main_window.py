@@ -225,6 +225,15 @@ class AurynkWindow(Adw.ApplicationWindow):
         about_action.connect("activate", self._on_about_clicked)
         self.add_action(about_action)
 
+        # Screenshot action
+        screenshot_action = Gio.SimpleAction.new("take-screenshot", None)
+        screenshot_action.connect("activate", self._on_take_screenshot)
+        self.add_action(screenshot_action)
+
+        # Track last active scrcpy window
+        self._last_screenshot_serial = None
+        self._setup_screenshot_tracker()
+
     def _on_shortcuts_clicked(self, action, param):
         """Show keyboard shortcuts window."""
         show_shortcuts_window(parent=self)
@@ -237,6 +246,179 @@ class AurynkWindow(Adw.ApplicationWindow):
     def _on_about_clicked(self, action, param):
         """Show About dialog."""
         AboutWindow.show(self)
+
+    def _get_active_mirroring_device(self):
+        """Get the serial of the currently focused scrcpy window."""
+        try:
+            active_processes = self._scrcpy_manager.processes
+
+            # If we have a last screenshot serial and it's still running, use it
+            if self._last_screenshot_serial and self._last_screenshot_serial in active_processes:
+                logger.info(f"Using last screenshot device: {self._last_screenshot_serial}")
+                return self._last_screenshot_serial
+
+            # Fallback: return first active process if only one is running
+            if active_processes:
+                if len(active_processes) == 1:
+                    serial = list(active_processes.keys())[0]
+                    logger.info(f"Single device mirroring, using: {serial}")
+                    self._last_screenshot_serial = serial
+                    return serial
+                else:
+                    # Multiple devices - need user to specify which one
+                    logger.warning(
+                        f"Multiple devices mirroring ({len(active_processes)}), using first: {list(active_processes.keys())[0]}"
+                    )
+                    serial = list(active_processes.keys())[0]
+                    self._last_screenshot_serial = serial
+                    return serial
+
+        except Exception as e:
+            logger.debug(f"Could not get active device: {e}")
+        return None
+
+    def _setup_screenshot_tracker(self):
+        """Set up polling to track which device should be screenshotted."""
+
+        def update_screenshot_target():
+            try:
+                active_processes = self._scrcpy_manager.processes
+                if len(active_processes) == 1:
+                    # Auto-update for single device
+                    self._last_screenshot_serial = list(active_processes.keys())[0]
+            except Exception:
+                pass
+            return True  # Continue polling
+
+        # Poll every 2 seconds
+        GLib.timeout_add_seconds(2, update_screenshot_target)
+
+    def _on_take_screenshot(self, action, param):
+        """Take screenshot of active mirroring session using ADB."""
+        logger.info("Screenshot action triggered (F8 pressed)")
+        serial = self._get_active_mirroring_device()
+        logger.info(f"Active device serial: {serial}")
+        if not serial:
+            logger.warning("No active mirroring session or couldn't detect focused window")
+            logger.info(
+                "Tip: For multiple devices, focus the scrcpy window first, then press F8 from Aurynk"
+            )
+            return
+
+        def capture():
+            try:
+                import os
+                import subprocess
+                from datetime import datetime
+
+                from aurynk.utils.adb_utils import get_adb_path
+
+                logger.info(f"Starting screenshot capture for device: {serial}")
+
+                # Create screenshots directory
+                screenshot_dir = os.path.expanduser("~/.local/share/aurynk/screenshots")
+                os.makedirs(screenshot_dir, exist_ok=True)
+                logger.debug(f"Screenshots directory: {screenshot_dir}")
+
+                # Generate filename with timestamp
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"screenshot_{timestamp}.png"
+                filepath = os.path.join(screenshot_dir, filename)
+                logger.info(f"Screenshot will be saved to: {filepath}")
+
+                # Capture screenshot using ADB
+                temp_path = "/sdcard/screenshot_temp.png"
+                logger.debug("Running screencap command...")
+                result = subprocess.run(
+                    [get_adb_path(), "-s", serial, "shell", "screencap", "-p", temp_path],
+                    check=True,
+                    timeout=5,
+                    capture_output=True,
+                    text=True,
+                )
+                logger.debug(f"Screencap result: {result.returncode}")
+
+                # Pull screenshot to computer
+                logger.debug("Pulling screenshot from device...")
+                result = subprocess.run(
+                    [get_adb_path(), "-s", serial, "pull", temp_path, filepath],
+                    check=True,
+                    timeout=10,
+                    capture_output=True,
+                    text=True,
+                )
+                logger.debug(f"Pull result: {result.returncode}, output: {result.stdout}")
+
+                # Clean up device
+                subprocess.run([get_adb_path(), "-s", serial, "shell", "rm", temp_path], timeout=5)
+
+                logger.info(f"Screenshot saved to {filepath}")
+
+                # Show GNOME notification with action to open file
+                GLib.idle_add(self._show_screenshot_notification, filepath)
+
+            except Exception as e:
+                logger.error(f"Failed to capture screenshot: {e}")
+
+        threading.Thread(target=capture, daemon=True).start()
+
+    def _show_screenshot_notification(self, filepath):
+        """Show a GNOME notification for the screenshot."""
+        try:
+            import os
+            import subprocess
+
+            from aurynk.utils.notify import show_notification_with_action
+
+            folder_path = os.path.dirname(filepath)
+            opened = [False]  # Use list to allow modification in nested function
+
+            # Callback to open the screenshot folder
+            def open_folder(notification, action_name, user_data):
+                # Prevent multiple invocations
+                if opened[0]:
+                    logger.debug("Folder already opened, ignoring duplicate callback")
+                    return
+                opened[0] = True
+
+                try:
+                    logger.info(f"Opening folder: {folder_path}")
+                    # Try multiple file managers
+                    commands = [
+                        ["nautilus", folder_path],
+                        ["dolphin", folder_path],
+                        ["thunar", folder_path],
+                        ["nemo", folder_path],
+                        ["xdg-open", folder_path],
+                    ]
+
+                    for cmd in commands:
+                        try:
+                            result = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
+                            if result.returncode == 0:
+                                logger.info(f"Folder opened with {cmd[0]}")
+                                return
+                        except (subprocess.TimeoutExpired, FileNotFoundError):
+                            continue
+
+                    logger.error("All file manager commands failed")
+                except Exception as e:
+                    logger.error(f"Failed to open folder: {e}")
+
+            # Show notification with action button
+            show_notification_with_action(
+                title=_("Screenshot Captured"),
+                body=f"Saved to:\n{filepath}",
+                action_id="open",
+                action_label=_("Open Folder"),
+                callback=open_folder,
+            )
+            logger.info(f"Notification shown for {filepath}")
+
+        except Exception as e:
+            logger.error(f"Failed to show notification: {e}")
+
+        return False
 
     def do_close(self):
         if hasattr(self, "usb_monitor") and self.usb_monitor:

@@ -240,6 +240,20 @@ class AurynkApp(Adw.Application):
         else:
             logger.warning("Could not show About dialog - no window available")
 
+    def _on_open_screenshot(self, action, parameter):
+        """Open screenshot file from notification."""
+        try:
+            import subprocess
+
+            filepath = parameter.get_string()
+            logger.info(f"Opening screenshot: {filepath}")
+
+            # Use xdg-open to open with default image viewer
+            subprocess.Popen(["xdg-open", filepath])
+
+        except Exception as e:
+            logger.error(f"Failed to open screenshot: {e}")
+
     def quit(self):
         """Quit the application properly, closing all windows."""
         logger.info("Quitting application...")
@@ -299,6 +313,12 @@ class AurynkApp(Adw.Application):
         # Set up keyboard accelerators for window actions
         self.set_accels_for_action("win.shortcuts", ["<Primary>question"])
         self.set_accels_for_action("win.preferences", ["<Primary>comma"])
+        self.set_accels_for_action("win.take-screenshot", ["F8"])
+
+        # Register action for opening screenshots from notifications
+        open_screenshot_action = Gio.SimpleAction.new("open-screenshot", GLib.VariantType.new("s"))
+        open_screenshot_action.connect("activate", self._on_open_screenshot)
+        self.add_action(open_screenshot_action)
 
         # Start helper processes
         start_tray_helper()

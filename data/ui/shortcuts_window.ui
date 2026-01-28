@@ -135,6 +135,18 @@
           </object>
         </child>
         
+        <child>
+          <object class="GtkShortcutsGroup">
+            <property name="title" translatable="yes">Capture (Aurynk)</property>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Take screenshot</property>
+                <property name="accelerator">F8</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        
         <!-- Page 2: Advanced display and control features -->
         <child>
           <object class="GtkShortcutsGroup">
