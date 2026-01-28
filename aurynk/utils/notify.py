@@ -6,6 +6,8 @@ from aurynk.utils.logger import get_logger
 logger = get_logger("Notify")
 
 _inited = False
+# Keep references to notifications with actions to prevent garbage collection
+_active_notifications = []
 
 
 def notify_device_event(event: str, device: str = "", extra: str = "", error: bool = False):
@@ -83,6 +85,62 @@ def show_notification(
     except Exception as e:
         logger.error(f"Exception in show_notification: {e}")
         # Fallback: print to stderr for CLI users
+        import sys
+
+        print(f"[Notification] {title}: {body}", file=sys.stderr)
+        return
+
+
+def show_notification_with_action(
+    title: str,
+    body: str,
+    action_id: str,
+    action_label: str,
+    callback,
+    icon: Optional[str] = None,
+    app_id: str = "io.github.IshuSinghSE.aurynk",
+) -> None:
+    """Show a notification with an action button."""
+    if not _ensure_init(app_id):
+        logger.error("_ensure_init failed, notification not shown.")
+        import sys
+
+        print(f"[Notification] {title}: {body}", file=sys.stderr)
+        return
+
+    try:
+        from gi.repository import Notify
+
+        n = Notify.Notification.new(title, body, icon)
+
+        # Wrap callback to clean up reference after action
+        def wrapped_callback(notification, action, user_data):
+            try:
+                callback(notification, action, user_data)
+            finally:
+                # Remove from active list after action is handled
+                if notification in _active_notifications:
+                    _active_notifications.remove(notification)
+
+        # Also clean up on close
+        def on_closed(notification):
+            if notification in _active_notifications:
+                _active_notifications.remove(notification)
+
+        n.connect("closed", on_closed)
+        n.add_action(action_id, action_label, wrapped_callback, None)
+
+        # Keep reference to prevent garbage collection
+        _active_notifications.append(n)
+
+        # Limit active notifications to prevent memory leak
+        if len(_active_notifications) > 10:
+            _active_notifications.pop(0)
+
+        n.show()
+        logger.debug(f"Notification with action shown: {title}")
+    except Exception as e:
+        logger.error(f"Exception in show_notification_with_action: {e}")
         import sys
 
         print(f"[Notification] {title}: {body}", file=sys.stderr)

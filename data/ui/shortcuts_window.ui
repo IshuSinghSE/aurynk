@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <object class="GtkShortcutsWindow" id="shortcuts_window">
+    <property name="modal">1</property>
+    <child>
+      <object class="GtkShortcutsSection">
+        <property name="section-name">shortcuts</property>
+        <property name="max-height">12</property>
+        
+        <!-- Note about MOD key -->
+        <child>
+          <object class="GtkShortcutsGroup">
+            <property name="title" translatable="yes">About MOD Key</property>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">MOD key shown as Alt below.&#10;You can change it to Ctrl, Super, etc.&#10; Settings → Mirroring → Advanced → Shortcut Key</property>
+                 <property name="accelerator">&lt;Alt&gt;</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        
+        <!-- Page 1: Most commonly used shortcuts -->
+        <child>
+          <object class="GtkShortcutsGroup">
+            <property name="title" translatable="yes">Device Controls</property>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">HOME button</property>
+                <property name="accelerator">&lt;Alt&gt;h</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">BACK button</property>
+                <property name="accelerator">&lt;Alt&gt;b</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">APP_SWITCH (recent apps)</property>
+                <property name="accelerator">&lt;Alt&gt;s</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">MENU button</property>
+                <property name="accelerator">&lt;Alt&gt;m</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Volume UP</property>
+                <property name="accelerator">&lt;Alt&gt;Up</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Volume DOWN</property>
+                <property name="accelerator">&lt;Alt&gt;Down</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">POWER button</property>
+                <property name="accelerator">&lt;Alt&gt;p</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Expand notification panel</property>
+                <property name="accelerator">&lt;Alt&gt;n</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Collapse panels</property>
+                <property name="accelerator">&lt;Alt&gt;&lt;Shift&gt;n</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        
+        <child>
+          <object class="GtkShortcutsGroup">
+            <property name="title" translatable="yes">Clipboard (Android 7+)</property>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Copy to clipboard</property>
+                <property name="accelerator">&lt;Alt&gt;c</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Cut to clipboard</property>
+                <property name="accelerator">&lt;Alt&gt;x</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Sync clipboards and paste</property>
+                <property name="accelerator">&lt;Alt&gt;v</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Inject computer clipboard text</property>
+                <property name="accelerator">&lt;Alt&gt;&lt;Shift&gt;v</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        
+        <child>
+          <object class="GtkShortcutsGroup">
+            <property name="title" translatable="yes">Window Controls</property>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Toggle fullscreen mode</property>
+                <property name="accelerator">&lt;Alt&gt;f</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Resize window to 1:1 (pixel-perfect)</property>
+                <property name="accelerator">&lt;Alt&gt;g</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Remove black borders</property>
+                <property name="accelerator">&lt;Alt&gt;w</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        
+        <child>
+          <object class="GtkShortcutsGroup">
+            <property name="title" translatable="yes">Capture (Aurynk)</property>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Take screenshot</property>
+                <property name="accelerator">F8</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        
+        <!-- Page 2: Advanced display and control features -->
+        <child>
+          <object class="GtkShortcutsGroup">
+            <property name="title" translatable="yes">Display Controls</property>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Rotate display left</property>
+                <property name="accelerator">&lt;Alt&gt;Left</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Rotate display right</property>
+                <property name="accelerator">&lt;Alt&gt;Right</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Flip display horizontally</property>
+                <property name="accelerator">&lt;Alt&gt;&lt;Shift&gt;Left</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Flip display vertically</property>
+                <property name="accelerator">&lt;Alt&gt;&lt;Shift&gt;Up</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Rotate device screen</property>
+                <property name="accelerator">&lt;Alt&gt;r</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Turn device screen off</property>
+                <property name="accelerator">&lt;Alt&gt;o</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Turn device screen on</property>
+                <property name="accelerator">&lt;Alt&gt;&lt;Shift&gt;o</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Pause display</property>
+                <property name="accelerator">&lt;Alt&gt;z</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Unpause display</property>
+                <property name="accelerator">&lt;Alt&gt;&lt;Shift&gt;z</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Reset video capture/encoding</property>
+                <property name="accelerator">&lt;Alt&gt;&lt;Shift&gt;r</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        
+      </object>
+    </child>
+  </object>
+</interface>

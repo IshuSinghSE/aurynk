@@ -8,9 +8,14 @@ data/io.github.IshuSinghSE.aurynk.desktop.in usr/share/applications/
 # Metainfo
 data/io.github.IshuSinghSE.aurynk.metainfo.xml usr/share/metainfo/
 
-# App and tray icons (all sizes)
+# App icons (all sizes)
 data/icons/hicolor/*/apps/io.github.IshuSinghSE.aurynk.png usr/share/icons/hicolor/
-data/icons/hicolor/*/apps/io.github.IshuSinghSE.aurynk.tray.png usr/share/icons/hicolor/
+
+# SVG tray icon variants (for better quality)
+data/icons/io.github.IshuSinghSE.aurynk.tray.svg usr/share/aurynk/icons/
+data/icons/io.github.IshuSinghSE.aurynk.tray-black.svg usr/share/aurynk/icons/
+data/icons/io.github.IshuSinghSE.aurynk.tray-white.svg usr/share/aurynk/icons/
+data/icons/io.github.IshuSinghSE.aurynk.tray-filled.svg usr/share/aurynk/icons/
 
 # Styles
 data/styles/aurynk.css usr/share/aurynk/

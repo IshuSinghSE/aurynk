@@ -199,7 +199,10 @@ class ScrcpyManager:
                 cmd.append("--fullscreen")
             if settings.get("scrcpy", "window_borderless"):
                 cmd.append("--window-borderless")
-
+            # Shortcut modifier key
+            shortcut_mod = settings.get("scrcpy", "shortcut_mod", "")
+            if shortcut_mod and shortcut_mod != "lalt":  # lalt is default, no need to specify
+                cmd.extend(["--shortcut-mod", shortcut_mod])
             max_size = settings.get("scrcpy", "max_size", 0)
             if max_size > 0:
                 cmd.extend(["--max-size", str(max_size)])
@@ -301,10 +304,26 @@ class ScrcpyManager:
             if settings.get("scrcpy", "no_control", False):
                 cmd.append("--no-control")
 
+            # Gamepad mode
+            gamepad_mode = settings.get("scrcpy", "gamepad_mode", "disabled")
+            if gamepad_mode == "uhid":
+                cmd.append("--gamepad=uhid")
+            elif gamepad_mode == "aoa":
+                cmd.append("--gamepad=aoa")
+
             logger.info(f"Starting scrcpy with command: {' '.join(cmd)}")
 
             proc = subprocess.Popen(cmd, env=env)
             self.processes[serial] = proc
+
+            # Send notification to device that mirroring started
+            if settings.get("app", "notify_device_on_mirroring", True):
+                try:
+                    from aurynk.utils.adb_utils import send_device_notification
+
+                    send_device_notification(serial, "Screen mirroring started")
+                except Exception:
+                    pass  # Don't fail mirroring if notification fails
 
             # Start monitoring thread to handle window close events
             monitor_thread = threading.Thread(
@@ -331,28 +350,36 @@ class ScrcpyManager:
         serial = f"{address}:{port}"
         target_serial = None
 
+        logger.info(f"stop_mirror called for {serial}")
+        logger.debug(f"Current processes: {list(self.processes.keys())}")
+
         # Check exact match first
         if serial in self.processes:
             target_serial = serial
+            logger.debug(f"Found exact match: {target_serial}")
         else:
             # Fallback: check if any process is running for this IP
             # This handles cases where the port changed but scrcpy is still running on old port
             for s in list(self.processes.keys()):
                 if s.startswith(f"{address}:"):
                     target_serial = s
+                    logger.debug(f"Found fallback match: {target_serial}")
                     break
 
         if target_serial:
             proc = self.processes.get(target_serial)
             if proc:
                 try:
-                    logger.debug(f"Terminating process for {target_serial}")
+                    logger.info(f"Terminating process for {target_serial}")
                     proc.terminate()
                     try:
                         proc.wait(timeout=5)
+                        logger.info(f"Process {target_serial} terminated successfully")
                     except subprocess.TimeoutExpired:
-                        logger.debug(f"Force killing process for {target_serial}")
+                        logger.warning(f"Force killing process for {target_serial}")
                         proc.kill()
+                        proc.wait(timeout=2)
+                        logger.info(f"Process {target_serial} killed")
                 except Exception as e:
                     logger.error(f"Error stopping process (terminate): {e}")
                     # Try kill if terminate failed
@@ -364,7 +391,20 @@ class ScrcpyManager:
                     if target_serial in self.processes:
                         logger.debug(f"Removing {target_serial} from processes dict")
                         del self.processes[target_serial]
+
+                    # Send notification to device that mirroring stopped
+                    settings = SettingsManager()
+                    if settings.get("app", "notify_device_on_mirroring", True):
+                        try:
+                            from aurynk.utils.adb_utils import send_device_notification
+
+                            send_device_notification(target_serial, "Screen mirroring stopped")
+                        except Exception:
+                            pass  # Don't fail on notification error
+
                 return True
+
+        logger.warning(f"No process found for {serial}, nothing to stop")
         return False
 
     def is_mirroring(self, address: str, port: int) -> bool:
@@ -457,6 +497,17 @@ class ScrcpyManager:
                 if serial in self.processes:
                     logger.debug(f"Removing {serial} from processes dict")
                     del self.processes[serial]
+
+                # Send notification to device that mirroring stopped
+                settings = SettingsManager()
+                if settings.get("app", "notify_device_on_mirroring", True):
+                    try:
+                        from aurynk.utils.adb_utils import send_device_notification
+
+                        send_device_notification(serial, "Screen mirroring stopped")
+                    except Exception:
+                        pass  # Don't fail on notification error
+
             return True
         logger.warning(f"No process found for serial: {serial}")
         return False
@@ -570,6 +621,11 @@ class ScrcpyManager:
             if settings.get("scrcpy", "window_borderless"):
                 cmd.append("--window-borderless")
 
+            # Shortcut modifier key
+            shortcut_mod = settings.get("scrcpy", "shortcut_mod", "")
+            if shortcut_mod and shortcut_mod != "lalt":  # lalt is default, no need to specify
+                cmd.extend(["--shortcut-mod", shortcut_mod])
+
             max_size = settings.get("scrcpy", "max_size", 0)
             if max_size > 0:
                 cmd.extend(["--max-size", str(max_size)])
@@ -660,10 +716,26 @@ class ScrcpyManager:
             if settings.get("scrcpy", "no_control", False):
                 cmd.append("--no-control")
 
+            # Gamepad mode
+            gamepad_mode = settings.get("scrcpy", "gamepad_mode", "disabled")
+            if gamepad_mode == "uhid":
+                cmd.append("--gamepad=uhid")
+            elif gamepad_mode == "aoa":
+                cmd.append("--gamepad=aoa")
+
             logger.info(f"Starting USB scrcpy with command: {' '.join(cmd)}")
 
             proc = subprocess.Popen(cmd, env=env)
             self.processes[serial] = proc
+
+            # Send notification to device that mirroring started
+            if settings.get("app", "notify_device_on_mirroring", True):
+                try:
+                    from aurynk.utils.adb_utils import send_device_notification
+
+                    send_device_notification(serial, "Screen mirroring started")
+                except Exception:
+                    pass  # Don't fail mirroring if notification fails
 
             # Start monitoring thread
             monitor_thread = threading.Thread(
