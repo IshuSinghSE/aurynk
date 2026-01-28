@@ -202,24 +202,6 @@
           </object>
         </child>
         
-        <child>
-          <object class="GtkShortcutsGroup">
-            <property name="title" translatable="yes">Advanced</property>
-            <child>
-              <object class="GtkShortcutsShortcut">
-                <property name="title" translatable="yes">Open keyboard settings (HID keyboard)</property>
-                <property name="accelerator">&lt;Alt&gt;k</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkShortcutsShortcut">
-                <property name="title" translatable="yes">Toggle FPS counter</property>
-                <property name="accelerator">&lt;Alt&gt;i</property>
-              </object>
-            </child>
-          </object>
-        </child>
-        
       </object>
     </child>
   </object>
