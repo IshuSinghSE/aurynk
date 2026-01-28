@@ -1000,12 +1000,8 @@ class SettingsWindow(Adw.PreferencesWindow):
         enable_audio.set_subtitle(
             _("Stream device audio to PC. Works reliably over USB, may be unstable over wireless.")
         )
-        enable_audio.set_active(not self.settings.get("scrcpy", "no_audio", False))
-
-        def on_enable_audio_changed(switch, _):
-            self.settings.set("scrcpy", "no_audio", not switch.get_active())
-
-        enable_audio.connect("notify::active", on_enable_audio_changed)
+        enable_audio.set_active(self.settings.get("scrcpy", "enable_audio", False))
+        enable_audio.connect("notify::active", self._on_enable_audio_changed)
         audio_group.add(enable_audio)
 
         # Audio Source
