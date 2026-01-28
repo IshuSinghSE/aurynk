@@ -78,9 +78,7 @@ class TrayHelper:
 
         # Fallback to default SVG icon
         icon_paths = [
-            os.path.join(
-                project_root, "data/icons/io.github.IshuSinghSE.aurynk.tray.svg"
-            ),
+            os.path.join(project_root, "data/icons/io.github.IshuSinghSE.aurynk.tray.svg"),
             os.path.join(
                 project_root, "data/icons/hicolor/48x48/apps/io.github.IshuSinghSE.aurynk.png"
             ),
