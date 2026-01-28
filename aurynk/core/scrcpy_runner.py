@@ -313,6 +313,13 @@ class ScrcpyManager:
             proc = subprocess.Popen(cmd, env=env)
             self.processes[serial] = proc
 
+            # Send notification to device that mirroring started
+            try:
+                from aurynk.utils.adb_utils import send_device_notification
+                send_device_notification(serial, "Screen mirroring started from Aurynk")
+            except Exception:
+                pass  # Don't fail mirroring if notification fails
+
             # Start monitoring thread to handle window close events
             monitor_thread = threading.Thread(
                 target=self._monitor_process, args=(serial, proc), daemon=True
@@ -371,6 +378,14 @@ class ScrcpyManager:
                     if target_serial in self.processes:
                         logger.debug(f"Removing {target_serial} from processes dict")
                         del self.processes[target_serial]
+                        
+                    # Send notification to device that mirroring stopped
+                    try:
+                        from aurynk.utils.adb_utils import send_device_notification
+                        send_device_notification(target_serial, "Screen mirroring stopped")
+                    except Exception:
+                        pass  # Don't fail on notification error
+                        
                 return True
         return False
 
@@ -464,6 +479,14 @@ class ScrcpyManager:
                 if serial in self.processes:
                     logger.debug(f"Removing {serial} from processes dict")
                     del self.processes[serial]
+                    
+                # Send notification to device that mirroring stopped
+                try:
+                    from aurynk.utils.adb_utils import send_device_notification
+                    send_device_notification(serial, "Screen mirroring stopped")
+                except Exception:
+                    pass  # Don't fail on notification error
+                    
             return True
         logger.warning(f"No process found for serial: {serial}")
         return False
@@ -678,6 +701,13 @@ class ScrcpyManager:
 
             proc = subprocess.Popen(cmd, env=env)
             self.processes[serial] = proc
+
+            # Send notification to device that mirroring started
+            try:
+                from aurynk.utils.adb_utils import send_device_notification
+                send_device_notification(serial, "Screen mirroring started from Aurynk")
+            except Exception:
+                pass  # Don't fail mirroring if notification fails
 
             # Start monitoring thread
             monitor_thread = threading.Thread(

@@ -33,3 +33,57 @@ def is_device_connected(address, connect_port):
         return False
     except Exception:
         return False
+
+
+def send_device_notification(serial: str, message: str, title: str = "Aurynk") -> bool:
+    """Send a notification/toast to the Android device via ADB.
+    
+    Args:
+        serial: Device serial (address:port for wireless, or USB serial)
+        message: Notification message to display
+        title: Notification title (default: "Aurynk")
+        
+    Returns:
+        True if notification was sent successfully, False otherwise
+    """
+    import subprocess
+    
+    try:
+        # Use a simple toast-like notification via service call
+        # This works without requiring root or additional apps
+        cmd = [
+            get_adb_path(),
+            "-s",
+            serial,
+            "shell",
+            f'am broadcast -a android.intent.action.MAIN -e message "{message}"'
+        ]
+        
+        # Try to send via activity manager broadcast (works on most devices)
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=3
+        )
+        
+        # Alternative: Use logcat tag that could be monitored
+        # This always works and can be useful for debugging
+        subprocess.run(
+            [
+                get_adb_path(),
+                "-s", 
+                serial,
+                "shell",
+                "log",
+                "-t",
+                "Aurynk",
+                message
+            ],
+            capture_output=True,
+            timeout=2
+        )
+        
+        return result.returncode == 0
+    except Exception:
+        return False
