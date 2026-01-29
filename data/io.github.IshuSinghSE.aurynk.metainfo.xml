@@ -70,6 +70,48 @@
   <content_rating type="oars-1.1" />
   <translation type="gettext">io.github.IshuSinghSE.aurynk</translation>
   <releases>
+    <release version="1.2.2" date="2026-01-13">
+      <description>
+        <p>Kept the experience intuitive for general users. Key changes focused on pairing, encoder support, troubleshooting, and minor bug fixes.</p>
+        <p>🚀 New Features</p>
+        <ul>
+          <li>Manual pairing: connect using a pairing code (manual pairing flow)</li>
+          <li>Added video encoder support</li>
+          <li>Added audio encoder support</li>
+        </ul>
+        <p>🔧 Improvements</p>
+        <ul>
+          <li>Major pairing flow improvements and UX refinements</li>
+          <li>Increased QR pairing expiry time to 60 seconds</li>
+          <li>Added more troubleshooting info in about section</li>
+        </ul>
+        <p>🐛 Bug Fixes</p>
+        <ul>
+          <li>Minor bug fixes and documentation updates</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.2.1" date="2026-01-11">
+      <description>
+        <p>Kept the experience intuitive for general users. Key changes focused on pairing, encoder support, troubleshooting, and minor bug fixes.</p>
+        <p>🚀 New Features</p>
+        <ul>
+          <li>Manual pairing: connect using a pairing code (manual pairing flow)</li>
+          <li>Added video encoder support</li>
+          <li>Added audio encoder support</li>
+        </ul>
+        <p>🔧 Improvements</p>
+        <ul>
+          <li>Major pairing flow improvements and UX refinements</li>
+          <li>Increased QR pairing expiry time to 60 seconds</li>
+          <li>Added more troubleshooting info in about section</li>
+        </ul>
+        <p>🐛 Bug Fixes</p>
+        <ul>
+          <li>Minor bug fixes and documentation updates</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.2.0" date="2025-12-09">
       <description>
         <p>Enhanced USB device support with complete device information display and improved Flatpak integration.</p>
