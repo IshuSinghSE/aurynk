@@ -4,6 +4,7 @@ import io
 
 import gi
 
+from aurynk.i18n import _
 from aurynk.utils.logger import get_logger
 
 logger = get_logger("QRWidget")

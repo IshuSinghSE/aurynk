@@ -23,7 +23,7 @@ This guide covers how to build Aurynk from source using different methods.
 ```bash
 sudo apt update
 sudo apt install -y \
-    python3 python3-dev python3-pip python3-venv python3-pyudev \
+    python3 python3-dev python3-pip python3-venv \
     python3-gi python3-gi-cairo gir1.2-gtk-4.0 gir1.2-adw-1 \
     android-tools-adb \
     meson ninja-build \
@@ -97,10 +97,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 # Install dependencies
-pip install -r pyproject.toml
-
 pip install -e ".[dev]"
-
 
 # Run the application
 python -m aurynk

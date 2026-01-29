@@ -104,6 +104,109 @@ class SettingsWindow(Adw.PreferencesWindow):
         show_notifications.connect("notify::active", self._on_show_notifications_changed)
         general_group.add(show_notifications)
 
+        # Notify device on mirroring switch
+        notify_device = Adw.SwitchRow()
+        notify_device.set_title(_("Notify Device On Mirroring"))
+        notify_device.set_subtitle(_("Send notification to device when mirroring starts/stops"))
+        notify_device.set_active(self.settings.get("app", "notify_device_on_mirroring", True))
+        notify_device.connect("notify::active", self._on_notify_device_changed)
+        general_group.add(notify_device)
+
+        # Tray icon style with icon previews
+        from gi.repository import Gio, GObject
+
+        class TrayIconOption(GObject.Object):
+            __gtype_name__ = "TrayIconOption"
+
+            def __init__(self, label, icon_name):
+                super().__init__()
+                self._label = label
+                self._icon_name = icon_name
+
+            @GObject.Property(type=str)
+            def label(self):
+                return self._label
+
+            @GObject.Property(type=str)
+            def icon_name(self):
+                return self._icon_name
+
+        # Create model with icons
+        tray_icon_model = Gio.ListStore.new(TrayIconOption)
+        tray_icon_model.append(TrayIconOption(_("Default"), "io.github.IshuSinghSE.aurynk.tray"))
+        tray_icon_model.append(
+            TrayIconOption(_("Black"), "io.github.IshuSinghSE.aurynk.tray-black")
+        )
+        tray_icon_model.append(
+            TrayIconOption(_("White"), "io.github.IshuSinghSE.aurynk.tray-white")
+        )
+        tray_icon_model.append(
+            TrayIconOption(_("Filled"), "io.github.IshuSinghSE.aurynk.tray-filled")
+        )
+
+        tray_icon_row = Adw.ComboRow()
+        tray_icon_row.set_title(_("Tray Icon Style"))
+        tray_icon_row.set_subtitle(_("Choose the appearance of the system tray icon"))
+        tray_icon_row.set_model(tray_icon_model)
+
+        # Set expression to display label
+        label_expression = Gtk.PropertyExpression.new(TrayIconOption, None, "label")
+        tray_icon_row.set_expression(label_expression)
+
+        # Create factory for custom rendering with icon previews
+        factory = Gtk.SignalListItemFactory()
+
+        def setup_list_item(factory, list_item):
+            box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            icon = Gtk.Image()
+            icon.set_pixel_size(16)
+            label = Gtk.Label()
+            label.set_xalign(0)
+            box.append(icon)
+            box.append(label)
+            list_item.set_child(box)
+
+        def bind_list_item(factory, list_item):
+            import os
+
+            from gi.repository import GdkPixbuf
+
+            item = list_item.get_item()
+            box = list_item.get_child()
+            icon = box.get_first_child()
+            label = icon.get_next_sibling()
+
+            # Load icon from SVG file path for better quality
+            icon_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
+                "data",
+                "icons",
+                f"{item.icon_name}.svg",
+            )
+
+            try:
+                if os.path.exists(icon_path):
+                    pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(icon_path, 16, 16, True)
+                    icon.set_from_pixbuf(pixbuf)
+                else:
+                    # Fallback to icon name
+                    icon.set_from_icon_name(item.icon_name)
+            except Exception:
+                # Fallback to icon name
+                icon.set_from_icon_name(item.icon_name)
+
+            label.set_label(item.label)
+
+        factory.connect("setup", setup_list_item)
+        factory.connect("bind", bind_list_item)
+        tray_icon_row.set_factory(factory)
+
+        current_style = self.settings.get("app", "tray_icon_style", "default")
+        style_map = {"default": 0, "black": 1, "white": 2, "filled": 3}
+        tray_icon_row.set_selected(style_map.get(current_style, 0))
+        tray_icon_row.connect("notify::selected", self._on_tray_icon_style_changed)
+        general_group.add(tray_icon_row)
+
         # Monitor interval
         monitor_interval = Adw.SpinRow()
         monitor_interval.set_title(_("Monitor Interval"))
@@ -897,12 +1000,8 @@ class SettingsWindow(Adw.PreferencesWindow):
         enable_audio.set_subtitle(
             _("Stream device audio to PC. Works reliably over USB, may be unstable over wireless.")
         )
-        enable_audio.set_active(not self.settings.get("scrcpy", "no_audio", False))
-
-        def on_enable_audio_changed(switch, _):
-            self.settings.set("scrcpy", "no_audio", not switch.get_active())
-
-        enable_audio.connect("notify::active", on_enable_audio_changed)
+        enable_audio.set_active(self.settings.get("scrcpy", "enable_audio", False))
+        enable_audio.connect("notify::active", self._on_enable_audio_changed)
         audio_group.add(enable_audio)
 
         # Audio Source
@@ -1172,6 +1271,33 @@ class SettingsWindow(Adw.PreferencesWindow):
         otg_row.connect("notify::selected", on_otg_mode_changed)
         control_group.add(otg_row)
 
+        # Gamepad Support
+        gamepad_row = Adw.ComboRow()
+        gamepad_row.set_title(_("Gamepad (experimental)"))
+        gamepad_row.set_subtitle(_("Simulate physical gamepad using UHID or AOA protocol"))
+        gamepad_options = [
+            _("Disabled"),
+            _("UHID"),
+            _("AOA"),
+        ]
+        gamepad_model = Gtk.StringList.new(gamepad_options)
+        gamepad_row.set_model(gamepad_model)
+
+        # Map internal values to display values
+        gamepad_map = {"disabled": 0, "uhid": 1, "aoa": 2}
+        gamepad_reverse_map = ["disabled", "uhid", "aoa"]
+
+        current_gamepad = self.settings.get("scrcpy", "gamepad_mode", "disabled")
+        gamepad_row.set_selected(gamepad_map.get(current_gamepad, 0))
+
+        def on_gamepad_mode_changed(combo, _):
+            idx = combo.get_selected()
+            if 0 <= idx < len(gamepad_reverse_map):
+                self.settings.set("scrcpy", "gamepad_mode", gamepad_reverse_map[idx])
+
+        gamepad_row.connect("notify::selected", on_gamepad_mode_changed)
+        control_group.add(gamepad_row)
+
         # Add control group to page
         page.add(control_group)
 
@@ -1326,6 +1452,36 @@ class SettingsWindow(Adw.PreferencesWindow):
         no_control.connect("notify::active", on_no_control_changed)
         advanced_group.add(no_control)
 
+        # Shortcut Modifier Key
+        shortcut_mod_row = Adw.ComboRow()
+        shortcut_mod_row.set_title(_("Shortcut Key (experimental)"))
+        shortcut_mod_row.set_subtitle(_("Change the MOD key for scrcpy shortcuts (default: lalt)"))
+        # Options for shortcut-mod
+        shortcut_mod_options = [
+            "lalt",  # Default - Left Alt
+            "ralt",  # Right Alt
+            "lctrl",  # Left Ctrl
+            "rctrl",  # Right Ctrl
+            "lsuper",  # Left Super (Windows/Cmd key)
+            "rsuper",  # Right Super
+        ]
+        shortcut_mod_model = Gtk.StringList.new(shortcut_mod_options)
+        shortcut_mod_row.set_model(shortcut_mod_model)
+        current_shortcut_mod = self.settings.get("scrcpy", "shortcut_mod", "lalt")
+        shortcut_mod_row.set_selected(
+            shortcut_mod_options.index(current_shortcut_mod)
+            if current_shortcut_mod in shortcut_mod_options
+            else 0
+        )
+
+        def on_shortcut_mod_changed(combo, _):
+            idx = combo.get_selected()
+            if 0 <= idx < len(shortcut_mod_options):
+                self.settings.set("scrcpy", "shortcut_mod", shortcut_mod_options[idx])
+
+        shortcut_mod_row.connect("notify::selected", on_shortcut_mod_changed)
+        advanced_group.add(shortcut_mod_row)
+
         page.add(advanced_group)
         self.add(page)
 
@@ -1337,6 +1493,29 @@ class SettingsWindow(Adw.PreferencesWindow):
     def _on_show_notifications_changed(self, switch, _):
         """Handle show notifications setting change."""
         self.settings.set("app", "show_notifications", switch.get_active())
+
+    def _on_notify_device_changed(self, switch, _):
+        """Handle notify device on mirroring setting change."""
+        self.settings.set("app", "notify_device_on_mirroring", switch.get_active())
+
+    def _on_tray_icon_style_changed(self, combo, _):
+        """Handle tray icon style setting change."""
+        selected = combo.get_selected()
+        style_map = ["default", "black", "white", "filled"]
+        if 0 <= selected < len(style_map):
+            self.settings.set("app", "tray_icon_style", style_map[selected])
+            # Show info that tray needs restart
+            from gi.repository import Adw
+
+            from aurynk.i18n import _ as translate_text
+
+            toast = Adw.Toast()
+            toast.set_title(translate_text("Restart tray to apply icon change"))
+            toast.set_timeout(3)
+            # Get the parent window to show toast
+            parent = self.get_root()
+            if parent and hasattr(parent, "add_toast"):
+                parent.add_toast(toast)
 
     def _on_monitor_interval_changed(self, spin, _):
         """Handle monitor interval setting change."""

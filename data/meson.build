@@ -5,7 +5,6 @@
 icon_sizes = ['16x16', '24x24', '32x32', '48x48', '64x64', '128x128', '256x256', '512x512']
 icon_names = [
   'io.github.IshuSinghSE.aurynk.png',
-  'io.github.IshuSinghSE.aurynk.tray.png',
   'io.github.IshuSinghSE.aurynk.device.png',
   'io.github.IshuSinghSE.aurynk.monitor.png',
   'io.github.IshuSinghSE.aurynk.add-device.png',
@@ -15,10 +14,6 @@ icon_names = [
 
 foreach size : icon_sizes
   foreach name : icon_names
-    # Only install tray icon for 16x16, 24x24, 32x32
-    if name == 'io.github.IshuSinghSE.aurynk.tray.png' and not (size == '16x16' or size == '24x24' or size == '32x32')
-      continue
-    endif
     install_data(
       'icons/hicolor/' + size + '/apps/' + name,
       install_dir: datadir / 'icons' / 'hicolor' / size / 'apps'
@@ -31,6 +26,21 @@ install_data(
   'icons/hicolor/scalable/apps/io.github.IshuSinghSE.aurynk.svg',
   install_dir: datadir / 'icons' / 'hicolor' / 'scalable' / 'apps'
 )
+
+# Install tray icon variants (SVG in data/icons/)
+tray_variants = [
+  'io.github.IshuSinghSE.aurynk.tray.svg',
+  'io.github.IshuSinghSE.aurynk.tray-black.svg',
+  'io.github.IshuSinghSE.aurynk.tray-white.svg',
+  'io.github.IshuSinghSE.aurynk.tray-filled.svg'
+]
+
+foreach variant : tray_variants
+  install_data(
+    'icons/' + variant,
+    install_dir: pkgdatadir / 'icons'
+  )
+endforeach
 
 # Compile GResource
 gnome = import('gnome')

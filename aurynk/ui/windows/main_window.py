@@ -15,6 +15,7 @@ from aurynk.models.device import Device
 from aurynk.services.usb_monitor import USBMonitor
 from aurynk.ui.windows.about_window import AboutWindow
 from aurynk.ui.windows.settings_window import SettingsWindow
+from aurynk.ui.windows.shortcuts_window import show_shortcuts_window
 from aurynk.utils.adb_utils import is_device_connected
 from aurynk.utils.device_events import (
     register_device_change_callback,
@@ -209,6 +210,11 @@ class AurynkWindow(Adw.ApplicationWindow):
 
     def _setup_actions(self):
         """Setup window actions."""
+        # Keyboard shortcuts action
+        shortcuts_action = Gio.SimpleAction.new("shortcuts", None)
+        shortcuts_action.connect("activate", self._on_shortcuts_clicked)
+        self.add_action(shortcuts_action)
+
         # Preferences action
         preferences_action = Gio.SimpleAction.new("preferences", None)
         preferences_action.connect("activate", self._on_preferences_clicked)
@@ -219,6 +225,19 @@ class AurynkWindow(Adw.ApplicationWindow):
         about_action.connect("activate", self._on_about_clicked)
         self.add_action(about_action)
 
+        # Screenshot action
+        screenshot_action = Gio.SimpleAction.new("take-screenshot", None)
+        screenshot_action.connect("activate", self._on_take_screenshot)
+        self.add_action(screenshot_action)
+
+        # Track last active scrcpy window
+        self._last_screenshot_serial = None
+        self._setup_screenshot_tracker()
+
+    def _on_shortcuts_clicked(self, action, param):
+        """Show keyboard shortcuts window."""
+        show_shortcuts_window(parent=self)
+
     def _on_preferences_clicked(self, action, param):
         """Open settings window."""
         settings_window = SettingsWindow(transient_for=self)
@@ -227,6 +246,179 @@ class AurynkWindow(Adw.ApplicationWindow):
     def _on_about_clicked(self, action, param):
         """Show About dialog."""
         AboutWindow.show(self)
+
+    def _get_active_mirroring_device(self):
+        """Get the serial of the currently focused scrcpy window."""
+        try:
+            active_processes = self._scrcpy_manager.processes
+
+            # If we have a last screenshot serial and it's still running, use it
+            if self._last_screenshot_serial and self._last_screenshot_serial in active_processes:
+                logger.info(f"Using last screenshot device: {self._last_screenshot_serial}")
+                return self._last_screenshot_serial
+
+            # Fallback: return first active process if only one is running
+            if active_processes:
+                if len(active_processes) == 1:
+                    serial = list(active_processes.keys())[0]
+                    logger.info(f"Single device mirroring, using: {serial}")
+                    self._last_screenshot_serial = serial
+                    return serial
+                else:
+                    # Multiple devices - need user to specify which one
+                    logger.warning(
+                        f"Multiple devices mirroring ({len(active_processes)}), using first: {list(active_processes.keys())[0]}"
+                    )
+                    serial = list(active_processes.keys())[0]
+                    self._last_screenshot_serial = serial
+                    return serial
+
+        except Exception as e:
+            logger.debug(f"Could not get active device: {e}")
+        return None
+
+    def _setup_screenshot_tracker(self):
+        """Set up polling to track which device should be screenshotted."""
+
+        def update_screenshot_target():
+            try:
+                active_processes = self._scrcpy_manager.processes
+                if len(active_processes) == 1:
+                    # Auto-update for single device
+                    self._last_screenshot_serial = list(active_processes.keys())[0]
+            except Exception:
+                pass
+            return True  # Continue polling
+
+        # Poll every 2 seconds
+        GLib.timeout_add_seconds(2, update_screenshot_target)
+
+    def _on_take_screenshot(self, action, param):
+        """Take screenshot of active mirroring session using ADB."""
+        logger.info("Screenshot action triggered (F8 pressed)")
+        serial = self._get_active_mirroring_device()
+        logger.info(f"Active device serial: {serial}")
+        if not serial:
+            logger.warning("No active mirroring session or couldn't detect focused window")
+            logger.info(
+                "Tip: For multiple devices, focus the scrcpy window first, then press F8 from Aurynk"
+            )
+            return
+
+        def capture():
+            try:
+                import os
+                import subprocess
+                from datetime import datetime
+
+                from aurynk.utils.adb_utils import get_adb_path
+
+                logger.info(f"Starting screenshot capture for device: {serial}")
+
+                # Create screenshots directory
+                screenshot_dir = os.path.expanduser("~/.local/share/aurynk/screenshots")
+                os.makedirs(screenshot_dir, exist_ok=True)
+                logger.debug(f"Screenshots directory: {screenshot_dir}")
+
+                # Generate filename with timestamp
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"screenshot_{timestamp}.png"
+                filepath = os.path.join(screenshot_dir, filename)
+                logger.info(f"Screenshot will be saved to: {filepath}")
+
+                # Capture screenshot using ADB
+                temp_path = "/sdcard/screenshot_temp.png"
+                logger.debug("Running screencap command...")
+                result = subprocess.run(
+                    [get_adb_path(), "-s", serial, "shell", "screencap", "-p", temp_path],
+                    check=True,
+                    timeout=5,
+                    capture_output=True,
+                    text=True,
+                )
+                logger.debug(f"Screencap result: {result.returncode}")
+
+                # Pull screenshot to computer
+                logger.debug("Pulling screenshot from device...")
+                result = subprocess.run(
+                    [get_adb_path(), "-s", serial, "pull", temp_path, filepath],
+                    check=True,
+                    timeout=10,
+                    capture_output=True,
+                    text=True,
+                )
+                logger.debug(f"Pull result: {result.returncode}, output: {result.stdout}")
+
+                # Clean up device
+                subprocess.run([get_adb_path(), "-s", serial, "shell", "rm", temp_path], timeout=5)
+
+                logger.info(f"Screenshot saved to {filepath}")
+
+                # Show GNOME notification with action to open file
+                GLib.idle_add(self._show_screenshot_notification, filepath)
+
+            except Exception as e:
+                logger.error(f"Failed to capture screenshot: {e}")
+
+        threading.Thread(target=capture, daemon=True).start()
+
+    def _show_screenshot_notification(self, filepath):
+        """Show a GNOME notification for the screenshot."""
+        try:
+            import os
+            import subprocess
+
+            from aurynk.utils.notify import show_notification_with_action
+
+            folder_path = os.path.dirname(filepath)
+            opened = [False]  # Use list to allow modification in nested function
+
+            # Callback to open the screenshot folder
+            def open_folder(notification, action_name, user_data):
+                # Prevent multiple invocations
+                if opened[0]:
+                    logger.debug("Folder already opened, ignoring duplicate callback")
+                    return
+                opened[0] = True
+
+                try:
+                    logger.info(f"Opening folder: {folder_path}")
+                    # Try multiple file managers
+                    commands = [
+                        ["nautilus", folder_path],
+                        ["dolphin", folder_path],
+                        ["thunar", folder_path],
+                        ["nemo", folder_path],
+                        ["xdg-open", folder_path],
+                    ]
+
+                    for cmd in commands:
+                        try:
+                            result = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
+                            if result.returncode == 0:
+                                logger.info(f"Folder opened with {cmd[0]}")
+                                return
+                        except (subprocess.TimeoutExpired, FileNotFoundError):
+                            continue
+
+                    logger.error("All file manager commands failed")
+                except Exception as e:
+                    logger.error(f"Failed to open folder: {e}")
+
+            # Show notification with action button
+            show_notification_with_action(
+                title=_("Screenshot Captured"),
+                body=f"Saved to:\n{filepath}",
+                action_id="open",
+                action_label=_("Open Folder"),
+                callback=open_folder,
+            )
+            logger.info(f"Notification shown for {filepath}")
+
+        except Exception as e:
+            logger.error(f"Failed to show notification: {e}")
+
+        return False
 
     def do_close(self):
         if hasattr(self, "usb_monitor") and self.usb_monitor:
@@ -285,6 +477,25 @@ class AurynkWindow(Adw.ApplicationWindow):
             add_device_btn = builder.get_object("add_device_button")
             if add_device_btn:
                 add_device_btn.connect("clicked", self._on_add_device_clicked)
+            # Connect donate button from template if present and apply styling
+            donate_btn = builder.get_object("donate_button")
+            if donate_btn:
+                try:
+                    donate_btn.connect("clicked", self._on_donate_clicked)
+                    donate_btn.add_css_class("donate-button")
+                    css_provider = Gtk.CssProvider()
+                    css = b"""
+                        .donate-button image { color: #da61a2; min-width: 20px; min-height: 20px; width: 20px; height: 20px; }
+                        .donate-button { padding: 4px; min-width: 0; min-height: 0; }
+                        """
+                    css_provider.load_from_data(css)
+                    Gtk.StyleContext.add_provider_for_display(
+                        Gdk.Display.get_default(),
+                        css_provider,
+                        Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+                    )
+                except Exception:
+                    pass
             # No search entry, no app logo/name in template path
             self._refresh_device_list()
             self._refresh_usb_list()
@@ -318,6 +529,7 @@ class AurynkWindow(Adw.ApplicationWindow):
         menu = Gio.Menu()
 
         # Primary menu section
+        menu.append(_("Keyboard Shortcuts"), "win.shortcuts")
         menu.append(_("Preferences"), "win.preferences")
 
         # About section (separated as per GNOME HIG)
@@ -326,10 +538,32 @@ class AurynkWindow(Adw.ApplicationWindow):
         menu.append_section(None, about_section)
 
         menu_button.set_menu_model(menu)
-        header_bar.pack_end(menu_button)
+        header_bar.pack_start(menu_button)
 
         # Header content box
         header_content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+
+        # Donate (heart) icon-only button — colored to match design
+        donate_btn = Gtk.Button()
+        donate_btn.set_tooltip_text(_("Sponsor the project"))
+        donate_btn.set_icon_name("emblem-favorite-symbolic")
+        donate_btn.add_css_class("donate-button")
+        donate_btn.connect("clicked", self._on_donate_clicked)
+
+        # Inject small CSS for donate button color and compact spacing
+        css = b"""
+            .donate-button image { color: #da61a2; min-width: 20px; min-height: 20px; width: 32px; height: 32px; }
+            .donate-button { padding: 4px; min-width: 0; min-height: 0; }
+            """
+        css_provider = Gtk.CssProvider()
+        try:
+            css_provider.load_from_data(css)
+            Gtk.StyleContext.add_provider_for_display(
+                Gdk.Display.get_default(), css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+            )
+        except Exception:
+            # If CSS cannot be loaded for any reason, fall back silently
+            pass
 
         # Add Device button
         add_device_btn = Gtk.Button()
@@ -339,6 +573,7 @@ class AurynkWindow(Adw.ApplicationWindow):
         add_device_btn.connect("clicked", self._on_add_device_clicked)
 
         # header_content.append(app_header_box)
+        header_content.append(donate_btn)
         header_content.append(add_device_btn)
         header_bar.set_title_widget(header_content)
 
@@ -1081,9 +1316,11 @@ class AurynkWindow(Adw.ApplicationWindow):
                         logger.warning(f"Connection failed: {output.strip()}")
 
                 # Check final connection status
+                connection_success = False
                 if (
                     "connected" in output or "already connected" in output
                 ) and "unable" not in output:
+                    connection_success = True
                     # Update stored port if it changed
                     if discovered_port and discovered_port != device.get("connect_port"):
                         device["connect_port"] = discovered_port
@@ -1110,6 +1347,7 @@ class AurynkWindow(Adw.ApplicationWindow):
                             device["connect_port"] = new_port
                             self.adb_controller.save_paired_device(device)
                             logger.info(f"✓ Connected and updated port to {new_port}")
+                            connection_success = True
                         else:
                             logger.error(
                                 "Connection still failed. Please ensure device is on the network."
@@ -1118,6 +1356,13 @@ class AurynkWindow(Adw.ApplicationWindow):
                         logger.error(
                             f"Could not find device at {address}. Make sure wireless debugging is enabled."
                         )
+
+                # Show error dialog if connection failed
+                if not connection_success:
+                    error_msg = self._parse_connection_error(output)
+                    GLib.idle_add(
+                        self._show_connection_error_dialog, device.get("name", address), error_msg
+                    )
 
                 # Restore button state on main thread
                 GLib.idle_add(self._restore_connect_button, button, original_label)
@@ -1173,6 +1418,16 @@ class AurynkWindow(Adw.ApplicationWindow):
 
         dialog = PairingDialog(self)
         dialog.present()
+
+    def _on_donate_clicked(self, button):
+        """Open project's sponsor/donate page in default browser."""
+        url = "https://github.com/sponsors/IshuSinghSE"
+        try:
+            # Try using Gio if available
+            Gio.AppInfo.launch_default_for_uri(url, None)
+        except Exception:
+            # Fallback to xdg-open
+            GLib.spawn_command_line_async(f'xdg-open "{url}"')
 
     def _on_device_details_clicked(self, button, device):
         """Handle device details button click."""
@@ -1420,6 +1675,18 @@ class AurynkWindow(Adw.ApplicationWindow):
                 scrcpy.stop_mirror_by_serial(usb_serial)
             else:
                 logger.info(f"Starting mirror for USB device {usb_serial}")
+
+                # Check if USB device is authorized before attempting to mirror
+                is_authorized, state = self._check_usb_authorization(usb_serial)
+
+                if not is_authorized:
+                    if state == "unauthorized":
+                        # Show USB authorization dialog
+                        self._show_usb_unauthorized_dialog(device_name)
+                        return
+                    else:
+                        logger.warning(f"USB device {usb_serial} in unexpected state: {state}")
+
                 started = scrcpy.start_mirror_usb(usb_serial, device_name)
                 if not started:
                     # Show a user-facing dialog explaining common causes and remediation
@@ -1445,6 +1712,96 @@ class AurynkWindow(Adw.ApplicationWindow):
             logger.error("adb devices command timed out")
         except Exception as e:
             logger.error(f"Error starting USB mirror: {e}")
+
+    def _parse_connection_error(self, output: str) -> str:
+        """Parse ADB connection error output and return user-friendly message."""
+        output_lower = output.lower()
+
+        if "refused" in output_lower or "cannot connect" in output_lower:
+            return _("Connection refused. Make sure Wireless Debugging is enabled on your device.")
+        elif "timed out" in output_lower or "timeout" in output_lower:
+            return _(
+                "Connection timed out. Check if your device is on the same network and Wireless Debugging is enabled."
+            )
+        elif "no route" in output_lower or "unreachable" in output_lower:
+            return _("Cannot reach device. Verify the device is on the same Wi-Fi network.")
+        elif "unable" in output_lower:
+            return _(
+                "Unable to connect. The device may have changed ports. Try removing and re-pairing the device."
+            )
+        else:
+            return _(
+                "Connection failed. Ensure Wireless Debugging is enabled and the device is on the same network."
+            )
+
+    def _show_connection_error_dialog(self, device_name: str, error_message: str):
+        """Show error dialog when wireless connection fails."""
+        try:
+            from gi.repository import Adw
+
+            dialog = Adw.MessageDialog.new(self)
+            dialog.set_heading(_("Connection Failed"))
+            body = _(
+                "Failed to connect to {device}.\n\n{error}\n\nTroubleshooting:\n"
+                "  • Ensure Wireless Debugging is enabled\n"
+                "  • Check both devices are on the same Wi-Fi\n"
+                "  • Try removing and re-pairing the device"
+            ).format(device=device_name, error=error_message)
+
+            dialog.set_body(body)
+            dialog.set_default_size(400, 200)
+            body_label = dialog.get_body_label() if hasattr(dialog, "get_body_label") else None
+            if body_label:
+                body_label.set_line_wrap(True)
+                body_label.set_max_width_chars(50)
+
+            dialog.add_response("ok", _("OK"))
+            dialog.connect("response", lambda d, r: d.destroy())
+            dialog.present()
+        except Exception as e:
+            logger.error(f"Failed to show connection error dialog: {e}")
+
+    def _check_usb_authorization(self, usb_serial: str) -> tuple[bool, str]:
+        """Check if USB device is authorized. Returns (is_authorized, state)."""
+        import subprocess
+
+        try:
+            result = subprocess.run(["adb", "devices"], capture_output=True, text=True, timeout=3)
+            for line in result.stdout.strip().split("\n")[1:]:
+                if "\t" in line:
+                    serial, state = line.split("\t", 1)
+                    state = state.strip()
+                    if serial == usb_serial:
+                        return (state == "device", state)
+            return (False, "not_found")
+        except Exception:
+            return (False, "error")
+
+    def _show_usb_unauthorized_dialog(self, device_name: str):
+        """Show dialog when USB device is not authorized."""
+        try:
+            from gi.repository import Adw
+
+            dialog = Adw.MessageDialog.new(self)
+            dialog.set_heading(_("USB Debugging Not Authorized"))
+            body = _(
+                "Device {device} is connected via USB but not authorized.\n\n"
+                "Please check your device and tap 'Allow' to authorize USB debugging.\n\n"
+                "Note: You may need to enable 'Always allow from this computer' for persistent authorization."
+            ).format(device=device_name)
+
+            dialog.set_body(body)
+            dialog.set_default_size(400, 180)
+            body_label = dialog.get_body_label() if hasattr(dialog, "get_body_label") else None
+            if body_label:
+                body_label.set_line_wrap(True)
+                body_label.set_max_width_chars(50)
+
+            dialog.add_response("ok", _("OK"))
+            dialog.connect("response", lambda d, r: d.destroy())
+            dialog.present()
+        except Exception as e:
+            logger.error(f"Failed to show USB unauthorized dialog: {e}")
 
     def _show_scrcpy_unavailable_dialog(self, serial: str):
         """Show a concise dialog describing why scrcpy may not have started.

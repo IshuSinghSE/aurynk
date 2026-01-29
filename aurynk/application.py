@@ -21,6 +21,75 @@ from aurynk.utils.power import PowerMonitor
 logger = get_logger("AurynkApp")
 
 
+def start_tray_helper():
+    """Start the tray helper process if not already running."""
+    tray_socket = "/tmp/aurynk_tray.sock"
+    # Only reuse the tray helper if the tray socket exists and is connectable
+    if os.path.exists(tray_socket):
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+                s.connect(tray_socket)
+            logger.info("Tray helper already running. Reusing existing instance.")
+            return True
+        except Exception:
+            try:
+                os.unlink(tray_socket)
+                logger.info("Removed stale tray socket.")
+            except Exception as e:
+                logger.error(f"Could not remove stale tray socket: {e}")
+    # Start new tray helper. Pass our PID so the helper can signal us as a
+    # fallback if socket-based IPC fails to deliver a quit request.
+    # First try to find it in the installed location (under aurynk/scripts/)
+    script_path = os.path.join(os.path.dirname(__file__), "scripts", "aurynk_tray.py")
+    if not os.path.exists(script_path):
+        # Fallback to development location
+        script_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "scripts", "aurynk_tray.py")
+        )
+    env = os.environ.copy()
+    try:
+        env["AURYNK_APP_PID"] = str(os.getpid())
+    except Exception:
+        pass
+    subprocess.Popen(["python3", script_path], env=env)
+
+
+def start_udev_proxy_helper():
+    """Ensure direct adb access is available for USB workflows."""
+    try:
+        from aurynk.utils.adb_utils import get_adb_path
+
+        adb_path = get_adb_path()
+    except Exception:
+        pass
+
+    try:
+        result = subprocess.run(
+            [adb_path, "devices"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except FileNotFoundError:
+        logger.error("adb binary not found; USB features will be unavailable")
+        return False
+    except Exception as e:
+        logger.error(f"Failed to invoke adb: {e}")
+        return False
+
+    if result.returncode != 0:
+        stderr = (result.stderr or "").strip()
+        logger.error(
+            "adb devices exited with %s%s",
+            result.returncode,
+            f": {stderr}" if stderr else "",
+        )
+        return False
+
+    logger.info("Direct adb access verified; skipping legacy udev proxy helper")
+    return True
+
+
 class AurynkApp(Adw.Application):
     """Main application class."""
 
@@ -154,23 +223,6 @@ class AurynkApp(Adw.Application):
         # Simply activate the application - do_activate will handle the window
         self.activate()
 
-    def show_pair_dialog(self):
-        """Compatibility wrapper for tray: show the pairing dialog."""
-        # Ensure we have a window to show the dialog from
-        win = self.props.active_window
-        if not win:
-            # Activate to create/show window first
-            self.activate()
-            win = self.props.active_window
-
-        if win and hasattr(win, "show_pairing_dialog"):
-            try:
-                win.show_pairing_dialog()
-            except Exception as e:
-                logger.error(f"Error showing pairing dialog: {e}")
-        else:
-            logger.warning("Pairing dialog method not implemented in AurynkWindow.")
-
     def show_about_dialog(self):
         """Show the About dialog - called from tray icon."""
         from aurynk.ui.windows.about_window import AboutWindow
@@ -187,6 +239,20 @@ class AurynkApp(Adw.Application):
             AboutWindow.show(win)
         else:
             logger.warning("Could not show About dialog - no window available")
+
+    def _on_open_screenshot(self, action, parameter):
+        """Open screenshot file from notification."""
+        try:
+            import subprocess
+
+            filepath = parameter.get_string()
+            logger.info(f"Opening screenshot: {filepath}")
+
+            # Use xdg-open to open with default image viewer
+            subprocess.Popen(["xdg-open", filepath])
+
+        except Exception as e:
+            logger.error(f"Failed to open screenshot: {e}")
 
     def quit(self):
         """Quit the application properly, closing all windows."""
@@ -243,6 +309,16 @@ class AurynkApp(Adw.Application):
         Adw.Application.do_startup(self)
         self._apply_theme()
         self._load_gresource()
+
+        # Set up keyboard accelerators for window actions
+        self.set_accels_for_action("win.shortcuts", ["<Primary>question"])
+        self.set_accels_for_action("win.preferences", ["<Primary>comma"])
+        self.set_accels_for_action("win.take-screenshot", ["F8"])
+
+        # Register action for opening screenshots from notifications
+        open_screenshot_action = Gio.SimpleAction.new("open-screenshot", GLib.VariantType.new("s"))
+        open_screenshot_action.connect("activate", self._on_open_screenshot)
+        self.add_action(open_screenshot_action)
 
         # Start helper processes
         start_tray_helper()
@@ -355,75 +431,6 @@ def main(argv=None):
         argv = sys.argv
     app = AurynkApp()
     return app.run(argv)
-
-
-def start_tray_helper():
-    """Start the tray helper process if not already running."""
-    tray_socket = "/tmp/aurynk_tray.sock"
-    # Only reuse the tray helper if the tray socket exists and is connectable
-    if os.path.exists(tray_socket):
-        try:
-            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
-                s.connect(tray_socket)
-            logger.info("Tray helper already running. Reusing existing instance.")
-            return True
-        except Exception:
-            try:
-                os.unlink(tray_socket)
-                logger.info("Removed stale tray socket.")
-            except Exception as e:
-                logger.error(f"Could not remove stale tray socket: {e}")
-    # Start new tray helper. Pass our PID so the helper can signal us as a
-    # fallback if socket-based IPC fails to deliver a quit request.
-    # First try to find it in the installed location (under aurynk/scripts/)
-    script_path = os.path.join(os.path.dirname(__file__), "scripts", "aurynk_tray.py")
-    if not os.path.exists(script_path):
-        # Fallback to development location
-        script_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..", "scripts", "aurynk_tray.py")
-        )
-    env = os.environ.copy()
-    try:
-        env["AURYNK_APP_PID"] = str(os.getpid())
-    except Exception:
-        pass
-    subprocess.Popen(["python3", script_path], env=env)
-
-
-def start_udev_proxy_helper():
-    """Ensure direct adb access is available for USB workflows."""
-    try:
-        from aurynk.utils.adb_utils import get_adb_path
-
-        adb_path = get_adb_path()
-    except Exception:
-        pass
-
-    try:
-        result = subprocess.run(
-            [adb_path, "devices"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-    except FileNotFoundError:
-        logger.error("adb binary not found; USB features will be unavailable")
-        return False
-    except Exception as e:
-        logger.error(f"Failed to invoke adb: {e}")
-        return False
-
-    if result.returncode != 0:
-        stderr = (result.stderr or "").strip()
-        logger.error(
-            "adb devices exited with %s%s",
-            result.returncode,
-            f": {stderr}" if stderr else "",
-        )
-        return False
-
-    logger.info("Direct adb access verified; skipping legacy udev proxy helper")
-    return True
 
 
 if __name__ == "__main__":

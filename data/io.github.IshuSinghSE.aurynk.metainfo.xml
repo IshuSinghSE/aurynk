@@ -70,6 +70,26 @@
   <content_rating type="oars-1.1" />
   <translation type="gettext">io.github.IshuSinghSE.aurynk</translation>
   <releases>
+    <release version="1.3.0" date="2026-01-29">
+      <description>
+        <p>Added keyboard shortcuts, screenshots, minor bug fixes.</p>
+        <p>🚀 New Features</p>
+        <ul>
+          <li>Keyboard shortcuts for connect, toggle mirroring, and screenshots.</li>
+          <li>Screenshot action to capture the mirrored display.</li>
+        </ul>
+        <p>🔧 Improvements</p>
+        <ul>
+          <li>Better debug output for device detection.</li>
+        </ul>
+        <p>🐛 Bug Fixes</p>
+        <ul>
+          <li>Fixed pairing and tray pairing issues.</li>
+          <li>Fixed release-notes parsing in About.</li>
+          <li>Fixed UI crashes and glitches in Settings and Mirroring.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.2.2" date="2026-01-13">
       <description>
         <p>Kept the experience intuitive for general users. Key changes focused on pairing, encoder support, troubleshooting, and minor bug fixes.</p>

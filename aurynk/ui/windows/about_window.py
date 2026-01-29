@@ -6,94 +6,9 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
 
-import os
-import xml.etree.ElementTree as ET
-
 from gi.repository import Adw
 
 from aurynk import __version__
-
-
-def get_latest_release_notes():
-    """Read AppStream metainfo and return the latest release description.
-
-    Returns a small DocBook-wrapped string safe for `Adw.AboutWindow.set_release_notes`.
-    If the metainfo file is missing or cannot be parsed, return an empty string.
-    """
-    possible_paths = [
-        # Flatpak install location
-        "/app/share/metainfo/io.github.IshuSinghSE.aurynk.metainfo.xml",
-        # Installed system location (project may also install here)
-        "/usr/share/metainfo/io.github.IshuSinghSE.aurynk.metainfo.xml",
-        # Project data paths (relative to repo)
-        os.path.join(
-            os.path.dirname(__file__),
-            "..",
-            "..",
-            "data",
-            "io.github.IshuSinghSE.aurynk.metainfo.xml",
-        ),
-        os.path.join(os.getcwd(), "data", "io.github.IshuSinghSE.aurynk.metainfo.xml"),
-        os.path.join(
-            os.path.dirname(__file__), "..", "data", "io.github.IshuSinghSE.aurynk.metainfo.xml"
-        ),
-        os.path.join(
-            os.path.dirname(__file__), "..", "..", "io.github.IshuSinghSE.aurynk.metainfo.xml"
-        ),
-    ]
-
-    path = None
-    for p in possible_paths:
-        try:
-            if p and os.path.exists(p):
-                path = p
-                break
-        except Exception:
-            continue
-
-    if not path:
-        return ""
-
-    try:
-        tree = ET.parse(path)
-        root = tree.getroot()
-
-        # Find first <release> element (namespace-agnostic)
-        latest_release = None
-        for elem in root.iter():
-            tag = elem.tag
-            if isinstance(tag, str) and tag.rsplit("}", 1)[-1] == "release":
-                latest_release = elem
-                break
-
-        if latest_release is None:
-            return ""
-
-        # Find description child
-        description = None
-        for child in latest_release:
-            if child.tag.rsplit("}", 1)[-1] == "description":
-                description = child
-                break
-
-        if description is None:
-            return ""
-
-        # Prefer returning the metainfo description content as AppStream-style
-        # HTML/Pango-like markup (<p>, <ul>, <li>, <b>, etc.) so
-        # `Adw.AboutWindow.set_release_notes` / `Adw.AboutDialog` can render it.
-        try:
-            # Serialize children of <description> preserving HTML-like tags
-            content = "".join(
-                ET.tostring(c, encoding="unicode", method="html") for c in list(description)
-            )
-
-            # Strip any surrounding whitespace and return raw HTML-like fragment
-            return content.strip()
-        except Exception:
-            return ""
-    except Exception:
-        return ""
 
 
 class AboutWindow:
@@ -166,13 +81,16 @@ class AboutWindow:
             about.set_debug_info(debug_info)
             about.set_debug_info_filename("aurynk-debug-info.txt")
 
-        # Load release notes from AppStream metainfo if available
-        notes = get_latest_release_notes()
-        if notes:
-            about.set_release_notes(notes)
-        else:
-            # Fallback short message
-            about.set_release_notes(_("No release notes available."))
+        # Add privacy disclaimer
+        about.set_release_notes(
+            _(
+                "<b>Privacy Notice</b>\n\n"
+                "Aurynk does not collect, store, or transmit any personal information, "
+                "device data, or usage statistics. All data remains on your local system.\n\n"
+                "The debug information shown above is only displayed locally and is never "
+                "sent anywhere unless you manually choose to share it (e.g., when reporting issues)."
+            )
+        )
 
         about.present()
 
@@ -330,12 +248,5 @@ def _get_debug_info():
                 info_lines.append(f"pyudev: {pyudev.__version__}")
         except Exception:
             info_lines.append(f"{package}: Not found")
-
-    # === Environment Variables ===
-    info_lines.append("\n=== Environment Variables ===")
-    info_lines.append(f"- LANG: {os.environ.get('LANG')}")
-    for env in os.environ:
-        if env.startswith(("GTK_", "ADB_", "ANDROID_")):
-            info_lines.append(f"- {env}:  {os.environ.get(env)}")
 
     return "\n".join(info_lines)

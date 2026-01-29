@@ -7,6 +7,11 @@
   <menu id="primary_menu">
     <section>
       <item>
+        <attribute name="label" translatable="yes">_Keyboard Shortcuts</attribute>
+        <attribute name="action">win.shortcuts</attribute>
+        <attribute name="accel">&lt;Primary&gt;question</attribute>
+      </item>
+      <item>
         <attribute name="label" translatable="yes">_Preferences</attribute>
         <attribute name="action">win.preferences</attribute>
         <attribute name="accel">&lt;Primary&gt;comma</attribute>
@@ -36,6 +41,13 @@
                 <property name="pixel-size">40</property>
               </object>
             </child>
+              <child>
+                <object class="GtkButton" id="donate_button">
+                  <property name="icon-name">emblem-favorite-symbolic</property>
+                  <property name="valign">center</property>
+                  <property name="tooltip-text">Sponsor the project</property>
+                </object>
+              </child>
           </object>
         </child>
         <!-- Remove the center title (middle Aurynk label) -->

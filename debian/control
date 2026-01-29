@@ -13,6 +13,7 @@ Build-Depends: debhelper-compat (= 13),
                python3-gi,
                python3-qrcode,
                python3-zeroconf,
+               python3-pyudev,
                android-tools-adb,
                libglib2.0-dev
 Standards-Version: 4.6.0

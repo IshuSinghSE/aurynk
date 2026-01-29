@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-01-29
+
+Added keyboard shortcuts, screenshots, minor bug fixes.
+
+### 🚀 New Features
+- Keyboard shortcuts for connect, toggle mirroring, and screenshots.
+- Screenshot action to capture the mirrored display.
+
+### 🔧 Improvements
+- Better debug output for device detection.
+
+### 🐛 Bug Fixes
+- Fixed pairing and tray pairing issues.
+- Fixed release-notes parsing in About.
+- Fixed UI crashes and glitches in Settings and Mirroring.
+
 ## [1.2.2] - 2026-01-13
 
 Kept the experience intuitive for general users. Key changes focused on pairing, encoder support, troubleshooting, and minor bug fixes.
