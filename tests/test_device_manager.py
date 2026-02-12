@@ -1,7 +1,7 @@
 import json
 import os
 import unittest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import call, patch
 
 from aurynk.core.device_manager import DeviceStore
 
