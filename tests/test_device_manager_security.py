@@ -1,9 +1,10 @@
 import os
-import stat
-import unittest
 import shutil
 import tempfile
+import unittest
+
 from aurynk.core.device_manager import DeviceStore
+
 
 class TestDeviceManagerSecurity(unittest.TestCase):
     def setUp(self):
