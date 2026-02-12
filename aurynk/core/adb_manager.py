@@ -12,7 +12,7 @@ from zeroconf import IPVersion, ServiceBrowser, ServiceStateChange, Zeroconf
 
 from aurynk.core.device_manager import DeviceStore
 from aurynk.i18n import _
-from aurynk.utils.adb_utils import get_adb_path
+from aurynk.utils.adb_utils import get_adb_path, is_valid_package_name
 from aurynk.utils.logger import get_logger
 from aurynk.utils.settings import SettingsManager
 
@@ -510,10 +510,14 @@ class ADBController:
             )
 
             # 5. Return to previous app if possible
-            if current_app:
+            if current_app and is_valid_package_name(current_app):
                 subprocess.run(
                     [get_adb_path(), "-s", serial, "shell", "monkey", "-p", current_app, "1"],
                     timeout=timeout,
+                )
+            elif current_app:
+                logger.warning(
+                    f"Skipping return to previous app: invalid package name '{current_app}'"
                 )
 
             # 6. Pull to local temp directory
@@ -613,10 +617,14 @@ class ADBController:
             )
 
             # Return to previous app if possible
-            if current_app:
+            if current_app and is_valid_package_name(current_app):
                 subprocess.run(
                     [get_adb_path(), "-s", serial, "shell", "monkey", "-p", current_app, "1"],
                     timeout=timeout,
+                )
+            elif current_app:
+                logger.warning(
+                    f"Skipping return to previous app: invalid package name '{current_app}'"
                 )
 
             # Pull to local directory

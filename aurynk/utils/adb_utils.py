@@ -15,6 +15,18 @@ def get_adb_path():
     return "adb"
 
 
+def is_valid_package_name(package_name: str) -> bool:
+    """Check if a string is a valid Android package name."""
+    if not package_name or len(package_name) > 255:
+        return False
+    import re
+
+    # Basic validation: alphanumeric, underscore, dot.
+    # Disallow spaces, semicolons, and other shell metacharacters.
+    pattern = r"^[a-zA-Z0-9_.]+$"
+    return re.match(pattern, package_name) is not None
+
+
 def is_device_connected(address, connect_port):
     """Check if a device is connected via adb."""
     import subprocess
