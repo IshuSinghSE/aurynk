@@ -487,6 +487,13 @@ class ADBController:
             )
             current_app = match.group(1) if match else None
 
+            # Validate current_app to prevent command injection
+            if current_app and not re.match(r"^[a-zA-Z0-9_.]+$", current_app):
+                logger.warning(
+                    f"Invalid package name detected: {current_app}. Skipping app restore."
+                )
+                current_app = None
+
             # 3. Go to home screen
             subprocess.run(
                 [get_adb_path(), "-s", serial, "shell", "input", "keyevent", "3"],
@@ -589,6 +596,13 @@ class ADBController:
                 r"mCurrentFocus=Window\{[^ ]+ ([^/]+)/([^ ]+)\}", activity_result.stdout
             )
             current_app = match.group(1) if match else None
+
+            # Validate current_app to prevent command injection
+            if current_app and not re.match(r"^[a-zA-Z0-9_.]+$", current_app):
+                logger.warning(
+                    f"Invalid package name detected: {current_app}. Skipping app restore."
+                )
+                current_app = None
 
             # Go to home screen
             subprocess.run(
