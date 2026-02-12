@@ -840,3 +840,4 @@ def tray_unpair_device(app, address):
     win.adb_controller.device_store.remove_device(address)
     win._refresh_device_list()
     send_status_to_tray(app)
+    # Ensure tray status is updated
