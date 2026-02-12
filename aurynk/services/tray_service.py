@@ -68,8 +68,6 @@ def _update_device_row_labels(row_widget, device_data):
         logger.debug(f"Failed to update device row labels: {e}")
 
 
-
-
 def start_udev_subscription(app):
     """Start subscription to host helper events to refresh UI automatically.
 
@@ -575,9 +573,7 @@ def tray_mirror_device(app, address):
                 # Fallback to local start
                 for s in list(scrcpy.processes.keys()):
                     if s.startswith(f"{address}:"):
-                        logger.info(
-                            f"Found stale process {s} for {address}, stopping before start"
-                        )
+                        logger.info(f"Found stale process {s} for {address}, stopping before start")
                         scrcpy.stop_mirror(address, int(s.split(":")[1]))
 
                 scrcpy.start_mirror(address, connect_port, device_name)
@@ -627,9 +623,7 @@ def tray_mirror_device(app, address):
                 started = False
             if not started:
                 try:
-                    GLib.idle_add(
-                        lambda: (win._show_scrcpy_unavailable_dialog(address) or False)
-                    )
+                    GLib.idle_add(lambda: (win._show_scrcpy_unavailable_dialog(address) or False))
                 except Exception:
                     logger.exception("Failed to schedule scrcpy unavailable dialog from tray")
 
