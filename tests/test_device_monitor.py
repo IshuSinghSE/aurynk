@@ -1,5 +1,7 @@
 import unittest
+
 from aurynk.services.device_monitor import DeviceMonitor
+
 
 class TestDeviceMonitor(unittest.TestCase):
     def setUp(self):
