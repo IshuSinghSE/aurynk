@@ -46,19 +46,29 @@ class Device(GObject.Object):
                     ("ro.build.version.release", "android_version"),
                 ]
 
-                for prop, key in props_to_fetch:
-                    try:
-                        result = subprocess.run(
-                            ["adb", "-s", self.adb_serial, "shell", "getprop", prop],
-                            capture_output=True,
-                            text=True,
-                            timeout=timeout,
-                        )
-                        value = result.stdout.strip()
-                        if value:
-                            self._data[key] = value
-                    except Exception:
-                        pass
+                # Optimization: Fetch all properties in one ADB shell command
+                # to reduce process overhead.
+                delimiter = "|||"
+                cmds = [f"getprop {prop}" for prop, _ in props_to_fetch]
+                full_cmd_str = f"; echo '{delimiter}'; ".join(cmds)
+
+                try:
+                    result = subprocess.run(
+                        ["adb", "-s", self.adb_serial, "shell", full_cmd_str],
+                        capture_output=True,
+                        text=True,
+                        timeout=timeout,
+                    )
+
+                    if result.returncode == 0:
+                        parts = result.stdout.split(delimiter)
+                        values = [p.strip() for p in parts]
+
+                        for i, (_, key) in enumerate(props_to_fetch):
+                            if i < len(values) and values[i]:
+                                self._data[key] = values[i]
+                except Exception:
+                    pass
 
                 # Update name if model present
                 if self._data.get("model"):
