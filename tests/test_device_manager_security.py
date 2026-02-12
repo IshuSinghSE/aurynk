@@ -41,7 +41,10 @@ class TestDeviceManagerSecurity(unittest.TestCase):
 
         st = os.stat(self.file_path)
         mode = st.st_mode & 0o777
-        self.assertEqual(mode, 0o600, f"File permissions should be updated to 0600, but got {oct(mode)}")
+        self.assertEqual(
+            mode, 0o600, f"File permissions should be updated to 0600, but got {oct(mode)}"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
