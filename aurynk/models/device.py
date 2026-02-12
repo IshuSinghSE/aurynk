@@ -3,6 +3,8 @@ import threading
 
 from gi.repository import GLib, GObject
 
+from aurynk.utils.adb_utils import get_adb_path
+
 
 class Device(GObject.Object):
     """Lightweight device object that emits 'info-updated' when ADB-backed
@@ -40,25 +42,36 @@ class Device(GObject.Object):
                 if not self.adb_serial:
                     return
 
-                props_to_fetch = [
-                    ("ro.product.manufacturer", "manufacturer"),
-                    ("ro.product.model", "model"),
-                    ("ro.build.version.release", "android_version"),
-                ]
+                # Fetch all properties in a single adb shell command to reduce subprocess overhead
+                cmd = (
+                    "getprop ro.product.manufacturer; echo '|||'; "
+                    "getprop ro.product.model; echo '|||'; "
+                    "getprop ro.build.version.release"
+                )
 
-                for prop, key in props_to_fetch:
-                    try:
-                        result = subprocess.run(
-                            ["adb", "-s", self.adb_serial, "shell", "getprop", prop],
-                            capture_output=True,
-                            text=True,
-                            timeout=timeout,
-                        )
-                        value = result.stdout.strip()
-                        if value:
-                            self._data[key] = value
-                    except Exception:
-                        pass
+                try:
+                    result = subprocess.run(
+                        [get_adb_path(), "-s", self.adb_serial, "shell", cmd],
+                        capture_output=True,
+                        text=True,
+                        timeout=timeout,
+                    )
+
+                    if result.returncode == 0:
+                        parts = result.stdout.split("|||")
+                        if len(parts) >= 3:
+                            manufacturer = parts[0].strip()
+                            model = parts[1].strip()
+                            version = parts[2].strip()
+
+                            if manufacturer:
+                                self._data["manufacturer"] = manufacturer
+                            if model:
+                                self._data["model"] = model
+                            if version:
+                                self._data["android_version"] = version
+                except Exception:
+                    pass
 
                 # Update name if model present
                 if self._data.get("model"):
