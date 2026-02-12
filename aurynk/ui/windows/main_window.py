@@ -1226,6 +1226,12 @@ class AurynkWindow(Adw.ApplicationWindow):
             import subprocess
 
             subprocess.run(["adb", "disconnect", f"{address}:{connect_port}"])
+
+            # Optimistically update monitor cache
+            app = self.get_application()
+            if hasattr(app, "device_monitor"):
+                app.device_monitor.update_cache(address, connect_port, False)
+
             # Immediately trigger unpair/confirmation if auto-unpair is enabled
             if auto_unpair:
                 if require_confirm:
@@ -1321,6 +1327,12 @@ class AurynkWindow(Adw.ApplicationWindow):
                     "connected" in output or "already connected" in output
                 ) and "unable" not in output:
                     connection_success = True
+
+                    # Optimistically update monitor cache
+                    app = self.get_application()
+                    if hasattr(app, "device_monitor"):
+                        app.device_monitor.update_cache(address, connect_port, True)
+
                     # Update stored port if it changed
                     if discovered_port and discovered_port != device.get("connect_port"):
                         device["connect_port"] = discovered_port
@@ -1348,6 +1360,11 @@ class AurynkWindow(Adw.ApplicationWindow):
                             self.adb_controller.save_paired_device(device)
                             logger.info(f"✓ Connected and updated port to {new_port}")
                             connection_success = True
+
+                            # Optimistically update monitor cache
+                            app = self.get_application()
+                            if hasattr(app, "device_monitor"):
+                                app.device_monitor.update_cache(address, new_port, True)
                         else:
                             logger.error(
                                 "Connection still failed. Please ensure device is on the network."

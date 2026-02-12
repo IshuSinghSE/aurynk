@@ -41,7 +41,11 @@ class DeviceMonitor:
         self._paired_devices = {}  # {model: {address, connect_port, pair_port, name}}
         self._device_by_address = {}  # {address: model} - for quick IP lookups
         self._connected_devices = set()  # Addresses of currently connected devices
+        self._connected_serials = set()  # Full serials (IP:PORT or USB serial) of connected devices
         self._discovered_services = {}  # Temporary storage for mDNS discoveries
+
+        # Lock for protecting connected sets which are accessed by multiple threads
+        self._data_lock = threading.Lock()
 
         # Initialize callbacks dict here
         self._callbacks = {
@@ -454,13 +458,20 @@ class DeviceMonitor:
                 if result.returncode == 0:
                     # Parse connected devices
                     current_connected = set()
+                    current_serials = set()
                     for line in result.stdout.splitlines():
                         if "\tdevice" in line:
                             # Extract address from "IP:PORT\tdevice"
                             serial = line.split("\t")[0]
+                            current_serials.add(serial)
                             if ":" in serial:
                                 address = serial.rsplit(":", 1)[0]
                                 current_connected.add(address)
+
+                    # Update internal state with lock
+                    with self._data_lock:
+                        self._connected_devices = current_connected
+                        self._connected_serials = current_serials
 
                     # Detect disconnections (devices that were connected but aren't anymore)
                     disconnected = previous_connected - current_connected
@@ -615,8 +626,46 @@ class DeviceMonitor:
             self._callbacks[event].append(callback)
 
     def is_device_connected(self, address: str) -> bool:
-        """Check if a device is currently connected."""
-        return address in self._connected_devices
+        """Check if a device is currently connected (by IP address only)."""
+        with self._data_lock:
+            return address in self._connected_devices
+
+    def is_serial_connected(self, address: str, port: Optional[str] = None) -> bool:
+        """Check if a specific device serial is connected.
+
+        If port is provided, checks for 'address:port'.
+        If port is None, treats 'address' as the full serial (e.g. for USB).
+        """
+        if port:
+            serial = f"{address}:{port}"
+        else:
+            serial = address
+        with self._data_lock:
+            return serial in self._connected_serials
+
+    def update_cache(self, address: str, port: Optional[str], connected: bool):
+        """Update connection cache optimistically (e.g. from UI actions)."""
+        if port:
+            serial = f"{address}:{port}"
+        else:
+            serial = address
+
+        with self._data_lock:
+            if connected:
+                self._connected_devices.add(address)
+                self._connected_serials.add(serial)
+            else:
+                # Only remove from devices set if no other serial with same address exists
+                # (unlikely for Android but good for correctness)
+                self._connected_serials.discard(serial)
+                # Re-check if address should be removed
+                has_other_port = False
+                for s in self._connected_serials:
+                    if s.startswith(f"{address}:") or s == address:
+                        has_other_port = True
+                        break
+                if not has_other_port:
+                    self._connected_devices.discard(address)
 
     def get_discovered_device(self, address: str) -> Optional[Dict]:
         """Get discovered service info for a device."""

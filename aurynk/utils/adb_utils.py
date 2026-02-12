@@ -17,6 +17,17 @@ def get_adb_path():
 
 def is_device_connected(address, connect_port):
     """Check if a device is connected via adb."""
+    # Optimization: Use DeviceMonitor if available to avoid blocking ADB call
+    try:
+        from aurynk.services.device_monitor import DeviceMonitor
+
+        monitor = DeviceMonitor()
+        # Only use monitor if it is actively running and tracking devices
+        if monitor._running:
+            return monitor.is_serial_connected(address, connect_port)
+    except Exception:
+        pass
+
     import subprocess
 
     serial = f"{address}:{connect_port}"
