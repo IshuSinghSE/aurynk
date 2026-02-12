@@ -1,4 +1,3 @@
-
 import sys
 import unittest
 from unittest.mock import MagicMock, mock_open, patch
@@ -25,8 +24,8 @@ except ImportError:
     # If import fails, we will fail later in tests or need to fix mocks
     pass
 
-class TestGetDebugInfo(unittest.TestCase):
 
+class TestGetDebugInfo(unittest.TestCase):
     @patch("aurynk.utils.adb_utils.get_adb_path")
     @patch("subprocess.run")
     @patch("platform.system")
@@ -36,7 +35,18 @@ class TestGetDebugInfo(unittest.TestCase):
     @patch("os.path.exists")
     @patch("os.environ")
     @patch("aurynk.utils.settings.SettingsManager")
-    def test_get_debug_info_comprehensive(self, mock_settings, mock_environ, mock_exists, mock_sys_version, mock_machine, mock_release, mock_system, mock_subprocess, mock_get_adb_path):
+    def test_get_debug_info_comprehensive(
+        self,
+        mock_settings,
+        mock_environ,
+        mock_exists,
+        mock_sys_version,
+        mock_machine,
+        mock_release,
+        mock_system,
+        mock_subprocess,
+        mock_get_adb_path,
+    ):
         # Configure mocks
         mock_system.return_value = "Linux"
         mock_release.return_value = "5.15.0"
@@ -48,19 +58,20 @@ class TestGetDebugInfo(unittest.TestCase):
             if path == "/.flatpak-info":
                 return False
             return False
+
         mock_exists.side_effect = path_exists_side_effect
 
         mock_environ.get.side_effect = lambda k, d=None: {
             "XDG_CURRENT_DESKTOP": "GNOME",
             "XDG_SESSION_TYPE": "wayland",
-            "SNAP": None
+            "SNAP": None,
         }.get(k, d)
 
         # ADB
         mock_get_adb_path.return_value = "/usr/bin/adb"
 
         # Scrcpy settings
-        mock_settings.return_value.get.return_value = "" # No custom path
+        mock_settings.return_value.get.return_value = ""  # No custom path
 
         # Subprocess calls
         # 1. adb version
@@ -68,19 +79,22 @@ class TestGetDebugInfo(unittest.TestCase):
         # NOTE: mock_subprocess IS the run function mock
         mock_subprocess.side_effect = [
             MagicMock(returncode=0, stdout="Android Debug Bridge version 1.0.41\n"),
-            MagicMock(returncode=0, stdout="scrcpy 1.24\n", stderr="")
+            MagicMock(returncode=0, stdout="scrcpy 1.24\n", stderr=""),
         ]
 
         # Patch builtins.open for /etc/os-release
         with patch("builtins.open", mock_open(read_data='NAME="Ubuntu"\nVERSION="22.04 LTS"\n')):
-             with patch("shutil.which", return_value="/usr/bin/scrcpy"):
-                 # Patch python modules
-                 with patch.dict(sys.modules, {
-                     "zeroconf": MagicMock(__version__="0.39.0"),
-                     "PIL": MagicMock(__version__="9.2.0"),
-                     "qrcode": MagicMock(__version__="7.3.1"),
-                     "pyudev": MagicMock(__version__="0.24.0")
-                 }):
+            with patch("shutil.which", return_value="/usr/bin/scrcpy"):
+                # Patch python modules
+                with patch.dict(
+                    sys.modules,
+                    {
+                        "zeroconf": MagicMock(__version__="0.39.0"),
+                        "PIL": MagicMock(__version__="9.2.0"),
+                        "qrcode": MagicMock(__version__="7.3.1"),
+                        "pyudev": MagicMock(__version__="0.24.0"),
+                    },
+                ):
                     # Mock gi version
                     sys.modules["gi"].__version__ = "3.42.1"
 
@@ -128,7 +142,18 @@ class TestGetDebugInfo(unittest.TestCase):
     @patch("os.path.exists")
     @patch("os.environ")
     @patch("aurynk.utils.settings.SettingsManager")
-    def test_get_debug_info_minimal(self, mock_settings, mock_environ, mock_exists, mock_sys_version, mock_machine, mock_release, mock_system, mock_subprocess, mock_get_adb_path):
+    def test_get_debug_info_minimal(
+        self,
+        mock_settings,
+        mock_environ,
+        mock_exists,
+        mock_sys_version,
+        mock_machine,
+        mock_release,
+        mock_system,
+        mock_subprocess,
+        mock_get_adb_path,
+    ):
         # Configure mocks for minimal/failure case
         mock_system.return_value = "Unknown"
         mock_release.return_value = ""
@@ -142,8 +167,8 @@ class TestGetDebugInfo(unittest.TestCase):
 
         # ADB and scrcpy fail
         mock_subprocess.side_effect = [
-            MagicMock(returncode=1), # adb fail
-            MagicMock(returncode=1)  # scrcpy fail
+            MagicMock(returncode=1),  # adb fail
+            MagicMock(returncode=1),  # scrcpy fail
         ]
 
         # open raises exception
@@ -151,38 +176,38 @@ class TestGetDebugInfo(unittest.TestCase):
         mock_open_file.side_effect = Exception("File not found")
 
         with patch("builtins.open", mock_open_file):
-             with patch("shutil.which", return_value=None):
-                 # Temporarily remove modules if they exist in sys.modules
-                 with patch.dict(sys.modules):
-                     # We can't easily "unimport" modules in patch.dict,
-                     # but we can set them to raise ImportError on access or just be missing?
-                     # patch.dict only adds/changes.
-                     # To simulate missing modules, we can set them to None or delete them.
-                     for mod in ["zeroconf", "PIL", "qrcode", "pyudev"]:
-                         if mod in sys.modules:
-                             del sys.modules[mod]
+            with patch("shutil.which", return_value=None):
+                # Temporarily remove modules if they exist in sys.modules
+                with patch.dict(sys.modules):
+                    # We can't easily "unimport" modules in patch.dict,
+                    # but we can set them to raise ImportError on access or just be missing?
+                    # patch.dict only adds/changes.
+                    # To simulate missing modules, we can set them to None or delete them.
+                    for mod in ["zeroconf", "PIL", "qrcode", "pyudev"]:
+                        if mod in sys.modules:
+                            del sys.modules[mod]
 
-                     # Also make gi import fail inside function?
-                     # The function does `import gi`. If we delete it from sys.modules,
-                     # it will try to load it. We need it to raise ImportError.
-                     # We can set sys.modules["gi"] to None? No, python might reload it.
-                     # We can mock the import mechanism, but that's hard.
-                     # Instead, let's just make the existing mocks raise exception on attribute access or import?
+                    # Also make gi import fail inside function?
+                    # The function does `import gi`. If we delete it from sys.modules,
+                    # it will try to load it. We need it to raise ImportError.
+                    # We can set sys.modules["gi"] to None? No, python might reload it.
+                    # We can mock the import mechanism, but that's hard.
+                    # Instead, let's just make the existing mocks raise exception on attribute access or import?
 
-                     # Actually, for the optional packages, the code does `import pkg`.
-                     # If we remove them from sys.modules, import will look for them.
-                     # If we want to simulate not found, we should probably ensure they are not found.
-                     # But since we are in a test env, they might be installed.
-                     # We can use `sys.meta_path` to block imports, but that's complex.
+                    # Actually, for the optional packages, the code does `import pkg`.
+                    # If we remove them from sys.modules, import will look for them.
+                    # If we want to simulate not found, we should probably ensure they are not found.
+                    # But since we are in a test env, they might be installed.
+                    # We can use `sys.meta_path` to block imports, but that's complex.
 
-                     # Simpler: Make the imports raise Exception by mocking them as objects that raise on access?
-                     # No, the import statement itself needs to fail.
+                    # Simpler: Make the imports raise Exception by mocking them as objects that raise on access?
+                    # No, the import statement itself needs to fail.
 
-                     # Let's just mock them as "Not found" strings if checking modules is hard.
-                     # Or we can just mock sys.modules to return a mock that raises ImportError?
-                     pass
+                    # Let's just mock them as "Not found" strings if checking modules is hard.
+                    # Or we can just mock sys.modules to return a mock that raises ImportError?
+                    pass
 
-                 info = _get_debug_info()
+                info = _get_debug_info()
 
         self.assertIn("Installation: System/Manual", info)
         self.assertIn("ADB: Not found or error", info)
@@ -196,7 +221,9 @@ class TestGetDebugInfo(unittest.TestCase):
     @patch("sys.version")
     @patch("os.path.exists")
     @patch("os.environ")
-    def test_installation_detection(self, mock_environ, mock_exists, mock_sys_version, mock_system, mock_run, mock_get_adb_path):
+    def test_installation_detection(
+        self, mock_environ, mock_exists, mock_sys_version, mock_system, mock_run, mock_get_adb_path
+    ):
         # Setup basics to avoid crashes
         mock_sys_version.split.return_value = ["3.x"]
         mock_system.return_value = "Linux"
@@ -222,6 +249,7 @@ class TestGetDebugInfo(unittest.TestCase):
         with patch("builtins.open", m_open):
             info = _get_debug_info()
             self.assertIn("Installation: Snap", info)
+
 
 if __name__ == "__main__":
     unittest.main()
