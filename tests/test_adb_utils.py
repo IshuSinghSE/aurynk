@@ -1,8 +1,15 @@
-import unittest
-from unittest.mock import patch, MagicMock
 import os
 import shlex
-from aurynk.utils.adb_utils import get_adb_path, is_device_connected, clear_device_notifications, send_device_notification
+import unittest
+from unittest.mock import patch
+
+from aurynk.utils.adb_utils import (
+    clear_device_notifications,
+    get_adb_path,
+    is_device_connected,
+    send_device_notification,
+)
+
 
 class TestAdbUtils(unittest.TestCase):
 
@@ -140,7 +147,8 @@ class TestAdbUtils(unittest.TestCase):
     @patch('subprocess.run')
     def test_send_device_notification_failure(self, mock_run, mock_get_adb_path):
         mock_get_adb_path.return_value = "adb"
-        with patch('aurynk.utils.adb_utils.clear_device_notifications') as mock_clear:
+        # We need to patch clear_device_notifications to avoid side effects, even if unused
+        with patch('aurynk.utils.adb_utils.clear_device_notifications'):
              mock_run.return_value.returncode = 1
              result = send_device_notification("serial", "message")
              self.assertFalse(result)
