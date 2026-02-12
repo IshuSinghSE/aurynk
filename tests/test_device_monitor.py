@@ -42,7 +42,7 @@ class TestDeviceMonitor(unittest.TestCase):
 
         # Remove one port
         self.monitor.update_cache("192.168.1.5", "5555", False)
-        self.assertTrue(self.monitor.is_device_connected("192.168.1.5")) # Still connected on 6666
+        self.assertTrue(self.monitor.is_device_connected("192.168.1.5"))  # Still connected on 6666
         self.assertFalse(self.monitor.is_serial_connected("192.168.1.5", "5555"))
         self.assertTrue(self.monitor.is_serial_connected("192.168.1.5", "6666"))
 
@@ -50,5 +50,6 @@ class TestDeviceMonitor(unittest.TestCase):
         self.monitor.update_cache("192.168.1.5", "6666", False)
         self.assertFalse(self.monitor.is_device_connected("192.168.1.5"))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
