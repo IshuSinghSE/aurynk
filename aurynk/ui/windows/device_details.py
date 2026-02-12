@@ -8,7 +8,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 import threading
 
-from gi.repository import Adw, Gtk
+from gi.repository import Adw, GLib, Gtk
 
 from aurynk.core.adb_manager import ADBController
 
@@ -176,9 +176,11 @@ class DeviceDetailsWindow(Adw.Window):
         group.add(row)
         return row
 
-    def _update_button_states(self):
+    def _update_button_states(self, is_connected=None):
         """Enable or disable buttons based on device connection status."""
-        is_connected = self._check_device_connected()
+        if is_connected is None:
+            self._check_device_connected_async(self._update_button_states)
+            return
 
         self.refresh_screenshot_btn.set_sensitive(is_connected)
         self.refresh_btn.set_sensitive(is_connected)
@@ -190,8 +192,8 @@ class DeviceDetailsWindow(Adw.Window):
             self.refresh_screenshot_btn.set_tooltip_text(_("Capture screenshot only"))
             self.refresh_btn.set_tooltip_text(_("Refresh device info and screenshot"))
 
-    def _check_device_connected(self):
-        """Check if the device is currently connected via ADB."""
+    def _check_device_connected_sync(self):
+        """Check if the device is currently connected via ADB (Blocking)."""
         import subprocess
 
         try:
@@ -213,6 +215,15 @@ class DeviceDetailsWindow(Adw.Window):
             return False
         except Exception:
             return False
+
+    def _check_device_connected_async(self, callback):
+        """Check if device is connected asynchronously."""
+
+        def check():
+            is_connected = self._check_device_connected_sync()
+            GLib.idle_add(callback, is_connected)
+
+        threading.Thread(target=check, daemon=True).start()
 
     def _fetch_device_data(self):
         """Fetch device specifications in background."""
@@ -304,8 +315,6 @@ class DeviceDetailsWindow(Adw.Window):
                 self.adb_controller.save_paired_device(self.device)
 
             # Update UI on main thread
-            from gi.repository import GLib
-
             GLib.idle_add(self._update_all_device_info, specs)
 
         threading.Thread(target=fetch, daemon=True).start()
@@ -332,14 +341,14 @@ class DeviceDetailsWindow(Adw.Window):
 
     def _on_refresh_screenshot(self, button):
         """Handle refresh screenshot button click."""
-        # Check if device is connected
-        if not self._check_device_connected():
-            self._update_button_states()
-            return
-
         button.set_sensitive(False)
 
         def capture():
+            # Check connection first
+            if not self._check_device_connected_sync():
+                GLib.idle_add(self._update_button_states, False)
+                return
+
             # Check if this is a USB device or wireless device
             if self.device.get("is_usb"):
                 # USB device - use adb_serial
@@ -360,8 +369,6 @@ class DeviceDetailsWindow(Adw.Window):
                     self.adb_controller.save_paired_device(self.device)
 
             # Update UI on main thread
-            from gi.repository import GLib
-
             GLib.idle_add(self._update_screenshot_ui, screenshot_path, button)
 
         threading.Thread(target=capture, daemon=True).start()
@@ -375,14 +382,13 @@ class DeviceDetailsWindow(Adw.Window):
 
     def _on_refresh_all(self, button):
         """Handle refresh all data button click."""
-        # Check if device is connected
-        if not self._check_device_connected():
-            self._update_button_states()
-            return
-
         button.set_sensitive(False)
 
         def refresh():
+            if not self._check_device_connected_sync():
+                GLib.idle_add(self._update_button_states, False)
+                return
+
             # Check if this is a USB device or wireless device
             if self.device.get("is_usb"):
                 # USB device - use adb_serial
@@ -411,8 +417,6 @@ class DeviceDetailsWindow(Adw.Window):
                 self.adb_controller.save_paired_device(self.device)
 
             # Update UI
-            from gi.repository import GLib
-
             GLib.idle_add(self._update_all_ui, specs, screenshot_path, button)
 
         threading.Thread(target=refresh, daemon=True).start()
