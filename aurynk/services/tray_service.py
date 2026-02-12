@@ -109,7 +109,7 @@ def start_udev_subscription(app):
 
 # Debounce mechanism to prevent tray update spam
 _last_tray_update = 0
-_tray_update_lock = __import__("threading").Lock()
+_tray_update_lock = threading.Lock()
 _pending_tray_update = None
 _TRAY_UPDATE_MIN_INTERVAL = 0.2  # Minimum 200ms between tray updates
 
