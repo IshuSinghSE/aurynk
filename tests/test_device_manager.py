@@ -94,11 +94,18 @@ class TestDeviceStore(unittest.TestCase):
     def test_remove_device_connected(self):
         """Test removing a connected device."""
         store = DeviceStore(self.test_file)
-        device_info = {"address": "192.168.1.10", "name": "Tablet", "connect_port": "5555", "pair_port": "4444"}
+        device_info = {
+            "address": "192.168.1.10",
+            "name": "Tablet",
+            "connect_port": "5555",
+            "pair_port": "4444",
+        }
         store.add_or_update_device(device_info)
 
         # Mock ADB 'devices' output to simulate connected device
-        self.mock_subprocess.return_value.stdout = "List of devices attached\n192.168.1.10:5555\tdevice\n"
+        self.mock_subprocess.return_value.stdout = (
+            "List of devices attached\n192.168.1.10:5555\tdevice\n"
+        )
         self.mock_subprocess.return_value.returncode = 0
 
         store.remove_device("192.168.1.10")
@@ -110,7 +117,7 @@ class TestDeviceStore(unittest.TestCase):
         calls = [
             call(["adb", "devices"], capture_output=True, text=True),
             call(["adb", "disconnect", "192.168.1.10:5555"], check=False),
-            call(["adb", "unpair", "192.168.1.10:5555"], capture_output=True, text=True, timeout=5)
+            call(["adb", "unpair", "192.168.1.10:5555"], capture_output=True, text=True, timeout=5),
         ]
         self.mock_subprocess.assert_has_calls(calls, any_order=True)
 
