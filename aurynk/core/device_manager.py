@@ -163,8 +163,13 @@ class DeviceStore:
         """Save the current list of devices to the JSON file."""
         os.makedirs(os.path.dirname(self.path), exist_ok=True)
         try:
-            with open(self.path, "w") as f:
+            # Create file with 600 permissions (read/write only for owner)
+            fd = os.open(self.path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, "w") as f:
                 json.dump(self._devices, f, indent=2)
+
+            # Explicitly set permissions in case the file already existed with different permissions
+            os.chmod(self.path, 0o600)
         except Exception as e:
             logger.error(f"Error saving devices: {e}")
         else:
