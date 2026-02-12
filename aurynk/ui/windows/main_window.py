@@ -112,22 +112,6 @@ class AurynkWindow(Adw.ApplicationWindow):
                     except Exception:
                         logger.debug("Failed creating UI row for cached USB device %s", usn)
         except Exception:
-            pass
-        # If we have cached usb_rows data create corresponding UI rows now
-        try:
-            if self.usb_rows:
-                for usn, entry in list(self.usb_rows.items()):
-                    try:
-                        if isinstance(entry, dict) and "data" in entry and "row" not in entry:
-                            dev_data = entry["data"]
-                            # Create a UI row from data (do not call adb here)
-                            row = self._create_device_row(dev_data, is_usb=True)
-                            self.usb_group.add(row)
-                            entry["row"] = row
-                            self.usb_group.set_visible(True)
-                    except Exception:
-                        logger.debug("Failed creating UI row for cached USB device %s", usn)
-        except Exception:
             logger.debug("Error applying cached USB devices at window init", exc_info=True)
 
         # Register for device change events
