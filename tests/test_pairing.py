@@ -56,6 +56,15 @@ class TestPairingManager(unittest.TestCase):
         result = self.pairing_manager.pair_with_code("192.168.1.5", "invalid", "123456")
         self.assertFalse(result)
 
+    @patch("aurynk.core.pairing.subprocess.run")
+    def test_pair_with_code_unexpected_error(self, mock_run):
+        """Test unexpected error during pairing."""
+        mock_run.side_effect = Exception("Generic error")
+
+        result = self.pairing_manager.pair_with_code("192.168.1.5", "5555", "123456")
+
+        self.assertFalse(result)
+
 
 if __name__ == "__main__":
     unittest.main()
