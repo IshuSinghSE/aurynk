@@ -1,7 +1,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
-import re
+
 from aurynk.core.adb_manager import ADBController
+
 
 class TestVulnerability(unittest.TestCase):
     @patch("aurynk.core.adb_manager.DeviceStore")
