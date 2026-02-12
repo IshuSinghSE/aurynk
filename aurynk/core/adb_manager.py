@@ -308,55 +308,7 @@ class ADBController:
             Dict[str, str]: A dictionary containing RAM, storage, and battery info.
         """
         serial = f"{address}:{connect_port}"
-        specs = {"ram": "", "storage": "", "battery": ""}
-
-        try:
-            # RAM
-            timeout = SettingsManager().get("adb", "connection_timeout", 10)
-            meminfo = subprocess.run(
-                [get_adb_path(), "-s", serial, "shell", "cat", "/proc/meminfo"],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
-            import re
-
-            match = re.search(r"MemTotal:\s+(\d+) kB", meminfo.stdout)
-            if match:
-                ram_mb = int(match.group(1)) // 1000
-                ram_gb = ram_mb / 1000
-                specs["ram"] = f"{round(ram_gb)} GB"
-
-            # Storage
-            df = subprocess.run(
-                [get_adb_path(), "-s", serial, "shell", "df", "/data"],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
-            lines = df.stdout.splitlines()
-            if len(lines) > 1:
-                parts = lines[1].split()
-                if len(parts) > 1:
-                    storage_mb = int(parts[1]) // 1000
-                    storage_gb = storage_mb / 1000
-                    specs["storage"] = f"{round(storage_gb)} GB"
-
-            # Battery
-            battery = subprocess.run(
-                [get_adb_path(), "-s", serial, "shell", "dumpsys", "battery"],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
-            match = re.search(r"level: (\d+)", battery.stdout)
-            if match:
-                specs["battery"] = f"{match.group(1)}%"
-
-        except Exception as e:
-            logger.error(f"Error fetching specs: {e}")
-
-        return specs
+        return self._fetch_specs_internal(serial)
 
     def fetch_device_specs_by_serial(self, serial: str) -> Dict[str, str]:
         """
@@ -368,53 +320,67 @@ class ADBController:
         Returns:
             Dict[str, str]: A dictionary containing RAM, storage, and battery info.
         """
+        return self._fetch_specs_internal(serial)
+
+    def _fetch_specs_internal(self, serial: str) -> Dict[str, str]:
+        """
+        Internal method to fetch device specs using a single ADB command.
+        """
         specs = {"ram": "", "storage": "", "battery": ""}
+        split_token = "___AURYNK_SPLIT___"
 
         try:
-            # RAM
+            # Combined command to reduce overhead
+            # cat /proc/meminfo
+            # df /data
+            # dumpsys battery
+            cmd = f'cat /proc/meminfo; echo "{split_token}"; df /data; echo "{split_token}"; dumpsys battery'
+
             timeout = SettingsManager().get("adb", "connection_timeout", 10)
-            meminfo = subprocess.run(
-                [get_adb_path(), "-s", serial, "shell", "cat", "/proc/meminfo"],
+            result = subprocess.run(
+                [get_adb_path(), "-s", serial, "shell", cmd],
                 capture_output=True,
                 text=True,
                 timeout=timeout,
             )
+
+            output = result.stdout
+            parts = output.split(split_token)
+
             import re
 
-            match = re.search(r"MemTotal:\s+(\d+) kB", meminfo.stdout)
-            if match:
-                ram_mb = int(match.group(1)) // 1000
-                ram_gb = ram_mb / 1000
-                specs["ram"] = f"{round(ram_gb)} GB"
+            # Part 1: RAM
+            if len(parts) > 0:
+                meminfo = parts[0]
+                match = re.search(r"MemTotal:\s+(\d+) kB", meminfo)
+                if match:
+                    ram_mb = int(match.group(1)) // 1000
+                    ram_gb = ram_mb / 1000
+                    specs["ram"] = f"{round(ram_gb)} GB"
 
-            # Storage
-            df = subprocess.run(
-                [get_adb_path(), "-s", serial, "shell", "df", "/data"],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
-            lines = df.stdout.splitlines()
-            if len(lines) > 1:
-                parts = lines[1].split()
-                if len(parts) > 1:
-                    storage_mb = int(parts[1]) // 1000
-                    storage_gb = storage_mb / 1000
-                    specs["storage"] = f"{round(storage_gb)} GB"
+            # Part 2: Storage
+            if len(parts) > 1:
+                df_out = parts[1]
+                lines = df_out.strip().splitlines()
+                if len(lines) > 1:
+                    parts_line = lines[1].split()
+                    if len(parts_line) > 1:
+                        try:
+                            storage_mb = int(parts_line[1]) // 1000
+                            storage_gb = storage_mb / 1000
+                            specs["storage"] = f"{round(storage_gb)} GB"
+                        except ValueError:
+                            pass
 
-            # Battery
-            battery = subprocess.run(
-                [get_adb_path(), "-s", serial, "shell", "dumpsys", "battery"],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
-            match = re.search(r"level: (\d+)", battery.stdout)
-            if match:
-                specs["battery"] = f"{match.group(1)}%"
+            # Part 3: Battery
+            if len(parts) > 2:
+                battery_out = parts[2]
+                match = re.search(r"level: (\d+)", battery_out)
+                if match:
+                    specs["battery"] = f"{match.group(1)}%"
 
         except Exception as e:
-            logger.error(f"Error fetching specs by serial: {e}")
+            logger.error(f"Error fetching specs: {e}")
 
         return specs
 
