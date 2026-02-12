@@ -70,16 +70,17 @@ class TestLogger:
 
         with mock.patch("logging.getLogger") as mock_get_logger:
             mock_logger_instance = mock.Mock()
-            mock_logger_instance.handlers = [] # Initially empty
+            mock_logger_instance.handlers = []  # Initially empty
             mock_get_logger.return_value = mock_logger_instance
 
             # We also need to verify that handlers are added.
             # The get_logger function creates StreamHandler and RotatingFileHandler.
             # We can mock them to verify they are created with correct parameters.
 
-            with mock.patch("logging.StreamHandler") as mock_stream_handler_cls, \
-                 mock.patch("logging.handlers.RotatingFileHandler") as mock_file_handler_cls:
-
+            with (
+                mock.patch("logging.StreamHandler") as mock_stream_handler_cls,
+                mock.patch("logging.handlers.RotatingFileHandler") as mock_file_handler_cls,
+            ):
                 mock_stream_handler = mock.Mock()
                 mock_stream_handler_cls.return_value = mock_stream_handler
 
@@ -109,7 +110,7 @@ class TestLogger:
         importlib.reload(logger)
         with mock.patch("logging.getLogger") as mock_get_logger:
             mock_logger_instance = mock.Mock()
-            mock_logger_instance.handlers = [mock.Mock()] # Already has handlers
+            mock_logger_instance.handlers = [mock.Mock()]  # Already has handlers
             mock_get_logger.return_value = mock_logger_instance
 
             log = logger.get_logger("test_logger")
@@ -122,9 +123,10 @@ class TestLogger:
     def test_file_handler_failure(self, capsys):
         importlib.reload(logger)
 
-        with mock.patch("logging.getLogger") as mock_get_logger, \
-             mock.patch("logging.handlers.RotatingFileHandler", side_effect=OSError("Disk full")):
-
+        with (
+            mock.patch("logging.getLogger") as mock_get_logger,
+            mock.patch("logging.handlers.RotatingFileHandler", side_effect=OSError("Disk full")),
+        ):
             mock_logger_instance = mock.Mock()
             mock_logger_instance.handlers = []
             mock_get_logger.return_value = mock_logger_instance
