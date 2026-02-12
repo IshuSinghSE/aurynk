@@ -766,8 +766,6 @@ class AurynkWindow(Adw.ApplicationWindow):
             return  # Already added
 
         # Fetch detailed device info via ADB
-        import subprocess
-
         dev_data = {
             "name": device.get("ID_MODEL", "Unknown Model"),
             "manufacturer": device.get("ID_VENDOR", "Unknown Vendor"),
@@ -777,45 +775,10 @@ class AurynkWindow(Adw.ApplicationWindow):
             "is_usb": True,
         }
 
-        # Try to get actual Android device serial from adb devices
-        try:
-            result = subprocess.run(["adb", "devices"], capture_output=True, text=True, timeout=5)
-            adb_devices = []
-            # Parse for USB device (no colon in serial)
-            for line in result.stdout.strip().split("\n")[1:]:
-                if "\t" in line:
-                    s, st = line.split("\t", 1)
-                    if ":" not in s and st.strip() == "device":
-                        adb_devices.append(s)
-
-            # Try to match using ID_SERIAL_SHORT from udev
-            short_serial = dev_data.get("short_serial")
-            matched_serial = None
-
-            if short_serial and short_serial in adb_devices:
-                matched_serial = short_serial
-            elif len(adb_devices) == 1:
-                # If only one device connected, assume it's the one
-                matched_serial = adb_devices[0]
-            elif adb_devices:
-                # Fallback: just pick the first one if we can't match
-                matched_serial = adb_devices[0]
-
-            if matched_serial:
-                dev_data["adb_serial"] = matched_serial
-                # Use normalized ADB serial as canonical key when available
-                try:
-                    adb_key = self._norm_serial(matched_serial) or matched_serial
-                except Exception:
-                    adb_key = matched_serial
-                key = adb_key
-            else:
-                # Fallback to normalized ID_SERIAL
-                key = provisional_key
-        except Exception as e:
-            logger.debug(f"Could not fetch USB device info: {e}")
-
         # Create the UI row immediately with whatever data we have.
+        # Use provisional_key initially to avoid blocking ADB call
+        key = provisional_key
+
         row = self._create_device_row(dev_data, is_usb=True)
         self.usb_group.add(row)
         # Create a Device object to manage ADB-backed details and signals.
@@ -835,26 +798,44 @@ class AurynkWindow(Adw.ApplicationWindow):
 
             def _on_info_updated(devobj):
                 try:
+                    # Resolve key again as it might have changed
+                    current_key = None
+                    if key in self.usb_rows and self.usb_rows[key]["row"] == row:
+                        current_key = key
+                    else:
+                        # Find key by row
+                        for k, v in self.usb_rows.items():
+                            if v.get("row") == row:
+                                current_key = k
+                                break
+
+                    if not current_key:
+                        return
+
                     new_data = devobj.to_dict()
                     # update stored data and refresh labels
-                    if key in self.usb_rows:
-                        self.usb_rows[key]["data"] = new_data
-                        try:
-                            from aurynk.services.tray_service import _update_device_row_labels
+                    self.usb_rows[current_key]["data"] = new_data
+                    try:
+                        from aurynk.services.tray_service import _update_device_row_labels
 
-                            _update_device_row_labels(row, new_data)
-                        except Exception:
-                            pass
-                        app = self.get_application()
-                        if hasattr(app, "send_status_to_tray"):
-                            app.send_status_to_tray()
+                        _update_device_row_labels(row, new_data)
+                    except Exception:
+                        pass
+                    app = self.get_application()
+                    if hasattr(app, "send_status_to_tray"):
+                        app.send_status_to_tray()
                 except Exception:
                     pass
 
             device_obj.connect("info-updated", _on_info_updated)
-            # Start the background fetch asynchronously (non-blocking)
-            if device_obj.adb_serial:
-                device_obj.fetch_details()
+
+            # Start resolving ADB serial in background thread
+            threading.Thread(
+                target=self._resolve_adb_serial_thread,
+                args=(key, dev_data.get("short_serial")),
+                daemon=True,
+            ).start()
+
         except Exception:
             pass
 
@@ -862,6 +843,85 @@ class AurynkWindow(Adw.ApplicationWindow):
         app = self.get_application()
         if hasattr(app, "send_status_to_tray"):
             app.send_status_to_tray()
+
+    def _resolve_adb_serial_thread(self, provisional_key, udev_short_serial):
+        """Background thread to resolve ADB serial for a newly connected USB device."""
+        import subprocess
+
+        matched_serial = None
+        try:
+            # Run adb devices (blocking)
+            result = subprocess.run(["adb", "devices"], capture_output=True, text=True, timeout=5)
+            adb_devices = []
+            for line in result.stdout.strip().split("\n")[1:]:
+                if "\t" in line:
+                    s, st = line.split("\t", 1)
+                    if ":" not in s and st.strip() == "device":
+                        adb_devices.append(s)
+
+            # Try to match
+            if udev_short_serial and udev_short_serial in adb_devices:
+                matched_serial = udev_short_serial
+            elif len(adb_devices) == 1:
+                matched_serial = adb_devices[0]
+            elif adb_devices:
+                matched_serial = adb_devices[0]
+
+        except Exception as e:
+            logger.debug(f"Error resolving ADB serial: {e}")
+
+        # Update on main thread
+        GLib.idle_add(self._on_adb_serial_resolved, provisional_key, matched_serial)
+
+    def _on_adb_serial_resolved(self, provisional_key, adb_serial):
+        """Callback when ADB serial is resolved."""
+        if not adb_serial:
+            return
+
+        # Check if row still exists (might have been disconnected)
+        if provisional_key not in self.usb_rows:
+            return
+
+        entry = self.usb_rows[provisional_key]
+        device_obj = entry.get("device_obj")
+        dev_data = entry.get("data")
+
+        if not dev_data or not device_obj:
+            return
+
+        # Update data
+        dev_data["adb_serial"] = adb_serial
+        device_obj.adb_serial = adb_serial
+
+        # Determine new key
+        try:
+            new_key = self._norm_serial(adb_serial) or adb_serial
+        except Exception:
+            new_key = adb_serial
+
+        if new_key != provisional_key:
+            # Move entry to new key if not collision
+            if new_key in self.usb_rows:
+                logger.warning(
+                    f"Key collision when resolving ADB serial: {new_key}. Keeping {provisional_key}"
+                )
+            else:
+                self.usb_rows[new_key] = entry
+                del self.usb_rows[provisional_key]
+
+                # Update device path mapping
+                paths_to_update = []
+                for path, k in self.usb_device_paths.items():
+                    if k == provisional_key:
+                        paths_to_update.append(path)
+                for path in paths_to_update:
+                    self.usb_device_paths[path] = new_key
+
+        # Now start fetching details since we have the serial
+        device_obj.fetch_details()
+
+        # Refresh UI (mirror buttons might need update now that we have serial)
+        self._update_all_mirror_buttons()
 
     def _on_usb_device_connected(self, monitor, device):
         GLib.idle_add(self._add_usb_device_row, device)
