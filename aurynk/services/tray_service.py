@@ -68,9 +68,6 @@ def _update_device_row_labels(row_widget, device_data):
         logger.debug(f"Failed to update device row labels: {e}")
 
 
-def _get_udev_client():
-    """Legacy helper retained for compatibility; proxy helper removed."""
-    return None
 
 
 def start_udev_subscription(app):
@@ -195,16 +192,6 @@ def _do_tray_update(app, status: str = None):
         from aurynk.utils.adb_utils import is_device_connected
 
         scrcpy = ScrcpyManager()
-        # Query helper for running processes (non-blocking small timeout)
-        helper_processes = {}
-        client = _get_udev_client()
-        if client:
-            try:
-                resp = client.send_command({"cmd": "status"}, timeout=0.5)
-                helper_processes = resp.get("processes", {}) or {}
-            except Exception:
-                helper_processes = {}
-
         # Add wireless devices
         # Prefer using the main window's row data to ensure consistency with UI
         wireless_devices_processed = False
@@ -223,13 +210,7 @@ def _do_tray_update(app, status: str = None):
 
                     if address and connect_port:
                         connected = is_device_connected(address, connect_port)
-                        # Prefer helper process status when available
-                        key = f"{address}:{connect_port}"
-                        mirroring = False
-                        if key in helper_processes:
-                            mirroring = True
-                        else:
-                            mirroring = scrcpy.is_mirroring(address, connect_port)
+                        mirroring = scrcpy.is_mirroring(address, connect_port)
                         logger.debug(
                             f"Wireless {address}:{connect_port}: connected={connected}, mirroring={mirroring}, processes={list(scrcpy.processes.keys())}"
                         )
@@ -289,11 +270,7 @@ def _do_tray_update(app, status: str = None):
                             device_name = data.get("name", "USB Device")
                             display_name = f"* {device_name}"
 
-                            mirroring = False
-                            if adb_serial in helper_processes:
-                                mirroring = True
-                            else:
-                                mirroring = scrcpy.is_mirroring_serial(adb_serial)
+                            mirroring = scrcpy.is_mirroring_serial(adb_serial)
                             logger.debug(
                                 f"USB Device {adb_serial}: mirroring={mirroring}, processes={list(scrcpy.processes.keys())}"
                             )
@@ -352,16 +329,6 @@ def send_devices_to_tray(devices):
     from aurynk.core.scrcpy_runner import ScrcpyManager
 
     scrcpy = ScrcpyManager()
-    # Try to get helper process list
-    helper_processes = {}
-    client = _get_udev_client()
-    if client:
-        try:
-            resp = client.send_command({"cmd": "status"}, timeout=0.5)
-            helper_processes = resp.get("processes", {}) or {}
-        except Exception:
-            helper_processes = {}
-
     device_status = []
     # Add wireless devices
     for d in devices:
@@ -421,11 +388,7 @@ def send_devices_to_tray(devices):
                     # Add asterisk prefix to indicate USB device
                     device_name = f"* {device_name}"
 
-                    mirroring = False
-                    if serial in helper_processes:
-                        mirroring = True
-                    else:
-                        mirroring = scrcpy.is_mirroring_serial(serial)
+                    mirroring = scrcpy.is_mirroring_serial(serial)
                     device_status.append(
                         {
                             "name": device_name,
@@ -602,106 +565,22 @@ def tray_mirror_device(app, address):
         logger.debug(f"Tray mirror toggle for {address}:{connect_port} (Name: {device_name})")
 
         if connect_port:
-            # Prefer delegating start/stop to the host helper when available
-            client = _get_udev_client()
-            is_mirroring = False
-            helper_processes = {}
-            if client:
-                try:
-                    resp = client.send_command({"cmd": "status"}, timeout=0.5)
-                    helper_processes = resp.get("processes", {}) or {}
-                except Exception:
-                    helper_processes = {}
-
-            key = f"{address}:{connect_port}"
-            if key in helper_processes:
-                is_mirroring = True
-            else:
-                is_mirroring = scrcpy.is_mirroring(address, connect_port)
+            is_mirroring = scrcpy.is_mirroring(address, connect_port)
 
             logger.debug(f"Current mirroring state for {address}:{connect_port} is {is_mirroring}")
 
             if is_mirroring:
-                # Stop via helper if possible, else local manager
-                if client:
-                    try:
-                        client.send_command({"cmd": "stop_mirror", "serial": key}, timeout=0.5)
-                        # Clear any UI override we may have set when starting via tray
-                        try:
-                            # find matching wireless row and clear override
-                            if hasattr(win, "_wireless_rows") and win._wireless_rows:
-                                for row in win._wireless_rows:
-                                    if hasattr(row, "_device_data") and row._device_data:
-                                        if row._device_data.get("address") == address:
-                                            row._device_data.pop("_mirroring_override", None)
-                                            break
-                        except Exception:
-                            pass
-                    except Exception:
-                        scrcpy.stop_mirror(address, connect_port)
-                else:
-                    scrcpy.stop_mirror(address, connect_port)
+                scrcpy.stop_mirror(address, connect_port)
             else:
-                # Stop stale helper processes for this address if any
-                if client:
-                    for s in list(helper_processes.keys()):
-                        if s.startswith(f"{address}:"):
-                            try:
-                                client.send_command(
-                                    {"cmd": "stop_mirror", "serial": s}, timeout=0.5
-                                )
-                            except Exception:
-                                pass
-                    # Start new mirror via helper
-                    try:
-                        client.send_command(
-                            {
-                                "cmd": "start_mirror",
-                                "serial": key,
-                                "options": {"scrcpy_cmd": "scrcpy"},
-                            },
-                            timeout=0.5,
+                # Fallback to local start
+                for s in list(scrcpy.processes.keys()):
+                    if s.startswith(f"{address}:"):
+                        logger.info(
+                            f"Found stale process {s} for {address}, stopping before start"
                         )
-                        # Mark a transient UI override so main window shows mirroring
-                        try:
-                            if hasattr(win, "_wireless_rows") and win._wireless_rows:
-                                for row in win._wireless_rows:
-                                    if hasattr(row, "_device_data") and row._device_data:
-                                        if row._device_data.get("address") == address:
-                                            row._device_data["_mirroring_override"] = True
-                                            break
-                        except Exception:
-                            pass
-                    except Exception:
-                        started = False
-                        try:
-                            started = scrcpy.start_mirror(address, connect_port, device_name)
-                        except Exception:
-                            started = False
-                        if not started:
-                            try:
-                                GLib.idle_add(
-                                    lambda: (
-                                        win._show_scrcpy_unavailable_dialog(
-                                            f"{address}:{connect_port}"
-                                        )
-                                        or False
-                                    )
-                                )
-                            except Exception:
-                                logger.exception(
-                                    "Failed to schedule scrcpy unavailable dialog from tray"
-                                )
-                else:
-                    # Fallback to local start
-                    for s in list(scrcpy.processes.keys()):
-                        if s.startswith(f"{address}:"):
-                            logger.info(
-                                f"Found stale process {s} for {address}, stopping before start"
-                            )
-                            scrcpy.stop_mirror(address, int(s.split(":")[1]))
+                        scrcpy.stop_mirror(address, int(s.split(":")[1]))
 
-                    scrcpy.start_mirror(address, connect_port, device_name)
+                scrcpy.start_mirror(address, connect_port, device_name)
 
             # Update main window mirror buttons on GTK thread.
             # If we just started mirroring (is_mirroring == False previously),
@@ -735,86 +614,24 @@ def tray_mirror_device(app, address):
                         device_name = row_data["data"].get("name", "USB Device")
                         break
 
-        # Check if currently mirroring (prefer helper)
-        client = _get_udev_client()
-        helper_processes = {}
-        if client:
-            try:
-                resp = client.send_command({"cmd": "status"}, timeout=0.5)
-                helper_processes = resp.get("processes", {}) or {}
-            except Exception:
-                helper_processes = {}
-
-        is_mirroring = False
-        if address in helper_processes:
-            is_mirroring = True
-        else:
-            is_mirroring = scrcpy.is_mirroring_serial(address)
+        is_mirroring = scrcpy.is_mirroring_serial(address)
 
         # Toggle mirroring for USB device
         if is_mirroring:
-            if client and address in helper_processes:
-                try:
-                    client.send_command({"cmd": "stop_mirror", "serial": address}, timeout=0.5)
-                    # Clear any UI override set earlier for this USB serial
-                    try:
-                        if hasattr(win, "usb_rows") and win.usb_rows:
-                            entry = win.usb_rows.get(address)
-                            if isinstance(entry, dict) and "data" in entry:
-                                entry["data"].pop("_mirroring_override", None)
-                    except Exception:
-                        pass
-                except Exception:
-                    scrcpy.stop_mirror_by_serial(address)
-            else:
-                scrcpy.stop_mirror_by_serial(address)
+            scrcpy.stop_mirror_by_serial(address)
         else:
-            if client:
-                try:
-                    client.send_command(
-                        {
-                            "cmd": "start_mirror",
-                            "serial": address,
-                            "options": {"scrcpy_cmd": "scrcpy"},
-                        },
-                        timeout=0.5,
-                    )
-                    # Mark transient UI override so main window reflects immediate start
-                    try:
-                        if hasattr(win, "usb_rows") and win.usb_rows:
-                            entry = win.usb_rows.get(address)
-                            if isinstance(entry, dict) and "data" in entry:
-                                entry["data"]["_mirroring_override"] = True
-                    except Exception:
-                        pass
-                except Exception:
-                    started = False
-                    try:
-                        started = scrcpy.start_mirror_usb(address, device_name)
-                    except Exception:
-                        started = False
-                    if not started:
-                        try:
-                            GLib.idle_add(
-                                lambda: (win._show_scrcpy_unavailable_dialog(address) or False)
-                            )
-                        except Exception:
-                            logger.exception(
-                                "Failed to schedule scrcpy unavailable dialog from tray"
-                            )
-            else:
+            started = False
+            try:
+                started = scrcpy.start_mirror_usb(address, device_name)
+            except Exception:
                 started = False
+            if not started:
                 try:
-                    started = scrcpy.start_mirror_usb(address, device_name)
+                    GLib.idle_add(
+                        lambda: (win._show_scrcpy_unavailable_dialog(address) or False)
+                    )
                 except Exception:
-                    started = False
-                if not started:
-                    try:
-                        GLib.idle_add(
-                            lambda: (win._show_scrcpy_unavailable_dialog(address) or False)
-                        )
-                    except Exception:
-                        logger.exception("Failed to schedule scrcpy unavailable dialog from tray")
+                    logger.exception("Failed to schedule scrcpy unavailable dialog from tray")
 
         # Update main window mirror buttons on GTK thread.
         try:
