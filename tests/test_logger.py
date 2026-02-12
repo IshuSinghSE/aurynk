@@ -1,15 +1,15 @@
-import os
-import sys
-import logging
 import importlib
-from unittest import mock
-import pytest
+import logging
+import os
 import tempfile
-from pathlib import Path
+from unittest import mock
+
+import pytest
 
 # Since we need to test the module level code, we need to import it inside the tests or reload it.
 # We will import it at the top level to make sure it's available, but reload it in tests.
 from aurynk.utils import logger
+
 
 class TestLogger:
     @pytest.fixture(autouse=True)
