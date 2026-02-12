@@ -1,8 +1,7 @@
 
-import unittest
-from unittest.mock import MagicMock, patch, mock_open
 import sys
-import os
+import unittest
+from unittest.mock import MagicMock, mock_open, patch
 
 # Mock gi dependencies BEFORE importing the module
 # This ensures tests can run even if gi is not installed
