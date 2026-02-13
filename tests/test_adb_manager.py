@@ -1,5 +1,9 @@
+import sys
 import unittest
 from unittest.mock import MagicMock, patch
+
+# Mock zeroconf because it is not installed in the environment
+sys.modules["zeroconf"] = MagicMock()
 
 from aurynk.core.adb_manager import ADBController
 
@@ -110,19 +114,38 @@ other-device._adb-tls-connect._tcp  192.168.1.6:6666
     def test_fetch_device_specs(self, mock_settings, mock_subprocess_run, mock_get_adb_path):
         mock_settings.return_value.get.return_value = 10
 
-        # meminfo, df, dumpsys battery
-        mock_subprocess_run.side_effect = [
-            MagicMock(stdout="MemTotal:        8000000 kB\n"),
-            MagicMock(
-                stdout="Filesystem 1K-blocks Used Available Use% Mounted on\n/dev/block/dm-0 120000000 10000 110000000 1% /data\n"
-            ),
-            MagicMock(stdout="  level: 85\n"),
-        ]
+        # Updated to return single combined output
+        delimiter = "|||AURYNK_DELIMITER|||"
+        meminfo = "MemTotal:        8000000 kB\n"
+        df = "Filesystem 1K-blocks Used Available Use% Mounted on\n/dev/block/dm-0 120000000 10000 110000000 1% /data\n"
+        battery = "  level: 85\n"
+        combined = f"{meminfo}\n{delimiter}\n{df}\n{delimiter}\n{battery}"
+
+        mock_subprocess_run.return_value = MagicMock(stdout=combined)
 
         specs = self.adb_controller.fetch_device_specs("192.168.1.5", 5555)
         self.assertEqual(specs["ram"], "8 GB")
         self.assertEqual(specs["storage"], "120 GB")
         self.assertEqual(specs["battery"], "85%")
+
+    @patch("aurynk.core.adb_manager.get_adb_path", return_value="adb")
+    @patch("subprocess.run")
+    @patch("aurynk.core.adb_manager.SettingsManager")
+    def test_fetch_device_info(self, mock_settings, mock_subprocess_run, mock_get_adb_path):
+        mock_settings.return_value.get.return_value = 10
+
+        delimiter = "|||AURYNK_DELIMITER|||"
+        # props: marketname, model, manufacturer, android_version
+        parts = ["MyPhone", "Pixel 5", "Google", "12"]
+        combined = f"\n{delimiter}\n".join(parts) + "\n"
+
+        mock_subprocess_run.return_value = MagicMock(stdout=combined)
+
+        info = self.adb_controller._fetch_device_info("192.168.1.5", 5555)
+        self.assertEqual(info["name"], "MyPhone")
+        self.assertEqual(info["model"], "Pixel 5")
+        self.assertEqual(info["manufacturer"], "Google")
+        self.assertEqual(info["android_version"], "12")
 
     @patch("aurynk.core.adb_manager.get_adb_path", return_value="adb")
     @patch("subprocess.run")
