@@ -8,6 +8,7 @@ sys.modules["gi.repository.GLib"] = MagicMock()
 sys.modules["gi.repository.GObject"] = MagicMock()
 
 import unittest
+
 from aurynk.core.adb_manager import ADBController
 
 
