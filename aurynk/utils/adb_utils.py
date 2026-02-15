@@ -22,9 +22,16 @@ def get_adb_path():
         settings = SettingsManager()
 
         # Register callback once to invalidate cache on changes
+        # Use defensive check to ensure SettingsManager supports callbacks
         if not _SETTINGS_CALLBACK_REGISTERED:
-            settings.register_callback("adb", "adb_path", _on_adb_path_changed)
-            _SETTINGS_CALLBACK_REGISTERED = True
+            try:
+                if hasattr(settings, "register_callback"):
+                    settings.register_callback("adb", "adb_path", _on_adb_path_changed)
+                    _SETTINGS_CALLBACK_REGISTERED = True
+            except Exception:
+                # If callback registration fails, we still want to proceed with
+                # fetching the setting, just without auto-invalidation.
+                pass
 
         adb_path = settings.get("adb", "adb_path", "").strip()
         if adb_path:
