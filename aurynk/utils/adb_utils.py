@@ -1,17 +1,42 @@
+# Cache for the ADB path to avoid repeated settings lookups and file checks
+_ADB_PATH_CACHE = None
+_SETTINGS_CALLBACK_REGISTERED = False
+
+
+def _on_adb_path_changed(new_value, old_value):
+    """Callback for when ADB path setting changes."""
+    global _ADB_PATH_CACHE
+    _ADB_PATH_CACHE = None
+
+
 def get_adb_path():
     """Return the custom ADB path from settings, or fallback to 'adb'."""
+    global _ADB_PATH_CACHE, _SETTINGS_CALLBACK_REGISTERED
+
+    if _ADB_PATH_CACHE is not None:
+        return _ADB_PATH_CACHE
+
     try:
         from aurynk.utils.settings import SettingsManager
 
         settings = SettingsManager()
+
+        # Register callback once to invalidate cache on changes
+        if not _SETTINGS_CALLBACK_REGISTERED:
+            settings.register_callback("adb", "adb_path", _on_adb_path_changed)
+            _SETTINGS_CALLBACK_REGISTERED = True
+
         adb_path = settings.get("adb", "adb_path", "").strip()
         if adb_path:
             import os
 
             if os.path.isfile(adb_path) and os.access(adb_path, os.X_OK):
+                _ADB_PATH_CACHE = adb_path
                 return adb_path
     except Exception:
         pass
+
+    _ADB_PATH_CACHE = "adb"
     return "adb"
 
 
