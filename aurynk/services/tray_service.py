@@ -150,7 +150,8 @@ def send_status_to_tray(app, status: str = None):
             # Schedule new update after the minimum interval
             delay_ms = int((_TRAY_UPDATE_MIN_INTERVAL - time_since_last) * 1000) + 50
             logger.debug(
-                f"Scheduling delayed tray update in {delay_ms}ms (last update {time_since_last:.3f}s ago)"
+                f"Scheduling delayed tray update in {delay_ms}ms"
+                f" (last update {time_since_last:.3f}s ago)"
             )
             _pending_tray_update = GLib.timeout_add(delay_ms, lambda: _do_tray_update(app, status))
             return
@@ -231,7 +232,8 @@ def _do_tray_update(app, status: str = None):
                         else:
                             mirroring = scrcpy.is_mirroring(address, connect_port)
                         logger.debug(
-                            f"Wireless {address}:{connect_port}: connected={connected}, mirroring={mirroring}, processes={list(scrcpy.processes.keys())}"
+                            f"Wireless {address}:{connect_port}: connected={connected}, "
+                            f"mirroring={mirroring}, processes={list(scrcpy.processes.keys())}"
                         )
 
                     device_status.append(
@@ -295,7 +297,8 @@ def _do_tray_update(app, status: str = None):
                             else:
                                 mirroring = scrcpy.is_mirroring_serial(adb_serial)
                             logger.debug(
-                                f"USB Device {adb_serial}: mirroring={mirroring}, processes={list(scrcpy.processes.keys())}"
+                                f"USB Device {adb_serial}: mirroring={mirroring}, "
+                                f"processes={list(scrcpy.processes.keys())}"
                             )
                             device_status.append(
                                 {
