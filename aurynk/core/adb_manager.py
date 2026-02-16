@@ -268,25 +268,61 @@ class ADBController:
         serial = f"{address}:{connect_port}"
         device_info = {}
 
-        # Helper to run adb shell command
-        def get_prop(prop: str) -> str:
-            try:
-                timeout = SettingsManager().get("adb", "connection_timeout", 10)
-                result = subprocess.run(
-                    [get_adb_path(), "-s", serial, "shell", "getprop", prop],
-                    capture_output=True,
-                    text=True,
-                    timeout=timeout,
-                )
-                return result.stdout.strip()
-            except Exception:
-                return ""
+        marketname = ""
+        model = ""
+        manufacturer = ""
+        android_version = ""
 
-        # Fetch basic properties
-        marketname = get_prop("ro.product.marketname")
-        model = get_prop("ro.product.device")
-        manufacturer = get_prop("ro.product.manufacturer")
-        android_version = get_prop("ro.build.version.release")
+        try:
+            timeout = SettingsManager().get("adb", "connection_timeout", 10)
+
+            # Optimization: Batch getprop calls into a single adb shell command
+            # Using a unique delimiter to separate outputs safely
+            delimiter = "AURYNK_DELIMITER_v1"
+            props = [
+                "ro.product.marketname",
+                "ro.product.device",
+                "ro.product.manufacturer",
+                "ro.build.version.release",
+            ]
+
+            # Construct command: "getprop p1; echo DELIM; getprop p2; echo DELIM; ..."
+            shell_cmd = f"; echo {delimiter}; ".join([f"getprop {p}" for p in props])
+
+            result = subprocess.run(
+                [get_adb_path(), "-s", serial, "shell", shell_cmd],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+
+            if result.returncode == 0:
+                # Split by delimiter and strip whitespace
+                parts = result.stdout.split(delimiter)
+                # Clean up parts (strip whitespace)
+                values = [p.strip() for p in parts]
+
+                # Ensure we have enough values (in case output was truncated)
+                if len(values) >= 4:
+                    marketname = values[0]
+                    model = values[1]
+                    manufacturer = values[2]
+                    android_version = values[3]
+                else:
+                    logger.warning(f"Incomplete device info from batch query: {values}")
+                    # Fallback could be implemented here if needed, but incomplete info is acceptable
+                    # mapping safely
+                    if len(values) > 0:
+                        marketname = values[0]
+                    if len(values) > 1:
+                        model = values[1]
+                    if len(values) > 2:
+                        manufacturer = values[2]
+                    if len(values) > 3:
+                        android_version = values[3]
+
+        except Exception as e:
+            logger.error(f"Error fetching device info: {e}")
 
         device_info["name"] = f"{marketname}" if marketname else (model or _("Unknown"))
         device_info["model"] = model

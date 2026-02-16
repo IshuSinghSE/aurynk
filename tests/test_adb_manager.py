@@ -171,6 +171,52 @@ other-device._adb-tls-connect._tcp  192.168.1.6:6666
         path = self.adb_controller.capture_screenshot("192.168.1.5", 5555)
         self.assertIsNone(path)
 
+    @patch("aurynk.core.adb_manager.get_adb_path", return_value="adb")
+    @patch("subprocess.run")
+    @patch("aurynk.core.adb_manager.SettingsManager")
+    def test_fetch_device_info_batched(
+        self, mock_settings, mock_subprocess_run, mock_get_adb_path
+    ):
+        mock_settings.return_value.get.return_value = 10
+
+        # Mock successful output with delimiter
+        delimiter = "AURYNK_DELIMITER_v1"
+        output_values = [
+            "My Market Name",
+            "My Device Model",
+            "My Manufacturer",
+            "13.0",
+        ]
+        mock_stdout = f"\n{delimiter}\n".join(output_values) + "\n"
+
+        mock_subprocess_run.return_value = MagicMock(
+            returncode=0, stdout=mock_stdout, stderr=""
+        )
+
+        info = self.adb_controller._fetch_device_info("192.168.1.5", 5555)
+
+        self.assertEqual(info["name"], "My Market Name")
+        self.assertEqual(info["model"], "My Device Model")
+        self.assertEqual(info["manufacturer"], "My Manufacturer")
+        self.assertEqual(info["android_version"], "13.0")
+
+        # Verify subprocess was called ONCE
+        self.assertEqual(mock_subprocess_run.call_count, 1)
+
+        # Verify the command structure contains our delimiter and getprop
+        call_args = mock_subprocess_run.call_args
+        cmd_list = call_args[0][0]
+        self.assertIn("adb", cmd_list)
+        self.assertIn("shell", cmd_list)
+        # The shell command is one of the arguments
+        shell_cmd = None
+        for arg in cmd_list:
+            if delimiter in arg:
+                shell_cmd = arg
+                break
+        self.assertIsNotNone(shell_cmd)
+        self.assertIn("getprop ro.product.marketname", shell_cmd)
+
     def test_load_paired_devices(self):
         self.adb_controller.device_store.get_devices.return_value = [{"name": "Test"}]
         devices = self.adb_controller.load_paired_devices()
