@@ -174,9 +174,7 @@ other-device._adb-tls-connect._tcp  192.168.1.6:6666
     @patch("aurynk.core.adb_manager.get_adb_path", return_value="adb")
     @patch("subprocess.run")
     @patch("aurynk.core.adb_manager.SettingsManager")
-    def test_fetch_device_info_batched(
-        self, mock_settings, mock_subprocess_run, mock_get_adb_path
-    ):
+    def test_fetch_device_info_batched(self, mock_settings, mock_subprocess_run, mock_get_adb_path):
         mock_settings.return_value.get.return_value = 10
 
         # Mock successful output with delimiter
@@ -189,9 +187,7 @@ other-device._adb-tls-connect._tcp  192.168.1.6:6666
         ]
         mock_stdout = f"\n{delimiter}\n".join(output_values) + "\n"
 
-        mock_subprocess_run.return_value = MagicMock(
-            returncode=0, stdout=mock_stdout, stderr=""
-        )
+        mock_subprocess_run.return_value = MagicMock(returncode=0, stdout=mock_stdout, stderr="")
 
         info = self.adb_controller._fetch_device_info("192.168.1.5", 5555)
 
