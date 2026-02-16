@@ -349,8 +349,6 @@ def send_devices_to_tray(devices):
         def is_device_connected(a, p):
             return False
 
-    from aurynk.core.scrcpy_runner import ScrcpyManager
-
     scrcpy = ScrcpyManager()
     # Try to get helper process list
     helper_processes = {}
