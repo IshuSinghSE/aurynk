@@ -1,5 +1,11 @@
+import sys
+from unittest.mock import MagicMock
+
+# Mock zeroconf before any imports that might need it
+sys.modules["zeroconf"] = MagicMock()
+
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from aurynk.core.adb_manager import ADBController
 

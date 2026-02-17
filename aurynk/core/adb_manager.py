@@ -268,25 +268,39 @@ class ADBController:
         serial = f"{address}:{connect_port}"
         device_info = {}
 
-        # Helper to run adb shell command
-        def get_prop(prop: str) -> str:
-            try:
-                timeout = SettingsManager().get("adb", "connection_timeout", 10)
-                result = subprocess.run(
-                    [get_adb_path(), "-s", serial, "shell", "getprop", prop],
-                    capture_output=True,
-                    text=True,
-                    timeout=timeout,
-                )
-                return result.stdout.strip()
-            except Exception:
-                return ""
+        # Batch properties fetch to reduce subprocess overhead (4 calls -> 1 call)
+        # Using a delimiter that is unlikely to be in the property values
+        delimiter = "AURYNK_DELIMITER_v1"
+        cmd_str = (
+            f"getprop ro.product.marketname; echo '{delimiter}'; "
+            f"getprop ro.product.device; echo '{delimiter}'; "
+            f"getprop ro.product.manufacturer; echo '{delimiter}'; "
+            f"getprop ro.build.version.release"
+        )
 
-        # Fetch basic properties
-        marketname = get_prop("ro.product.marketname")
-        model = get_prop("ro.product.device")
-        manufacturer = get_prop("ro.product.manufacturer")
-        android_version = get_prop("ro.build.version.release")
+        marketname = ""
+        model = ""
+        manufacturer = ""
+        android_version = ""
+
+        try:
+            timeout = SettingsManager().get("adb", "connection_timeout", 10)
+            result = subprocess.run(
+                [get_adb_path(), "-s", serial, "shell", cmd_str],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+
+            if result.returncode == 0:
+                parts = result.stdout.strip().split(delimiter)
+                if len(parts) >= 4:
+                    marketname = parts[0].strip()
+                    model = parts[1].strip()
+                    manufacturer = parts[2].strip()
+                    android_version = parts[3].strip()
+        except Exception as e:
+            logger.error(f"Error fetching device info: {e}")
 
         device_info["name"] = f"{marketname}" if marketname else (model or _("Unknown"))
         device_info["model"] = model
