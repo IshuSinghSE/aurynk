@@ -322,9 +322,7 @@ class ADBController:
                     manufacturer = parts[2].strip()
                     android_version = parts[3].strip()
 
-            device_info["name"] = (
-                f"{marketname}" if marketname else (model or _("Unknown"))
-            )
+            device_info["name"] = f"{marketname}" if marketname else (model or _("Unknown"))
             device_info["model"] = model
             device_info["manufacturer"] = manufacturer
             device_info["android_version"] = android_version

@@ -259,9 +259,7 @@ class DeviceDetailsWindow(Adw.Window):
                         "manufacturer"
                     ):
                         try:
-                            info = self.adb_controller.fetch_device_info_by_serial(
-                                adb_serial
-                            )
+                            info = self.adb_controller.fetch_device_info_by_serial(adb_serial)
 
                             if info.get("model"):
                                 self.device["model"] = info["model"]
