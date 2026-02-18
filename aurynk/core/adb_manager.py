@@ -33,6 +33,8 @@ DEVICE_STORE_PATH = os.path.join(DEVICE_STORE_DIR, "paired_devices.json")
 
 # ~/.local/share/aurynk/paired_devices.json
 
+ADB_OUTPUT_DELIMITER = "AURYNK_DELIMITER_v1"
+
 
 class ADBController:
     """
@@ -266,33 +268,73 @@ class ADBController:
             Dict[str, Any]: A dictionary containing device information like name, model, manufacturer, etc.
         """
         serial = f"{address}:{connect_port}"
+        return self.fetch_device_info_by_serial(serial)
+
+    def fetch_device_info_by_serial(self, serial: str) -> Dict[str, Any]:
+        """
+        Fetch detailed device information via ADB by serial using a single batch command.
+
+        Args:
+            serial (str): Device serial number.
+
+        Returns:
+            Dict[str, Any]: A dictionary containing device information like name, model, manufacturer, etc.
+        """
         device_info = {}
+        timeout = SettingsManager().get("adb", "connection_timeout", 10)
 
-        # Helper to run adb shell command
-        def get_prop(prop: str) -> str:
-            try:
-                timeout = SettingsManager().get("adb", "connection_timeout", 10)
-                result = subprocess.run(
-                    [get_adb_path(), "-s", serial, "shell", "getprop", prop],
-                    capture_output=True,
-                    text=True,
-                    timeout=timeout,
-                )
-                return result.stdout.strip()
-            except Exception:
-                return ""
+        props = [
+            "ro.product.marketname",
+            "ro.product.device",
+            "ro.product.manufacturer",
+            "ro.build.version.release",
+        ]
 
-        # Fetch basic properties
-        marketname = get_prop("ro.product.marketname")
-        model = get_prop("ro.product.device")
-        manufacturer = get_prop("ro.product.manufacturer")
-        android_version = get_prop("ro.build.version.release")
+        # Construct command: getprop p1; echo DELIM; getprop p2; ...
+        cmds = []
+        for p in props:
+            cmds.append(f"getprop {p}")
+            cmds.append(f"echo {ADB_OUTPUT_DELIMITER}")
 
-        device_info["name"] = f"{marketname}" if marketname else (model or _("Unknown"))
-        device_info["model"] = model
-        device_info["manufacturer"] = manufacturer
-        device_info["android_version"] = android_version
-        device_info["last_seen"] = datetime.now().isoformat()
+        # Remove last delimiter echo
+        cmds.pop()
+
+        full_cmd = "; ".join(cmds)
+
+        try:
+            result = subprocess.run(
+                [get_adb_path(), "-s", serial, "shell", full_cmd],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+
+            marketname = ""
+            model = ""
+            manufacturer = ""
+            android_version = ""
+
+            if result.returncode == 0:
+                parts = result.stdout.split(ADB_OUTPUT_DELIMITER)
+                if len(parts) >= len(props):
+                    marketname = parts[0].strip()
+                    model = parts[1].strip()
+                    manufacturer = parts[2].strip()
+                    android_version = parts[3].strip()
+
+            device_info["name"] = (
+                f"{marketname}" if marketname else (model or _("Unknown"))
+            )
+            device_info["model"] = model
+            device_info["manufacturer"] = manufacturer
+            device_info["android_version"] = android_version
+            device_info["last_seen"] = datetime.now().isoformat()
+
+        except Exception as e:
+            logger.error(f"Error fetching info by serial: {e}")
+            # Ensure we return at least a basic structure even on failure
+            device_info["name"] = _("Unknown")
+            device_info["last_seen"] = datetime.now().isoformat()
 
         return device_info
 

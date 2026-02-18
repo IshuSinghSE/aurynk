@@ -1,7 +1,13 @@
+import sys
+from unittest.mock import MagicMock
+
+# Mock zeroconf before importing aurynk
+sys.modules["zeroconf"] = MagicMock()
+
 import unittest
 from unittest.mock import MagicMock, patch
 
-from aurynk.core.adb_manager import ADBController
+from aurynk.core.adb_manager import ADB_OUTPUT_DELIMITER, ADBController
 
 
 class TestADBController(unittest.TestCase):
@@ -23,40 +29,60 @@ class TestADBController(unittest.TestCase):
     ):
         mock_settings_manager.return_value.get.side_effect = lambda section, key, default: default
 
+        delim = ADB_OUTPUT_DELIMITER
+        batched_output = f"MyPhone\n{delim}\nPixel 5\n{delim}\nGoogle\n{delim}\n12\n"
+
         # Mock pair command success
+        # 1. pair
+        # 2. connect
+        # 3. getprop batched
         mock_subprocess_run.side_effect = [
             MagicMock(returncode=0, stdout="", stderr=""),  # pair
             MagicMock(returncode=0, stdout="connected to 192.168.1.5:5555", stderr=""),  # connect
-            MagicMock(stdout="MyPhone\n"),  # getprop marketname
-            MagicMock(stdout="Pixel 5\n"),  # getprop device
-            MagicMock(stdout="Google\n"),  # getprop manufacturer
-            MagicMock(stdout="12\n"),  # getprop android_version
+            MagicMock(returncode=0, stdout=batched_output),  # batched getprop
         ]
 
-        # Use a mock for _fetch_device_info to simplify if needed, but integration testing the flow is better here
-        # Actually _fetch_device_info calls subprocess.run multiple times.
-        # Let's mock _fetch_device_info to make test simpler and more focused on pair_device logic
-        with patch.object(self.adb_controller, "_fetch_device_info") as mock_fetch_info:
-            mock_fetch_info.return_value = {"name": "Test Device"}
+        result = self.adb_controller.pair_device("192.168.1.5", 3000, 5555, "password")
 
-            # Reset side_effect for subprocess.run because we are mocking _fetch_device_info
-            mock_subprocess_run.side_effect = [
-                MagicMock(returncode=0, stdout="", stderr=""),  # pair
-                MagicMock(
-                    returncode=0, stdout="connected to 192.168.1.5:5555", stderr=""
-                ),  # connect
-            ]
+        self.assertTrue(result)
+        mock_subprocess_run.assert_any_call(
+            ["adb", "pair", "192.168.1.5:3000", "password"], capture_output=True, text=True
+        )
+        mock_subprocess_run.assert_any_call(
+            ["adb", "connect", "192.168.1.5:5555"], capture_output=True, text=True, timeout=10
+        )
 
-            result = self.adb_controller.pair_device("192.168.1.5", 3000, 5555, "password")
+        # Verify batched call
+        # We check if one of the calls was the shell command with delimiter
+        found_batch_call = False
+        for call in mock_subprocess_run.call_args_list:
+            args = call[0][0]
+            if len(args) > 4 and f"echo {delim}" in args[4]:
+                found_batch_call = True
+                break
+        self.assertTrue(found_batch_call)
 
-            self.assertTrue(result)
-            mock_subprocess_run.assert_any_call(
-                ["adb", "pair", "192.168.1.5:3000", "password"], capture_output=True, text=True
-            )
-            mock_subprocess_run.assert_any_call(
-                ["adb", "connect", "192.168.1.5:5555"], capture_output=True, text=True, timeout=10
-            )
-            mock_fetch_info.assert_called_once_with("192.168.1.5", 5555)
+    @patch("aurynk.core.adb_manager.get_adb_path", return_value="adb")
+    @patch("subprocess.run")
+    @patch("aurynk.core.adb_manager.SettingsManager")
+    def test_fetch_device_info_by_serial(
+        self, mock_settings_manager, mock_subprocess_run, mock_get_adb_path
+    ):
+        mock_settings_manager.return_value.get.return_value = 10
+
+        delim = ADB_OUTPUT_DELIMITER
+        # Simulate output: marketname, model, manufacturer, version
+        batched_output = f"Pixel Market\n{delim}\nPixel 5\n{delim}\nGoogle\n{delim}\n13\n"
+
+        mock_subprocess_run.return_value = MagicMock(returncode=0, stdout=batched_output)
+
+        info = self.adb_controller.fetch_device_info_by_serial("serial123")
+
+        self.assertEqual(info["name"], "Pixel Market")
+        self.assertEqual(info["model"], "Pixel 5")
+        self.assertEqual(info["manufacturer"], "Google")
+        self.assertEqual(info["android_version"], "13")
+        self.assertIn("last_seen", info)
 
     @patch("aurynk.core.adb_manager.get_adb_path", return_value="adb")
     @patch("subprocess.run")

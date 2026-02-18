@@ -258,32 +258,21 @@ class DeviceDetailsWindow(Adw.Window):
                     if not self.device.get("android_version") or not self.device.get(
                         "manufacturer"
                     ):
-                        import subprocess
-
                         try:
-                            props_to_fetch = [
-                                ("ro.product.model", "model"),
-                                ("ro.product.manufacturer", "manufacturer"),
-                                ("ro.build.version.release", "android_version"),
-                            ]
+                            info = self.adb_controller.fetch_device_info_by_serial(
+                                adb_serial
+                            )
 
-                            for prop, key in props_to_fetch:
-                                try:
-                                    result = subprocess.run(
-                                        ["adb", "-s", adb_serial, "shell", "getprop", prop],
-                                        capture_output=True,
-                                        text=True,
-                                        timeout=5,
-                                    )
-                                    value = result.stdout.strip()
-                                    if value:
-                                        self.device[key] = value
-                                except Exception:
-                                    pass
+                            if info.get("model"):
+                                self.device["model"] = info["model"]
+                            if info.get("manufacturer"):
+                                self.device["manufacturer"] = info["manufacturer"]
+                            if info.get("android_version"):
+                                self.device["android_version"] = info["android_version"]
 
-                            # Update name to use the actual model if available
-                            if self.device.get("model") and not self.device.get("name"):
-                                self.device["name"] = self.device["model"]
+                            # Update name if missing
+                            if not self.device.get("name") and info.get("name"):
+                                self.device["name"] = info["name"]
                         except Exception:
                             pass
                 else:
