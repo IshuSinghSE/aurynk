@@ -1,3 +1,13 @@
+import sys
+from unittest.mock import MagicMock
+
+# Mock zeroconf before importing module that uses it
+sys.modules["zeroconf"] = MagicMock()
+sys.modules["zeroconf.ServiceBrowser"] = MagicMock()
+sys.modules["zeroconf.Zeroconf"] = MagicMock()
+sys.modules["zeroconf.ServiceStateChange"] = MagicMock()
+sys.modules["zeroconf.IPVersion"] = MagicMock()
+
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -185,6 +195,46 @@ other-device._adb-tls-connect._tcp  192.168.1.6:6666
     def test_remove_device(self):
         self.adb_controller.remove_device("192.168.1.5")
         self.adb_controller.device_store.remove_device.assert_called_once_with("192.168.1.5")
+
+    @patch("aurynk.core.adb_manager.get_adb_path", return_value="adb")
+    @patch("subprocess.run")
+    @patch("aurynk.core.adb_manager.SettingsManager")
+    def test_fetch_device_info_optimized(
+        self, mock_settings_manager, mock_subprocess_run, mock_get_adb_path
+    ):
+        # Mock settings
+        mock_settings_manager.return_value.get.side_effect = lambda section, key, default: default
+
+        # Mock subprocess response with delimiter
+        delimiter = "AURYNK_DELIMITER_v1"
+        output = f"MyMarketName\n{delimiter}\nMyModel\n{delimiter}\nMyManufacturer\n{delimiter}\n13"
+
+        mock_subprocess_run.return_value = MagicMock(returncode=0, stdout=output, stderr="")
+
+        # Call the method
+        info = self.adb_controller._fetch_device_info("192.168.1.5", 5555)
+
+        # Verify the results
+        self.assertEqual(info.get("name"), "MyMarketName")
+        self.assertEqual(info.get("model"), "MyModel")
+        self.assertEqual(info.get("manufacturer"), "MyManufacturer")
+        self.assertEqual(info.get("android_version"), "13")
+
+        # Verify that subprocess was called ONLY ONCE
+        self.assertEqual(mock_subprocess_run.call_count, 1)
+
+        # Verify the command structure
+        args, kwargs = mock_subprocess_run.call_args
+        cmd_list = args[0]
+        self.assertEqual(cmd_list[0], "adb")
+        self.assertEqual(cmd_list[2], "192.168.1.5:5555")
+        self.assertEqual(cmd_list[3], "shell")
+
+        # Check that the shell command contains the properties and delimiter
+        shell_cmd = cmd_list[4]
+        self.assertIn("ro.product.marketname", shell_cmd)
+        self.assertIn("ro.product.device", shell_cmd)
+        self.assertIn(delimiter, shell_cmd)
 
 
 if __name__ == "__main__":

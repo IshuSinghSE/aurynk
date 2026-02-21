@@ -268,25 +268,60 @@ class ADBController:
         serial = f"{address}:{connect_port}"
         device_info = {}
 
-        # Helper to run adb shell command
-        def get_prop(prop: str) -> str:
-            try:
-                timeout = SettingsManager().get("adb", "connection_timeout", 10)
-                result = subprocess.run(
-                    [get_adb_path(), "-s", serial, "shell", "getprop", prop],
-                    capture_output=True,
-                    text=True,
-                    timeout=timeout,
-                )
-                return result.stdout.strip()
-            except Exception:
+        # Optimized: Fetch all properties in a single ADB shell call using a delimiter
+        delimiter = "AURYNK_DELIMITER_v1"
+        marketname = ""
+        model = ""
+        manufacturer = ""
+        android_version = ""
+
+        try:
+            timeout = SettingsManager().get("adb", "connection_timeout", 10)
+
+            # Construct command to echo properties separated by delimiter
+            # We use "echo" to print the delimiter.
+            # Note: "getprop" prints a newline at the end of each value.
+            cmds = [
+                "getprop ro.product.marketname",
+                f"echo {delimiter}",
+                "getprop ro.product.device",
+                f"echo {delimiter}",
+                "getprop ro.product.manufacturer",
+                f"echo {delimiter}",
+                "getprop ro.build.version.release",
+            ]
+            full_cmd = "; ".join(cmds)
+
+            result = subprocess.run(
+                [get_adb_path(), "-s", serial, "shell", full_cmd],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+
+            # Output will look like:
+            # Value1\n
+            # DELIMITER\n
+            # Value2\n
+            # ...
+
+            output = result.stdout.strip()
+            # Split by delimiter. We expect 4 values.
+            parts = output.split(delimiter)
+
+            # Helper to clean up each part (remove extra newlines)
+            def clean_part(index):
+                if index < len(parts):
+                    return parts[index].strip()
                 return ""
 
-        # Fetch basic properties
-        marketname = get_prop("ro.product.marketname")
-        model = get_prop("ro.product.device")
-        manufacturer = get_prop("ro.product.manufacturer")
-        android_version = get_prop("ro.build.version.release")
+            marketname = clean_part(0)
+            model = clean_part(1)
+            manufacturer = clean_part(2)
+            android_version = clean_part(3)
+
+        except Exception as e:
+            logger.error(f"Error fetching device info: {e}")
 
         device_info["name"] = f"{marketname}" if marketname else (model or _("Unknown"))
         device_info["model"] = model
