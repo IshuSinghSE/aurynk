@@ -26,12 +26,12 @@ def test_window_geometry_clamping(mock_gdk):
                     ("scrcpy", "fullscreen"): False,
                     ("scrcpy", "scrcpy_path"): "scrcpy",
                     ("scrcpy", "window_title"): "Test",
-                        ("app", "notify_device_on_mirroring"): False,
+                    ("app", "notify_device_on_mirroring"): False,
                 }.get((section, key), default)
                 mgr.start_mirror("127.0.0.1", 5555, "TestDevice")
                 args = popen_mock.call_args[0][0]
                 # Should clamp to 1024x768
-                    # Width is not passed to maintain aspect ratio, so we only check height
+                # Width is not passed to maintain aspect ratio, so we only check height
                 assert "--window-height" in args and str(768) in args
                 # Should clamp position to fit
                 assert "--window-x" in args and str(0) in args
