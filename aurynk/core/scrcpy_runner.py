@@ -4,7 +4,6 @@ import os
 import shutil
 import subprocess
 import threading
-import time
 
 from aurynk.i18n import _
 from aurynk.utils.logger import get_logger
@@ -292,8 +291,6 @@ class ScrcpyManager:
                     ],
                     check=False,
                 )
-                # Wait a short time to ensure the setting is applied
-                time.sleep(0.3)
             except Exception as e:
                 logger.warning(f"Failed to set show_touches via adb: {e}")
 
@@ -706,7 +703,6 @@ class ScrcpyManager:
                     ],
                     check=False,
                 )
-                time.sleep(0.3)
             except Exception as e:
                 logger.warning(f"Failed to set show_touches via adb: {e}")
 
