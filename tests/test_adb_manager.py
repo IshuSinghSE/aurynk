@@ -197,9 +197,7 @@ other-device._adb-tls-connect._tcp  192.168.1.6:6666
         delimiter = "AURYNK_DELIMITER_v1"
         # Simulate batched output
         # Format: value1\nDELIM\nvalue2\nDELIM...
-        output = (
-            f"MyMarketName\n{delimiter}\nPixel 5\n{delimiter}\nGoogle\n{delimiter}\n12\n"
-        )
+        output = f"MyMarketName\n{delimiter}\nPixel 5\n{delimiter}\nGoogle\n{delimiter}\n12\n"
 
         mock_subprocess_run.return_value = MagicMock(returncode=0, stdout=output)
 
