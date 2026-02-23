@@ -186,6 +186,37 @@ other-device._adb-tls-connect._tcp  192.168.1.6:6666
         self.adb_controller.remove_device("192.168.1.5")
         self.adb_controller.device_store.remove_device.assert_called_once_with("192.168.1.5")
 
+    @patch("aurynk.core.adb_manager.get_adb_path", return_value="adb")
+    @patch("subprocess.run")
+    @patch("aurynk.core.adb_manager.SettingsManager")
+    def test_fetch_device_info_batching(
+        self, mock_settings, mock_subprocess_run, mock_get_adb_path
+    ):
+        mock_settings.return_value.get.return_value = 10
+
+        delimiter = "AURYNK_DELIMITER_v1"
+        # Simulate batched output
+        # Format: value1\nDELIM\nvalue2\nDELIM...
+        output = (
+            f"MyMarketName\n{delimiter}\nPixel 5\n{delimiter}\nGoogle\n{delimiter}\n12\n"
+        )
+
+        mock_subprocess_run.return_value = MagicMock(returncode=0, stdout=output)
+
+        info = self.adb_controller._fetch_device_info("192.168.1.5", 5555)
+
+        self.assertEqual(info["name"], "MyMarketName")
+        self.assertEqual(info["model"], "Pixel 5")
+        self.assertEqual(info["manufacturer"], "Google")
+        self.assertEqual(info["android_version"], "12")
+
+        # Verify only 1 call was made
+        self.assertEqual(mock_subprocess_run.call_count, 1)
+
+        # Verify the command contains the delimiter
+        args, _ = mock_subprocess_run.call_args
+        self.assertIn(delimiter, args[0][4])
+
 
 if __name__ == "__main__":
     unittest.main()
