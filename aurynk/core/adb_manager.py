@@ -268,25 +268,49 @@ class ADBController:
         serial = f"{address}:{connect_port}"
         device_info = {}
 
-        # Helper to run adb shell command
-        def get_prop(prop: str) -> str:
-            try:
-                timeout = SettingsManager().get("adb", "connection_timeout", 10)
-                result = subprocess.run(
-                    [get_adb_path(), "-s", serial, "shell", "getprop", prop],
-                    capture_output=True,
-                    text=True,
-                    timeout=timeout,
-                )
-                return result.stdout.strip()
-            except Exception:
-                return ""
+        # Combined command to fetch all properties at once.
+        # This reduces the number of subprocess calls from 4 to 1.
+        delimiter = "AURYNK_DELIMITER_v1"
+        props = [
+            "ro.product.marketname",
+            "ro.product.device",
+            "ro.product.manufacturer",
+            "ro.build.version.release",
+        ]
 
-        # Fetch basic properties
-        marketname = get_prop("ro.product.marketname")
-        model = get_prop("ro.product.device")
-        manufacturer = get_prop("ro.product.manufacturer")
-        android_version = get_prop("ro.build.version.release")
+        # We use a unique delimiter to separate the outputs of each getprop command.
+        # This allows us to parse the result reliably even if some properties are empty or multi-line.
+        cmd_str = f"; echo '{delimiter}'; ".join([f"getprop {p}" for p in props])
+
+        marketname, model, manufacturer, android_version = "", "", "", ""
+
+        try:
+            timeout = SettingsManager().get("adb", "connection_timeout", 10)
+            result = subprocess.run(
+                [get_adb_path(), "-s", serial, "shell", cmd_str],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+
+            if result.returncode == 0:
+                output = result.stdout
+                parts = output.split(delimiter)
+                # Cleanup: split includes the delimiter itself if not careful, but here
+                # split("del") gives parts between delimiters.
+                # cmd: p1; echo del; p2; echo del; p3; echo del; p4
+                # output: val1\n del\n val2\n del\n val3\n del\n val4\n
+                # split(del): [val1\n, \n val2\n, \n val3\n, \n val4\n]
+
+                # Check how many parts we got
+                if len(parts) >= 4:
+                    marketname = parts[0].strip()
+                    model = parts[1].strip()
+                    manufacturer = parts[2].strip()
+                    android_version = parts[3].strip()
+
+        except Exception as e:
+            logger.error(f"Error fetching device info: {e}")
 
         device_info["name"] = f"{marketname}" if marketname else (model or _("Unknown"))
         device_info["model"] = model

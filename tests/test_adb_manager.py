@@ -186,6 +186,33 @@ other-device._adb-tls-connect._tcp  192.168.1.6:6666
         self.adb_controller.remove_device("192.168.1.5")
         self.adb_controller.device_store.remove_device.assert_called_once_with("192.168.1.5")
 
+    @patch("aurynk.core.adb_manager.get_adb_path", return_value="adb")
+    @patch("subprocess.run")
+    @patch("aurynk.core.adb_manager.SettingsManager")
+    def test_fetch_device_info(
+        self, mock_settings, mock_subprocess_run, mock_get_adb_path
+    ):
+        mock_settings.return_value.get.return_value = 10
+
+        delimiter = "AURYNK_DELIMITER_v1"
+        output_str = f"MyMarketName\n{delimiter}\nMyDevice\n{delimiter}\nMyManufacturer\n{delimiter}\n12\n"
+
+        mock_subprocess_run.return_value = MagicMock(returncode=0, stdout=output_str)
+
+        info = self.adb_controller._fetch_device_info("192.168.1.5", 5555)
+
+        self.assertEqual(info["name"], "MyMarketName")
+        self.assertEqual(info["model"], "MyDevice")
+        self.assertEqual(info["manufacturer"], "MyManufacturer")
+        self.assertEqual(info["android_version"], "12")
+
+        # Verify single call with chained command
+        mock_subprocess_run.assert_called_once()
+        args = mock_subprocess_run.call_args[0][0]
+        self.assertIn("adb", args)
+        self.assertIn("shell", args)
+        self.assertIn(delimiter, args[-1])
+
 
 if __name__ == "__main__":
     unittest.main()
