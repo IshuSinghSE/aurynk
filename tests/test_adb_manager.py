@@ -1,5 +1,12 @@
+import sys
+from unittest.mock import MagicMock
+
+# Mock zeroconf before import
+mock_zeroconf = MagicMock()
+sys.modules["zeroconf"] = mock_zeroconf
+
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from aurynk.core.adb_manager import ADBController
 
@@ -185,6 +192,40 @@ other-device._adb-tls-connect._tcp  192.168.1.6:6666
     def test_remove_device(self):
         self.adb_controller.remove_device("192.168.1.5")
         self.adb_controller.device_store.remove_device.assert_called_once_with("192.168.1.5")
+
+    @patch("aurynk.core.adb_manager.get_adb_path", return_value="adb")
+    @patch("subprocess.run")
+    @patch("aurynk.core.adb_manager.SettingsManager")
+    def test_fetch_device_info_batch(
+        self, mock_settings_manager, mock_subprocess_run, mock_get_adb_path
+    ):
+        """Test that _fetch_device_info uses a single batched ADB call."""
+        mock_settings_manager.return_value.get.return_value = 10
+
+        delimiter = "AURYNK_DELIMITER_v1"
+        # Simulate combined output: marketname, device, manufacturer, version
+        combined_output = f"MyMarketName\n{delimiter}\nMyDevice\n{delimiter}\nMyManufacturer\n{delimiter}\n12\n"
+
+        mock_subprocess_run.return_value = MagicMock(
+            returncode=0, stdout=combined_output, stderr=""
+        )
+
+        # Call the private method directly for testing
+        info = self.adb_controller._fetch_device_info("192.168.1.5", 5555)
+
+        # Verify results
+        self.assertEqual(info["name"], "MyMarketName")
+        self.assertEqual(info["model"], "MyDevice")
+        self.assertEqual(info["manufacturer"], "MyManufacturer")
+        self.assertEqual(info["android_version"], "12")
+
+        # Verify only 1 call was made
+        self.assertEqual(mock_subprocess_run.call_count, 1)
+        args, _ = mock_subprocess_run.call_args
+        cmd_str = args[0][-1]  # The shell command string
+        self.assertIn(delimiter, cmd_str)
+        self.assertIn("getprop ro.product.marketname", cmd_str)
+        self.assertIn("getprop ro.product.device", cmd_str)
 
 
 if __name__ == "__main__":
