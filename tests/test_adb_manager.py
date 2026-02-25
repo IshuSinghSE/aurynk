@@ -204,7 +204,9 @@ other-device._adb-tls-connect._tcp  192.168.1.6:6666
 
         delimiter = "AURYNK_DELIMITER_v1"
         # Simulate combined output: marketname, device, manufacturer, version
-        combined_output = f"MyMarketName\n{delimiter}\nMyDevice\n{delimiter}\nMyManufacturer\n{delimiter}\n12\n"
+        combined_output = (
+            f"MyMarketName\n{delimiter}\nMyDevice\n{delimiter}\nMyManufacturer\n{delimiter}\n12\n"
+        )
 
         mock_subprocess_run.return_value = MagicMock(
             returncode=0, stdout=combined_output, stderr=""
