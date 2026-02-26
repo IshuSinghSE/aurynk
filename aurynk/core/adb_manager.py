@@ -268,25 +268,37 @@ class ADBController:
         serial = f"{address}:{connect_port}"
         device_info = {}
 
-        # Helper to run adb shell command
-        def get_prop(prop: str) -> str:
-            try:
-                timeout = SettingsManager().get("adb", "connection_timeout", 10)
-                result = subprocess.run(
-                    [get_adb_path(), "-s", serial, "shell", "getprop", prop],
-                    capture_output=True,
-                    text=True,
-                    timeout=timeout,
-                )
-                return result.stdout.strip()
-            except Exception:
-                return ""
+        try:
+            timeout = SettingsManager().get("adb", "connection_timeout", 10)
+            delimiter = "AURYNK_DELIMITER_v1"
+            props = [
+                "ro.product.marketname",
+                "ro.product.device",
+                "ro.product.manufacturer",
+                "ro.build.version.release",
+            ]
+            cmd_list = [f"getprop {p}" for p in props]
+            cmd_str = f"; echo {delimiter}; ".join(cmd_list)
 
-        # Fetch basic properties
-        marketname = get_prop("ro.product.marketname")
-        model = get_prop("ro.product.device")
-        manufacturer = get_prop("ro.product.manufacturer")
-        android_version = get_prop("ro.build.version.release")
+            result = subprocess.run(
+                [get_adb_path(), "-s", serial, "shell", cmd_str],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+
+            parts = result.stdout.split(delimiter)
+            marketname = parts[0].strip() if len(parts) > 0 else ""
+            model = parts[1].strip() if len(parts) > 1 else ""
+            manufacturer = parts[2].strip() if len(parts) > 2 else ""
+            android_version = parts[3].strip() if len(parts) > 3 else ""
+
+        except Exception as e:
+            logger.debug(f"Error fetching device info: {e}")
+            marketname = ""
+            model = ""
+            manufacturer = ""
+            android_version = ""
 
         device_info["name"] = f"{marketname}" if marketname else (model or _("Unknown"))
         device_info["model"] = model
