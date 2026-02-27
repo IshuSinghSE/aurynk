@@ -268,25 +268,58 @@ class ADBController:
         serial = f"{address}:{connect_port}"
         device_info = {}
 
-        # Helper to run adb shell command
-        def get_prop(prop: str) -> str:
-            try:
-                timeout = SettingsManager().get("adb", "connection_timeout", 10)
-                result = subprocess.run(
-                    [get_adb_path(), "-s", serial, "shell", "getprop", prop],
-                    capture_output=True,
-                    text=True,
-                    timeout=timeout,
-                )
-                return result.stdout.strip()
-            except Exception:
-                return ""
+        AURYNK_DELIMITER_v1 = "||||"
 
-        # Fetch basic properties
-        marketname = get_prop("ro.product.marketname")
-        model = get_prop("ro.product.device")
-        manufacturer = get_prop("ro.product.manufacturer")
-        android_version = get_prop("ro.build.version.release")
+        try:
+            timeout = SettingsManager().get("adb", "connection_timeout", 10)
+
+            # Construct a single command string to fetch all properties
+            # We use 'echo' to print the delimiter between property values.
+            # This relies on the shell on the device interpreting ';'.
+            # Most Android shells (mksh, toybox) support ';'.
+            cmd_str = (
+                f"getprop ro.product.marketname; echo '{AURYNK_DELIMITER_v1}'; "
+                f"getprop ro.product.device; echo '{AURYNK_DELIMITER_v1}'; "
+                f"getprop ro.product.manufacturer; echo '{AURYNK_DELIMITER_v1}'; "
+                f"getprop ro.build.version.release"
+            )
+
+            # We pass the command string as a single argument after 'shell'
+            # Note: subprocess.run with a list arguments doesn't invoke a shell on the host,
+            # but 'adb shell <cmd>' passes <cmd> to the device's shell.
+            # However, if we pass multiple arguments after 'shell', adb joins them with spaces.
+            # To be safe and precise with our semicolons, we should pass it as one string.
+
+            result = subprocess.run(
+                [get_adb_path(), "-s", serial, "shell", cmd_str],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+
+            if result.returncode != 0:
+                logger.warning(f"Failed to fetch device info: {result.stderr}")
+                marketname = ""
+                model = ""
+                manufacturer = ""
+                android_version = ""
+            else:
+                output = result.stdout
+                parts = output.split(AURYNK_DELIMITER_v1)
+
+                # We expect 4 values separated by 3 delimiters -> 4 parts
+                # Let's clean up each part.
+                marketname = parts[0].strip() if len(parts) > 0 else ""
+                model = parts[1].strip() if len(parts) > 1 else ""
+                manufacturer = parts[2].strip() if len(parts) > 2 else ""
+                android_version = parts[3].strip() if len(parts) > 3 else ""
+
+        except Exception as e:
+            logger.error(f"Error fetching device info: {e}")
+            marketname = ""
+            model = ""
+            manufacturer = ""
+            android_version = ""
 
         device_info["name"] = f"{marketname}" if marketname else (model or _("Unknown"))
         device_info["model"] = model

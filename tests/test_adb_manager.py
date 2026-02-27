@@ -61,6 +61,38 @@ class TestADBController(unittest.TestCase):
     @patch("aurynk.core.adb_manager.get_adb_path", return_value="adb")
     @patch("subprocess.run")
     @patch("aurynk.core.adb_manager.SettingsManager")
+    def test_fetch_device_info(self, mock_settings_manager, mock_subprocess_run, mock_get_adb_path):
+        mock_settings_manager.return_value.get.return_value = 10
+
+        # Combined output
+        # AURYNK_DELIMITER_v1 = "||||"
+        # We need to simulate stdout that contains the delimiter
+        # Format: prop1\nDELIM\nprop2\nDELIM\nprop3\nDELIM\nprop4
+
+        delimiter = "||||"
+        stdout = f"MyPhone\n{delimiter}\nPixel 5\n{delimiter}\nGoogle\n{delimiter}\n12\n"
+
+        mock_subprocess_run.return_value = MagicMock(returncode=0, stdout=stdout)
+
+        info = self.adb_controller._fetch_device_info("192.168.1.5", 5555)
+
+        self.assertEqual(info["name"], "MyPhone")
+        self.assertEqual(info["model"], "Pixel 5")
+        self.assertEqual(info["manufacturer"], "Google")
+        self.assertEqual(info["android_version"], "12")
+
+        # Verify only 1 subprocess call
+        mock_subprocess_run.assert_called_once()
+        args = mock_subprocess_run.call_args[0][0]
+        self.assertIn("shell", args)
+        # Check command structure
+        cmd_str = args[-1]
+        self.assertIn("getprop ro.product.marketname", cmd_str)
+        self.assertIn("echo '||||'", cmd_str)
+
+    @patch("aurynk.core.adb_manager.get_adb_path", return_value="adb")
+    @patch("subprocess.run")
+    @patch("aurynk.core.adb_manager.SettingsManager")
     @patch("time.sleep")
     def test_pair_device_connect_fail(
         self, mock_sleep, mock_settings_manager, mock_subprocess_run, mock_get_adb_path
