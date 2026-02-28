@@ -714,7 +714,7 @@ def tray_mirror_device(app, address):
                         GLib.idle_add(win._update_all_mirror_buttons)
                     else:
                         # We have just started mirroring: delay update slightly
-                        GLib.timeout_add(120, lambda: (win._update_all_mirror_buttons() or False))
+                        GLib.timeout_add(120, lambda: win._update_all_mirror_buttons() or False)
             except Exception:
                 pass
 
@@ -796,7 +796,7 @@ def tray_mirror_device(app, address):
                     if not started:
                         try:
                             GLib.idle_add(
-                                lambda: (win._show_scrcpy_unavailable_dialog(address) or False)
+                                lambda: win._show_scrcpy_unavailable_dialog(address) or False
                             )
                         except Exception:
                             logger.exception(
@@ -810,9 +810,7 @@ def tray_mirror_device(app, address):
                     started = False
                 if not started:
                     try:
-                        GLib.idle_add(
-                            lambda: (win._show_scrcpy_unavailable_dialog(address) or False)
-                        )
+                        GLib.idle_add(lambda: win._show_scrcpy_unavailable_dialog(address) or False)
                     except Exception:
                         logger.exception("Failed to schedule scrcpy unavailable dialog from tray")
 
@@ -822,7 +820,7 @@ def tray_mirror_device(app, address):
                 if is_mirroring:
                     GLib.idle_add(win._update_all_mirror_buttons)
                 else:
-                    GLib.timeout_add(120, lambda: (win._update_all_mirror_buttons() or False))
+                    GLib.timeout_add(120, lambda: win._update_all_mirror_buttons() or False)
         except Exception:
             pass
 

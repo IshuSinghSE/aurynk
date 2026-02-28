@@ -311,47 +311,48 @@ class ADBController:
         specs = {"ram": "", "storage": "", "battery": ""}
 
         try:
-            # RAM
-            timeout = SettingsManager().get("adb", "connection_timeout", 10)
-            meminfo = subprocess.run(
-                [get_adb_path(), "-s", serial, "shell", "cat", "/proc/meminfo"],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
             import re
 
-            match = re.search(r"MemTotal:\s+(\d+) kB", meminfo.stdout)
-            if match:
-                ram_mb = int(match.group(1)) // 1000
-                ram_gb = ram_mb / 1000
-                specs["ram"] = f"{round(ram_gb)} GB"
+            timeout = SettingsManager().get("adb", "connection_timeout", 10)
+            delimiter = "||||"
 
-            # Storage
-            df = subprocess.run(
-                [get_adb_path(), "-s", serial, "shell", "df", "/data"],
+            # ⚡ Bolt: Performance optimization
+            # Batches 3 commands into 1 adb shell call using a custom delimiter.
+            # This reduces the overhead of establishing an adb connection 3 separate times.
+            cmd = f"cat /proc/meminfo; echo '{delimiter}'; df /data; echo '{delimiter}'; dumpsys battery"
+
+            result = subprocess.run(
+                [get_adb_path(), "-s", serial, "shell", cmd],
                 capture_output=True,
                 text=True,
                 timeout=timeout,
             )
-            lines = df.stdout.splitlines()
-            if len(lines) > 1:
-                parts = lines[1].split()
-                if len(parts) > 1:
-                    storage_mb = int(parts[1]) // 1000
-                    storage_gb = storage_mb / 1000
-                    specs["storage"] = f"{round(storage_gb)} GB"
 
-            # Battery
-            battery = subprocess.run(
-                [get_adb_path(), "-s", serial, "shell", "dumpsys", "battery"],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
-            match = re.search(r"level: (\d+)", battery.stdout)
-            if match:
-                specs["battery"] = f"{match.group(1)}%"
+            parts = result.stdout.split(delimiter)
+
+            if len(parts) >= 1:
+                # RAM
+                match = re.search(r"MemTotal:\s+(\d+) kB", parts[0])
+                if match:
+                    ram_mb = int(match.group(1)) // 1000
+                    ram_gb = ram_mb / 1000
+                    specs["ram"] = f"{round(ram_gb)} GB"
+
+            if len(parts) >= 2:
+                # Storage
+                lines = parts[1].strip().splitlines()
+                if len(lines) > 1:
+                    storage_parts = lines[1].split()
+                    if len(storage_parts) > 1:
+                        storage_mb = int(storage_parts[1]) // 1000
+                        storage_gb = storage_mb / 1000
+                        specs["storage"] = f"{round(storage_gb)} GB"
+
+            if len(parts) >= 3:
+                # Battery
+                match = re.search(r"level: (\d+)", parts[2])
+                if match:
+                    specs["battery"] = f"{match.group(1)}%"
 
         except Exception as e:
             logger.error(f"Error fetching specs: {e}")
@@ -371,47 +372,48 @@ class ADBController:
         specs = {"ram": "", "storage": "", "battery": ""}
 
         try:
-            # RAM
-            timeout = SettingsManager().get("adb", "connection_timeout", 10)
-            meminfo = subprocess.run(
-                [get_adb_path(), "-s", serial, "shell", "cat", "/proc/meminfo"],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
             import re
 
-            match = re.search(r"MemTotal:\s+(\d+) kB", meminfo.stdout)
-            if match:
-                ram_mb = int(match.group(1)) // 1000
-                ram_gb = ram_mb / 1000
-                specs["ram"] = f"{round(ram_gb)} GB"
+            timeout = SettingsManager().get("adb", "connection_timeout", 10)
+            delimiter = "||||"
 
-            # Storage
-            df = subprocess.run(
-                [get_adb_path(), "-s", serial, "shell", "df", "/data"],
+            # ⚡ Bolt: Performance optimization
+            # Batches 3 commands into 1 adb shell call using a custom delimiter.
+            # This reduces the overhead of establishing an adb connection 3 separate times.
+            cmd = f"cat /proc/meminfo; echo '{delimiter}'; df /data; echo '{delimiter}'; dumpsys battery"
+
+            result = subprocess.run(
+                [get_adb_path(), "-s", serial, "shell", cmd],
                 capture_output=True,
                 text=True,
                 timeout=timeout,
             )
-            lines = df.stdout.splitlines()
-            if len(lines) > 1:
-                parts = lines[1].split()
-                if len(parts) > 1:
-                    storage_mb = int(parts[1]) // 1000
-                    storage_gb = storage_mb / 1000
-                    specs["storage"] = f"{round(storage_gb)} GB"
 
-            # Battery
-            battery = subprocess.run(
-                [get_adb_path(), "-s", serial, "shell", "dumpsys", "battery"],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
-            match = re.search(r"level: (\d+)", battery.stdout)
-            if match:
-                specs["battery"] = f"{match.group(1)}%"
+            parts = result.stdout.split(delimiter)
+
+            if len(parts) >= 1:
+                # RAM
+                match = re.search(r"MemTotal:\s+(\d+) kB", parts[0])
+                if match:
+                    ram_mb = int(match.group(1)) // 1000
+                    ram_gb = ram_mb / 1000
+                    specs["ram"] = f"{round(ram_gb)} GB"
+
+            if len(parts) >= 2:
+                # Storage
+                lines = parts[1].strip().splitlines()
+                if len(lines) > 1:
+                    storage_parts = lines[1].split()
+                    if len(storage_parts) > 1:
+                        storage_mb = int(storage_parts[1]) // 1000
+                        storage_gb = storage_mb / 1000
+                        specs["storage"] = f"{round(storage_gb)} GB"
+
+            if len(parts) >= 3:
+                # Battery
+                match = re.search(r"level: (\d+)", parts[2])
+                if match:
+                    specs["battery"] = f"{match.group(1)}%"
 
         except Exception as e:
             logger.error(f"Error fetching specs by serial: {e}")

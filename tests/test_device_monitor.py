@@ -1,3 +1,10 @@
+import sys
+from unittest.mock import MagicMock
+
+# Mock zeroconf and its submodules before importing aurynk modules
+sys.modules["zeroconf"] = MagicMock()
+sys.modules["zeroconf.asyncio"] = MagicMock()
+
 from aurynk.services.device_monitor import DeviceMonitor
 
 

@@ -1,5 +1,10 @@
+import sys
 import unittest
 from unittest.mock import MagicMock, patch
+
+# Mock zeroconf and its submodules before importing aurynk modules
+sys.modules["zeroconf"] = MagicMock()
+sys.modules["zeroconf.asyncio"] = MagicMock()
 
 from aurynk.core.adb_manager import ADBController
 
@@ -110,14 +115,15 @@ other-device._adb-tls-connect._tcp  192.168.1.6:6666
     def test_fetch_device_specs(self, mock_settings, mock_subprocess_run, mock_get_adb_path):
         mock_settings.return_value.get.return_value = 10
 
-        # meminfo, df, dumpsys battery
-        mock_subprocess_run.side_effect = [
-            MagicMock(stdout="MemTotal:        8000000 kB\n"),
-            MagicMock(
-                stdout="Filesystem 1K-blocks Used Available Use% Mounted on\n/dev/block/dm-0 120000000 10000 110000000 1% /data\n"
-            ),
-            MagicMock(stdout="  level: 85\n"),
-        ]
+        # Combined stdout for meminfo, df, dumpsys battery separated by ||||
+        combined_stdout = (
+            "MemTotal:        8000000 kB\n"
+            "||||\n"
+            "Filesystem 1K-blocks Used Available Use% Mounted on\n/dev/block/dm-0 120000000 10000 110000000 1% /data\n"
+            "||||\n"
+            "  level: 85\n"
+        )
+        mock_subprocess_run.return_value = MagicMock(stdout=combined_stdout)
 
         specs = self.adb_controller.fetch_device_specs("192.168.1.5", 5555)
         self.assertEqual(specs["ram"], "8 GB")
