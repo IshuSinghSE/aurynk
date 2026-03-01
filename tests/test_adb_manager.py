@@ -1,14 +1,5 @@
-import sys
 import unittest
 from unittest.mock import MagicMock, patch
-
-# Mock zeroconf to avoid import errors when testing without installing it
-mock_zeroconf = MagicMock()
-sys.modules["zeroconf"] = mock_zeroconf
-sys.modules["zeroconf.IPVersion"] = MagicMock()
-sys.modules["zeroconf.ServiceBrowser"] = MagicMock()
-sys.modules["zeroconf.ServiceStateChange"] = MagicMock()
-sys.modules["zeroconf.Zeroconf"] = MagicMock()
 
 from aurynk.core.adb_manager import ADBController
 
@@ -32,14 +23,14 @@ class TestADBController(unittest.TestCase):
     ):
         mock_settings_manager.return_value.get.side_effect = lambda section, key, default: default
 
-        delim = "_AURYNK_DELIM_"
         # Mock pair command success
         mock_subprocess_run.side_effect = [
             MagicMock(returncode=0, stdout="", stderr=""),  # pair
             MagicMock(returncode=0, stdout="connected to 192.168.1.5:5555", stderr=""),  # connect
-            MagicMock(
-                stdout=f"MyPhone\n{delim}Pixel 5\n{delim}Google\n{delim}12\n"
-            ),  # fetch_device_info batched
+            MagicMock(stdout="MyPhone\n"),  # getprop marketname
+            MagicMock(stdout="Pixel 5\n"),  # getprop device
+            MagicMock(stdout="Google\n"),  # getprop manufacturer
+            MagicMock(stdout="12\n"),  # getprop android_version
         ]
 
         # Use a mock for _fetch_device_info to simplify if needed, but integration testing the flow is better here
@@ -119,11 +110,14 @@ other-device._adb-tls-connect._tcp  192.168.1.6:6666
     def test_fetch_device_specs(self, mock_settings, mock_subprocess_run, mock_get_adb_path):
         mock_settings.return_value.get.return_value = 10
 
-        delim = "_AURYNK_DELIM_"
-        # meminfo, df, dumpsys battery batched
-        mock_subprocess_run.return_value = MagicMock(
-            stdout=f"MemTotal:        8000000 kB\n{delim}Filesystem 1K-blocks Used Available Use% Mounted on\n/dev/block/dm-0 120000000 10000 110000000 1% /data\n{delim}  level: 85\n"
-        )
+        # meminfo, df, dumpsys battery
+        mock_subprocess_run.side_effect = [
+            MagicMock(stdout="MemTotal:        8000000 kB\n"),
+            MagicMock(
+                stdout="Filesystem 1K-blocks Used Available Use% Mounted on\n/dev/block/dm-0 120000000 10000 110000000 1% /data\n"
+            ),
+            MagicMock(stdout="  level: 85\n"),
+        ]
 
         specs = self.adb_controller.fetch_device_specs("192.168.1.5", 5555)
         self.assertEqual(specs["ram"], "8 GB")
