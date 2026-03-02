@@ -110,14 +110,14 @@ other-device._adb-tls-connect._tcp  192.168.1.6:6666
     def test_fetch_device_specs(self, mock_settings, mock_subprocess_run, mock_get_adb_path):
         mock_settings.return_value.get.return_value = 10
 
-        # meminfo, df, dumpsys battery
-        mock_subprocess_run.side_effect = [
-            MagicMock(stdout="MemTotal:        8000000 kB\n"),
-            MagicMock(
-                stdout="Filesystem 1K-blocks Used Available Use% Mounted on\n/dev/block/dm-0 120000000 10000 110000000 1% /data\n"
-            ),
-            MagicMock(stdout="  level: 85\n"),
-        ]
+        # ⚡ Bolt Optimization: Tests now simulate a single batched command response
+        mock_subprocess_run.return_value = MagicMock(
+            stdout="MemTotal:        8000000 kB\n"
+            "_AURYNK_DELIM_"
+            "Filesystem 1K-blocks Used Available Use% Mounted on\n/dev/block/dm-0 120000000 10000 110000000 1% /data\n"
+            "_AURYNK_DELIM_"
+            "  level: 85\n"
+        )
 
         specs = self.adb_controller.fetch_device_specs("192.168.1.5", 5555)
         self.assertEqual(specs["ram"], "8 GB")
