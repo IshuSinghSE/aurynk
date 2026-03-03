@@ -1,5 +1,9 @@
+import sys
 import unittest
 from unittest.mock import MagicMock, patch
+
+# Mock zeroconf dependency
+sys.modules['zeroconf'] = MagicMock()
 
 from aurynk.core.adb_manager import ADBController
 
@@ -27,14 +31,10 @@ class TestADBController(unittest.TestCase):
         mock_subprocess_run.side_effect = [
             MagicMock(returncode=0, stdout="", stderr=""),  # pair
             MagicMock(returncode=0, stdout="connected to 192.168.1.5:5555", stderr=""),  # connect
-            MagicMock(stdout="MyPhone\n"),  # getprop marketname
-            MagicMock(stdout="Pixel 5\n"),  # getprop device
-            MagicMock(stdout="Google\n"),  # getprop manufacturer
-            MagicMock(stdout="12\n"),  # getprop android_version
+            MagicMock(stdout="MyPhone\n_AURYNK_DELIM_\nPixel 5\n_AURYNK_DELIM_\nGoogle\n_AURYNK_DELIM_\n12\n"),  # batched getprop
         ]
 
         # Use a mock for _fetch_device_info to simplify if needed, but integration testing the flow is better here
-        # Actually _fetch_device_info calls subprocess.run multiple times.
         # Let's mock _fetch_device_info to make test simpler and more focused on pair_device logic
         with patch.object(self.adb_controller, "_fetch_device_info") as mock_fetch_info:
             mock_fetch_info.return_value = {"name": "Test Device"}
@@ -110,14 +110,16 @@ other-device._adb-tls-connect._tcp  192.168.1.6:6666
     def test_fetch_device_specs(self, mock_settings, mock_subprocess_run, mock_get_adb_path):
         mock_settings.return_value.get.return_value = 10
 
-        # meminfo, df, dumpsys battery
-        mock_subprocess_run.side_effect = [
-            MagicMock(stdout="MemTotal:        8000000 kB\n"),
-            MagicMock(
-                stdout="Filesystem 1K-blocks Used Available Use% Mounted on\n/dev/block/dm-0 120000000 10000 110000000 1% /data\n"
-            ),
-            MagicMock(stdout="  level: 85\n"),
-        ]
+        # Batched output with delimiters
+        batched_stdout = (
+            "MemTotal:        8000000 kB\n"
+            "_AURYNK_DELIM_\n"
+            "Filesystem 1K-blocks Used Available Use% Mounted on\n"
+            "/dev/block/dm-0 120000000 10000 110000000 1% /data\n"
+            "_AURYNK_DELIM_\n"
+            "  level: 85\n"
+        )
+        mock_subprocess_run.return_value = MagicMock(stdout=batched_stdout)
 
         specs = self.adb_controller.fetch_device_specs("192.168.1.5", 5555)
         self.assertEqual(specs["ram"], "8 GB")
