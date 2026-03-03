@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 # Mock zeroconf dependency
-sys.modules['zeroconf'] = MagicMock()
+sys.modules["zeroconf"] = MagicMock()
 
 from aurynk.core.adb_manager import ADBController
 
@@ -31,7 +31,9 @@ class TestADBController(unittest.TestCase):
         mock_subprocess_run.side_effect = [
             MagicMock(returncode=0, stdout="", stderr=""),  # pair
             MagicMock(returncode=0, stdout="connected to 192.168.1.5:5555", stderr=""),  # connect
-            MagicMock(stdout="MyPhone\n_AURYNK_DELIM_\nPixel 5\n_AURYNK_DELIM_\nGoogle\n_AURYNK_DELIM_\n12\n"),  # batched getprop
+            MagicMock(
+                stdout="MyPhone\n_AURYNK_DELIM_\nPixel 5\n_AURYNK_DELIM_\nGoogle\n_AURYNK_DELIM_\n12\n"
+            ),  # batched getprop
         ]
 
         # Use a mock for _fetch_device_info to simplify if needed, but integration testing the flow is better here
