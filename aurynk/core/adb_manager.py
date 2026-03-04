@@ -268,25 +268,31 @@ class ADBController:
         serial = f"{address}:{connect_port}"
         device_info = {}
 
-        # Helper to run adb shell command
-        def get_prop(prop: str) -> str:
-            try:
-                timeout = SettingsManager().get("adb", "connection_timeout", 10)
-                result = subprocess.run(
-                    [get_adb_path(), "-s", serial, "shell", "getprop", prop],
-                    capture_output=True,
-                    text=True,
-                    timeout=timeout,
-                )
-                return result.stdout.strip()
-            except Exception:
-                return ""
+        # Fetch basic properties in a single adb call
+        marketname = ""
+        model = ""
+        manufacturer = ""
+        android_version = ""
 
-        # Fetch basic properties
-        marketname = get_prop("ro.product.marketname")
-        model = get_prop("ro.product.device")
-        manufacturer = get_prop("ro.product.manufacturer")
-        android_version = get_prop("ro.build.version.release")
+        try:
+            timeout = SettingsManager().get("adb", "connection_timeout", 10)
+            # Batch the getprop calls to minimize adb overhead
+            cmd = "getprop ro.product.marketname; echo '---AURYNK_SEP---'; getprop ro.product.device; echo '---AURYNK_SEP---'; getprop ro.product.manufacturer; echo '---AURYNK_SEP---'; getprop ro.build.version.release"
+            result = subprocess.run(
+                [get_adb_path(), "-s", serial, "shell", cmd],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+
+            parts = result.stdout.split("---AURYNK_SEP---")
+            if len(parts) >= 4:
+                marketname = parts[0].strip()
+                model = parts[1].strip()
+                manufacturer = parts[2].strip()
+                android_version = parts[3].strip()
+        except Exception as e:
+            logger.error(f"Error fetching device info: {e}")
 
         device_info["name"] = f"{marketname}" if marketname else (model or _("Unknown"))
         device_info["model"] = model
@@ -311,47 +317,46 @@ class ADBController:
         specs = {"ram": "", "storage": "", "battery": ""}
 
         try:
-            # RAM
             timeout = SettingsManager().get("adb", "connection_timeout", 10)
-            meminfo = subprocess.run(
-                [get_adb_path(), "-s", serial, "shell", "cat", "/proc/meminfo"],
+            cmd = "cat /proc/meminfo; echo '---AURYNK_SEP---'; df /data; echo '---AURYNK_SEP---'; dumpsys battery"
+
+            result = subprocess.run(
+                [get_adb_path(), "-s", serial, "shell", cmd],
                 capture_output=True,
                 text=True,
                 timeout=timeout,
             )
+
             import re
 
-            match = re.search(r"MemTotal:\s+(\d+) kB", meminfo.stdout)
-            if match:
-                ram_mb = int(match.group(1)) // 1000
-                ram_gb = ram_mb / 1000
-                specs["ram"] = f"{round(ram_gb)} GB"
+            parts = result.stdout.split("---AURYNK_SEP---")
 
-            # Storage
-            df = subprocess.run(
-                [get_adb_path(), "-s", serial, "shell", "df", "/data"],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
-            lines = df.stdout.splitlines()
-            if len(lines) > 1:
-                parts = lines[1].split()
-                if len(parts) > 1:
-                    storage_mb = int(parts[1]) // 1000
-                    storage_gb = storage_mb / 1000
-                    specs["storage"] = f"{round(storage_gb)} GB"
+            if len(parts) >= 3:
+                meminfo_out, df_out, battery_out = parts[0], parts[1], parts[2]
 
-            # Battery
-            battery = subprocess.run(
-                [get_adb_path(), "-s", serial, "shell", "dumpsys", "battery"],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
-            match = re.search(r"level: (\d+)", battery.stdout)
-            if match:
-                specs["battery"] = f"{match.group(1)}%"
+                # RAM
+                match = re.search(r"MemTotal:\s+(\d+) kB", meminfo_out)
+                if match:
+                    ram_mb = int(match.group(1)) // 1000
+                    ram_gb = ram_mb / 1000
+                    specs["ram"] = f"{round(ram_gb)} GB"
+
+                # Storage
+                lines = df_out.strip().splitlines()
+                if len(lines) > 1:
+                    parts_df = lines[1].split()
+                    if len(parts_df) > 1:
+                        try:
+                            storage_mb = int(parts_df[1]) // 1000
+                            storage_gb = storage_mb / 1000
+                            specs["storage"] = f"{round(storage_gb)} GB"
+                        except ValueError:
+                            pass
+
+                # Battery
+                match = re.search(r"level: (\d+)", battery_out)
+                if match:
+                    specs["battery"] = f"{match.group(1)}%"
 
         except Exception as e:
             logger.error(f"Error fetching specs: {e}")
@@ -371,47 +376,46 @@ class ADBController:
         specs = {"ram": "", "storage": "", "battery": ""}
 
         try:
-            # RAM
             timeout = SettingsManager().get("adb", "connection_timeout", 10)
-            meminfo = subprocess.run(
-                [get_adb_path(), "-s", serial, "shell", "cat", "/proc/meminfo"],
+            cmd = "cat /proc/meminfo; echo '---AURYNK_SEP---'; df /data; echo '---AURYNK_SEP---'; dumpsys battery"
+
+            result = subprocess.run(
+                [get_adb_path(), "-s", serial, "shell", cmd],
                 capture_output=True,
                 text=True,
                 timeout=timeout,
             )
+
             import re
 
-            match = re.search(r"MemTotal:\s+(\d+) kB", meminfo.stdout)
-            if match:
-                ram_mb = int(match.group(1)) // 1000
-                ram_gb = ram_mb / 1000
-                specs["ram"] = f"{round(ram_gb)} GB"
+            parts = result.stdout.split("---AURYNK_SEP---")
 
-            # Storage
-            df = subprocess.run(
-                [get_adb_path(), "-s", serial, "shell", "df", "/data"],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
-            lines = df.stdout.splitlines()
-            if len(lines) > 1:
-                parts = lines[1].split()
-                if len(parts) > 1:
-                    storage_mb = int(parts[1]) // 1000
-                    storage_gb = storage_mb / 1000
-                    specs["storage"] = f"{round(storage_gb)} GB"
+            if len(parts) >= 3:
+                meminfo_out, df_out, battery_out = parts[0], parts[1], parts[2]
 
-            # Battery
-            battery = subprocess.run(
-                [get_adb_path(), "-s", serial, "shell", "dumpsys", "battery"],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
-            match = re.search(r"level: (\d+)", battery.stdout)
-            if match:
-                specs["battery"] = f"{match.group(1)}%"
+                # RAM
+                match = re.search(r"MemTotal:\s+(\d+) kB", meminfo_out)
+                if match:
+                    ram_mb = int(match.group(1)) // 1000
+                    ram_gb = ram_mb / 1000
+                    specs["ram"] = f"{round(ram_gb)} GB"
+
+                # Storage
+                lines = df_out.strip().splitlines()
+                if len(lines) > 1:
+                    parts_df = lines[1].split()
+                    if len(parts_df) > 1:
+                        try:
+                            storage_mb = int(parts_df[1]) // 1000
+                            storage_gb = storage_mb / 1000
+                            specs["storage"] = f"{round(storage_gb)} GB"
+                        except ValueError:
+                            pass
+
+                # Battery
+                match = re.search(r"level: (\d+)", battery_out)
+                if match:
+                    specs["battery"] = f"{match.group(1)}%"
 
         except Exception as e:
             logger.error(f"Error fetching specs by serial: {e}")

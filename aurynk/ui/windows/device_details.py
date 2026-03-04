@@ -261,25 +261,26 @@ class DeviceDetailsWindow(Adw.Window):
                         import subprocess
 
                         try:
-                            props_to_fetch = [
-                                ("ro.product.model", "model"),
-                                ("ro.product.manufacturer", "manufacturer"),
-                                ("ro.build.version.release", "android_version"),
-                            ]
+                            cmd = "getprop ro.product.model; echo '---AURYNK_SEP---'; getprop ro.product.manufacturer; echo '---AURYNK_SEP---'; getprop ro.build.version.release"
+                            result = subprocess.run(
+                                ["adb", "-s", adb_serial, "shell", cmd],
+                                capture_output=True,
+                                text=True,
+                                timeout=5,
+                            )
 
-                            for prop, key in props_to_fetch:
-                                try:
-                                    result = subprocess.run(
-                                        ["adb", "-s", adb_serial, "shell", "getprop", prop],
-                                        capture_output=True,
-                                        text=True,
-                                        timeout=5,
-                                    )
-                                    value = result.stdout.strip()
-                                    if value:
-                                        self.device[key] = value
-                                except Exception:
-                                    pass
+                            parts = result.stdout.split("---AURYNK_SEP---")
+                            if len(parts) >= 3:
+                                model = parts[0].strip()
+                                manufacturer = parts[1].strip()
+                                android_version = parts[2].strip()
+
+                                if model:
+                                    self.device["model"] = model
+                                if manufacturer:
+                                    self.device["manufacturer"] = manufacturer
+                                if android_version:
+                                    self.device["android_version"] = android_version
 
                             # Update name to use the actual model if available
                             if self.device.get("model") and not self.device.get("name"):
