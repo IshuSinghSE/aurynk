@@ -15,6 +15,25 @@ def get_adb_path():
     return "adb"
 
 
+def get_connected_device_serials() -> set[str]:
+    """Get a set of all currently connected device serials.
+    This helps prevent the N+1 problem of repeatedly calling 'adb devices'."""
+    import subprocess
+
+    serials = set()
+
+    try:
+        result = subprocess.run([get_adb_path(), "devices"], capture_output=True, text=True)
+        if result.returncode == 0:
+            for line in result.stdout.splitlines():
+                if "\tdevice" in line:
+                    serial = line.split("\t")[0]
+                    serials.add(serial)
+    except Exception:
+        pass
+    return serials
+
+
 def is_device_connected(address, connect_port):
     """Check if a device is connected via adb."""
     import subprocess

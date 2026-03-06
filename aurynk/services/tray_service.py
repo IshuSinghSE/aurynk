@@ -192,7 +192,9 @@ def _do_tray_update(app, status: str = None):
 
         devices = win.adb_controller.load_paired_devices()
         device_status = []
-        from aurynk.utils.adb_utils import is_device_connected
+        from aurynk.utils.adb_utils import get_connected_device_serials
+
+        connected_serials = get_connected_device_serials()
 
         scrcpy = ScrcpyManager()
         # Query helper for running processes (non-blocking small timeout)
@@ -222,9 +224,9 @@ def _do_tray_update(app, status: str = None):
                     mirroring = False
 
                     if address and connect_port:
-                        connected = is_device_connected(address, connect_port)
-                        # Prefer helper process status when available
                         key = f"{address}:{connect_port}"
+                        connected = key in connected_serials
+                        # Prefer helper process status when available
                         mirroring = False
                         if key in helper_processes:
                             mirroring = True
@@ -259,7 +261,8 @@ def _do_tray_update(app, status: str = None):
                 connected = False
                 mirroring = False
                 if address and connect_port:
-                    connected = is_device_connected(address, connect_port)
+                    key = f"{address}:{connect_port}"
+                    connected = key in connected_serials
                     mirroring = scrcpy.is_mirroring(address, connect_port)
                 device_status.append(
                     {
@@ -343,11 +346,15 @@ def send_devices_to_tray(devices):
     import subprocess
 
     try:
-        from aurynk.utils.adb_utils import is_device_connected
+        from aurynk.utils.adb_utils import get_connected_device_serials, is_device_connected
+
+        connected_serials = get_connected_device_serials()
     except Exception:
         # If import fails, fallback to assuming devices are disconnected
         def is_device_connected(a, p):
             return False
+
+        connected_serials = set()
 
     from aurynk.core.scrcpy_runner import ScrcpyManager
 
@@ -371,7 +378,8 @@ def send_devices_to_tray(devices):
         mirroring = False
         if address and connect_port:
             try:
-                connected = is_device_connected(address, connect_port)
+                key = f"{address}:{connect_port}"
+                connected = key in connected_serials
                 mirroring = scrcpy.is_mirroring(address, connect_port)
             except Exception:
                 connected = False

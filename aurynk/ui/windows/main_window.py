@@ -642,10 +642,15 @@ class AurynkWindow(Adw.ApplicationWindow):
             self.wireless_group.remove(row)
         self._wireless_rows = []
 
+        # Fetch connected serials once for fast batch lookup
+        from aurynk.utils.adb_utils import get_connected_device_serials
+
+        connected_serials = get_connected_device_serials()
+
         # Add device rows
         if devices:
             for device in devices:
-                device_row = self._create_device_row(device)
+                device_row = self._create_device_row(device, connected_serials=connected_serials)
                 self.wireless_group.add(device_row)
                 self._wireless_rows.append(device_row)
         else:
@@ -1043,7 +1048,7 @@ class AurynkWindow(Adw.ApplicationWindow):
         #     f"Final USB dev_data for {adb_serial}: name='{dev_data.get('name')}', manufacturer='{dev_data.get('manufacturer')}', model='{dev_data.get('model')}', android_version='{dev_data.get('android_version')}'"
         # )
 
-    def _create_device_row(self, device, is_usb=False):
+    def _create_device_row(self, device, is_usb=False, connected_serials=None):
         """Create a row widget for a device."""
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         row.set_margin_start(24)
@@ -1124,7 +1129,11 @@ class AurynkWindow(Adw.ApplicationWindow):
             connect_port = device.get("connect_port")
             connected = False
             if address and connect_port:
-                connected = is_device_connected(address, connect_port)
+                serial_key = f"{address}:{connect_port}"
+                if connected_serials is not None:
+                    connected = serial_key in connected_serials
+                else:
+                    connected = is_device_connected(address, connect_port)
             if connected:
                 status_btn.set_label(_("Disconnect"))
                 status_btn.add_css_class("destructive-action")
@@ -1163,7 +1172,11 @@ class AurynkWindow(Adw.ApplicationWindow):
             connect_port = device.get("connect_port")
             connected = False
             if address and connect_port:
-                connected = is_device_connected(address, connect_port)
+                serial_key = f"{address}:{connect_port}"
+                if connected_serials is not None:
+                    connected = serial_key in connected_serials
+                else:
+                    connected = is_device_connected(address, connect_port)
             mirror_btn.set_sensitive(connected)
             if connected:
                 # Check if already mirroring and set appropriate style
@@ -1501,7 +1514,9 @@ class AurynkWindow(Adw.ApplicationWindow):
         """Update only mirror button states without rebuilding UI.
         This is called when tray triggers mirroring to sync main window."""
         scrcpy = self._get_scrcpy_manager()
-        from aurynk.utils.adb_utils import is_device_connected
+        from aurynk.utils.adb_utils import get_connected_device_serials
+
+        connected_serials = get_connected_device_serials()
 
         # Update wireless device rows
         if hasattr(self, "_wireless_rows"):
@@ -1530,7 +1545,8 @@ class AurynkWindow(Adw.ApplicationWindow):
                         if mirror_btn:
                             connected = False
                             if address and connect_port:
-                                connected = is_device_connected(address, connect_port)
+                                serial_key = f"{address}:{connect_port}"
+                                connected = serial_key in connected_serials
 
                             mirror_btn.set_sensitive(connected)
                             if connected:
