@@ -30,6 +30,7 @@ class AboutWindow:
             version=__version__,
             website="https://github.com/IshuSinghSE/aurynk",
             issue_url="https://github.com/IshuSinghSE/aurynk/issues",
+            license_type=Gtk.License.GPL_3_0,
             developers=["IshuSinghSE <ishu.111636@yahoo.com>"],
             artists=["IshuSinghSE"],
             comments=_(
