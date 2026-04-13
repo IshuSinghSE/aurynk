@@ -21,17 +21,17 @@ classifiers = [
     "Topic :: Utilities",
 ]
 dependencies = [
-    "pillow>=12.0.0",
-    "pygobject>=3.54.5",
-    "pyudev>=0.24.0",
+    "pillow>=12.2.0",
+    "pygobject>=3.56.2",
+    "pyudev>=0.24.4",
     "qrcode>=8.2",
     "zeroconf>=0.148.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "rich>=14.2.0",
-    "ruff>=0.14.3",
+    "rich>=15.0.0",
+    "ruff>=0.15.10",
 ]
 
 [project.urls]
@@ -43,7 +43,7 @@ Issues = "https://github.com/IshuSinghSE/aurynk/issues"
 aurynk = "aurynk.application:main"
 
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=82.0.1", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
