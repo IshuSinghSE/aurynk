@@ -19,7 +19,7 @@
     </section>
     <section>
       <item>
-        <attribute name="label" translatable="yes">_About</attribute>
+        <attribute name="label" translatable="yes">_About Aurynk</attribute>
         <attribute name="action">win.about</attribute>
       </item>
     </section>
