@@ -1,3 +1,8 @@
+import os
+import xml.etree.ElementTree as ET
+from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
+
 import gi
 
 from aurynk.i18n import _
@@ -9,6 +14,105 @@ gi.require_version("Adw", "1")
 from gi.repository import Adw, Gtk
 
 from aurynk import __version__
+
+_METAINFO_NAME = "io.github.IshuSinghSE.aurynk.metainfo.xml"
+
+
+def _python_pkg_version_line(label: str, dist_names: tuple[str, ...]) -> str:
+    """Resolve PyPI / distro package version via importlib.metadata (qrcode has no __version__)."""
+    for dist in dist_names:
+        try:
+            return f"{label}: {version(dist)}"
+        except PackageNotFoundError:
+            continue
+    if label == "PyGObject":
+        try:
+            import gi
+
+            return f"PyGObject: {gi.__version__}"
+        except Exception:
+            pass
+    return f"{label}: Not found"
+
+
+def _xml_local_name(tag: str) -> str:
+    return tag.split("}", maxsplit=1)[-1] if "}" in tag else tag
+
+
+def _find_metainfo_path() -> Path | None:
+    """Resolve installed or source-tree AppStream metainfo (CHANGELOG-derived <releases>)."""
+    candidates: list[Path] = []
+    candidates.append(Path("/app/share/metainfo") / _METAINFO_NAME)
+    snap = os.environ.get("SNAP")
+    if snap:
+        candidates.append(Path(snap) / "usr" / "share" / "metainfo" / _METAINFO_NAME)
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        candidates.append(parent / "data" / _METAINFO_NAME)
+    for root in (Path("/usr/share"), Path("/usr/local/share")):
+        candidates.append(root / "metainfo" / _METAINFO_NAME)
+    xdg_home = os.environ.get("XDG_DATA_HOME")
+    if xdg_home:
+        candidates.append(Path(xdg_home) / "metainfo" / _METAINFO_NAME)
+    for part in os.environ.get("XDG_DATA_DIRS", "").split(":"):
+        if part.strip():
+            candidates.append(Path(part) / "metainfo" / _METAINFO_NAME)
+    for path in candidates:
+        if path.is_file():
+            return path
+    return None
+
+
+def _release_notes_xml_from_metainfo(version: str) -> str | None:
+    """Return AppStream-style XML fragment for Adw.AboutWindow.set_release_notes (current version)."""
+    path = _find_metainfo_path()
+    if path is None:
+        return None
+    try:
+        tree = ET.parse(path)
+        root = tree.getroot()
+    except (ET.ParseError, OSError):
+        return None
+
+    releases_el = None
+    for child in root:
+        if _xml_local_name(child.tag) == "releases":
+            releases_el = child
+            break
+    if releases_el is None:
+        return None
+
+    release_el = None
+    for rel in releases_el:
+        if _xml_local_name(rel.tag) != "release":
+            continue
+        if rel.get("version") == version:
+            release_el = rel
+            break
+    if release_el is None:
+        for rel in releases_el:
+            if _xml_local_name(rel.tag) == "release":
+                release_el = rel
+                break
+    if release_el is None:
+        return None
+
+    desc_el = None
+    for child in release_el:
+        if _xml_local_name(child.tag) == "description":
+            desc_el = child
+            break
+    if desc_el is None:
+        return None
+
+    chunks: list[str] = []
+    for child in list(desc_el):
+        try:
+            chunks.append(ET.tostring(child, encoding="unicode", method="xml"))
+        except Exception:
+            continue
+    out = "".join(chunks).strip()
+    return out or None
 
 
 class AboutWindow:
@@ -40,6 +144,9 @@ class AboutWindow:
 
         # Add useful links
         about.add_link(_("Documentation"), "https://github.com/IshuSinghSE/aurynk/wiki")
+        about.add_link(
+            _("Changelog"), "https://github.com/IshuSinghSE/aurynk/blob/main/CHANGELOG.md"
+        )
         about.add_link(_("Source Code"), "https://github.com/IshuSinghSE/aurynk")
         about.add_link(_("Report an Issue"), "https://github.com/IshuSinghSE/aurynk/issues/new")
         about.add_link(_("Donate"), "https://github.com/sponsors/IshuSinghSE")
@@ -82,16 +189,15 @@ class AboutWindow:
             about.set_debug_info(debug_info)
             about.set_debug_info_filename("aurynk-debug-info.txt")
 
-        # Add privacy disclaimer
-        about.set_release_notes(
-            _(
-                "<b>Privacy Notice</b>\n\n"
-                "Aurynk does not collect, store, or transmit any personal information, "
-                "device data, or usage statistics. All data remains on your local system.\n\n"
-                "The debug information shown above is only displayed locally and is never "
-                "sent anywhere unless you manually choose to share it (e.g., when reporting issues)."
+        # "What's new" expects AppStream subset XML (same shape as <release><description> in metainfo).
+        notes = _release_notes_xml_from_metainfo(__version__)
+        if not notes:
+            notes = "<p>{0}</p>".format(
+                _(
+                    "Release notes are unavailable (metainfo not found). See the Changelog link above."
+                )
             )
-        )
+        about.set_release_notes(notes)
 
         about.present()
 
@@ -102,7 +208,6 @@ def _get_debug_info():
     Returns:
         str: Formatted debug information with system, dependency, and environment details
     """
-    import os
     import platform
     import subprocess
     import sys
@@ -224,30 +329,20 @@ def _get_debug_info():
 
     # === Python Packages ===
     info_lines.append("\n=== Python Packages ===")
-    packages = ["PyGObject", "zeroconf", "pillow", "qrcode", "pyudev"]
-    for package in packages:
-        try:
-            if package == "PyGObject":
-                import gi
+    info_lines.append(_python_pkg_version_line("PyGObject", ("PyGObject",)))
+    info_lines.append(_python_pkg_version_line("zeroconf", ("zeroconf",)))
+    info_lines.append(_python_pkg_version_line("Pillow", ("pillow", "Pillow")))
+    info_lines.append(_python_pkg_version_line("qrcode", ("qrcode",)))
+    info_lines.append(_python_pkg_version_line("pyudev", ("pyudev",)))
 
-                info_lines.append(f"PyGObject: {gi.__version__}")
-            elif package == "zeroconf":
-                import zeroconf
-
-                info_lines.append(f"zeroconf: {zeroconf.__version__}")
-            elif package == "pillow":
-                import PIL
-
-                info_lines.append(f"Pillow: {PIL.__version__}")
-            elif package == "qrcode":
-                import qrcode
-
-                info_lines.append(f"qrcode: {qrcode.__version__}")
-            elif package == "pyudev":
-                import pyudev
-
-                info_lines.append(f"pyudev: {pyudev.__version__}")
-        except Exception:
-            info_lines.append(f"{package}: Not found")
+    # === Environment Variables ===
+    info_lines.append("\n=== Environment Variables ===")
+    if "LANG" in os.environ:
+        info_lines.append(f"- LANG: {os.environ['LANG']}")
+    else:
+        info_lines.append("- LANG: (unset)")
+    for env in sorted(os.environ):
+        if env.startswith(("GTK_", "ADB_", "ANDROID_")):
+            info_lines.append(f"- {env}: {os.environ[env]}")
 
     return "\n".join(info_lines)
