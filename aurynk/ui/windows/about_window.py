@@ -348,7 +348,17 @@ def _get_debug_info():
 
     # === Settings ===
     info_lines.append("\n=== Settings ===")
+    def _append_setting_lines(prefix: str, value, indent: int = 0) -> None:
+        pad = "  " * indent
+        if isinstance(value, dict):
+            if prefix:
+                info_lines.append(f"{pad}- {prefix}:")
+            for child_key, child_value in value.items():
+                _append_setting_lines(child_key, child_value, indent + (1 if prefix else 0))
+        else:
+            info_lines.append(f"{pad}- {prefix}: {value}")
+
     for key, value in settings.get_all().items():
-        info_lines.append(f"- {key}: {value}")
+        _append_setting_lines(key, value)
 
     return "\n".join(info_lines)
