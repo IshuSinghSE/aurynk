@@ -303,7 +303,7 @@ def _get_debug_info():
         info_lines.append(f"ADB: Error - {str(e)}")
 
     settings = SettingsManager()
-    
+
     # Get scrcpy version
     try:
         scrcpy_path = settings.get("scrcpy", "scrcpy_path", "").strip()
