@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.1] - 2026-05-04
+
+Added keyboard shortcuts, screenshots, minor bug fixes.
+
+### 🚀 New Features
+- Keyboard shortcuts for connect, toggle mirroring, and screenshots.
+- Screenshot action to capture the mirrored display.
+
+### 🔧 Improvements
+- Better debug output for device detection.
+
+### 🐛 Bug Fixes
+- Fixed pairing and tray pairing issues.
+- Fixed release-notes parsing in About.
+- Fixed UI crashes and glitches in Settings and Mirroring.
+
 ## [1.3.0] - 2026-01-29
 
 Added keyboard shortcuts, screenshots, minor bug fixes.
