@@ -348,6 +348,7 @@ def _get_debug_info():
 
     # === Settings ===
     info_lines.append("\n=== Settings ===")
+
     def _append_setting_lines(prefix: str, value, indent: int = 0) -> None:
         pad = "  " * indent
         if isinstance(value, dict):
