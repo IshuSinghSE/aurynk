@@ -46,7 +46,8 @@ apps:
       - audio-playback
       # USB device detection and ADB access
       - adb-support
-      - udev
+      - hardware-observe
+      - raw-usb
 
 parts:
   # ---------------------------------------------------------
@@ -104,6 +105,7 @@ parts:
       # Dependencies for scrcpy
       - libblas3
       - liblapack3
+      - libudev1
 
     override-build: |
       craftctl default
