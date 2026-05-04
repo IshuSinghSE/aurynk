@@ -6,7 +6,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
 
-from gi.repository import Adw
+from gi.repository import Adw, Gtk
 
 from aurynk import __version__
 
@@ -30,6 +30,7 @@ class AboutWindow:
             version=__version__,
             website="https://github.com/IshuSinghSE/aurynk",
             issue_url="https://github.com/IshuSinghSE/aurynk/issues",
+            license_type=Gtk.License.GPL_3_0,
             developers=["IshuSinghSE <ishu.111636@yahoo.com>"],
             artists=["IshuSinghSE"],
             comments=_(
