@@ -144,7 +144,9 @@ class AboutWindow:
 
         # Add useful links
         about.add_link(_("Documentation"), "https://github.com/IshuSinghSE/aurynk/wiki")
-        about.add_link(_("Changelog"), "https://github.com/IshuSinghSE/aurynk/blob/main/CHANGELOG.md")
+        about.add_link(
+            _("Changelog"), "https://github.com/IshuSinghSE/aurynk/blob/main/CHANGELOG.md"
+        )
         about.add_link(_("Source Code"), "https://github.com/IshuSinghSE/aurynk")
         about.add_link(_("Report an Issue"), "https://github.com/IshuSinghSE/aurynk/issues/new")
         about.add_link(_("Donate"), "https://github.com/sponsors/IshuSinghSE")
@@ -191,7 +193,9 @@ class AboutWindow:
         notes = _release_notes_xml_from_metainfo(__version__)
         if not notes:
             notes = "<p>{0}</p>".format(
-                _("Release notes are unavailable (metainfo not found). See the Changelog link above.")
+                _(
+                    "Release notes are unavailable (metainfo not found). See the Changelog link above."
+                )
             )
         about.set_release_notes(notes)
 
