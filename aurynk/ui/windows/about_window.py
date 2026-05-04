@@ -208,11 +208,13 @@ def _get_debug_info():
     Returns:
         str: Formatted debug information with system, dependency, and environment details
     """
+    import os
     import platform
     import subprocess
     import sys
 
     from aurynk.utils.adb_utils import get_adb_path
+    from aurynk.utils.settings import SettingsManager
 
     info_lines = []
 
@@ -300,11 +302,10 @@ def _get_debug_info():
     except Exception as e:
         info_lines.append(f"ADB: Error - {str(e)}")
 
+    settings = SettingsManager()
+    
     # Get scrcpy version
     try:
-        from aurynk.utils.settings import SettingsManager
-
-        settings = SettingsManager()
         scrcpy_path = settings.get("scrcpy", "scrcpy_path", "").strip()
         if not scrcpy_path:
             import shutil
@@ -344,5 +345,10 @@ def _get_debug_info():
     for env in sorted(os.environ):
         if env.startswith(("GTK_", "ADB_", "ANDROID_")):
             info_lines.append(f"- {env}: {os.environ[env]}")
+
+    # === Settings ===
+    info_lines.append("\n=== Settings ===")
+    for key, value in settings.get_all().items():
+        info_lines.append(f"- {key}: {value}")
 
     return "\n".join(info_lines)
