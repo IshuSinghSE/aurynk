@@ -243,3 +243,30 @@ Aurynk is free and open source software licensed under GPL-3.0-or-later.
   <strong>⭐ Star us on GitHub if you find Aurynk useful!</strong><br>
   <a href="https://github.com/IshuSinghSE/aurynk">🔗 GitHub Repository</a>
 </p>
+
+## Installation via Debian Package
+
+Debian packages (.deb) are built automatically via GitHub Actions. Download the latest `.deb` from the [Actions page](https://github.com/TheRealFame/Aurynk-Packaged/actions) and install:
+
+```bash
+sudo dpkg -i aurynk_*.deb
+sudo apt-get install -f
+```
+
+### Python Dependencies
+
+The deb package requires Python modules that are installed via pip:
+
+```bash
+pip install --break-system-packages zeroconf pyudev qrcode
+```
+
+### Building from Source
+
+```bash
+sudo apt-get install -y meson ninja-build python3 python3-gi python3-setuptools pkg-config libglib2.0-dev libgtk-4-dev libadwaita-1-dev python3-dev gettext
+pip install --break-system-packages zeroconf pyudev qrcode
+meson setup builddir --prefix=/usr
+ninja -C builddir
+sudo ninja -C builddir install
+```

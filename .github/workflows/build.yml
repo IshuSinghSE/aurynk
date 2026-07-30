@@ -1,0 +1,403 @@
+name: Build aurynk Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - '1.*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deb:
+    name: "Debian Package (amd64)"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone upstream source
+        run: |
+          git clone --depth 1 --branch v1.3.1 https://github.com/IshuSinghSE/aurynk.git aurynk-src
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y devscripts debhelper-compat meson ninja-build python3 python3-all python3-gi python3-setuptools pkg-config libglib2.0-dev appstream libgtk-4-dev libadwaita-1-dev python3-dev python3-gi python3-qrcode python3-zeroconf python3-pyudev android-tools-adb desktop-file-utils gettext build-essential dh-python
+
+      - name: Prepare source
+        run: |
+          cp -r debian aurynk-src/
+
+      - name: Build Debian package
+        run: |
+          cd aurynk-src
+          debuild -us -uc -b
+
+      - name: Upload Debian artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aurynk-deb
+          path: aurynk_*.deb
+
+      - name: Generate release notes
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "# Aurynk $TAG" > release_notes.md
+          echo "" >> release_notes.md
+          echo "Android Device Manager for Linux - wireless pairing, device management, screenshot capture, and screen mirroring." >> release_notes.md
+          echo "" >> release_notes.md
+          echo "## Installation" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### AppImage (Universal)" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo "chmod +x aurynk-x86_64.AppImage" >> release_notes.md
+          echo "./aurynk-x86_64.AppImage" >> release_notes.md
+          echo '```' >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Debian/Ubuntu" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo "sudo dpkg -i aurynk_*.deb" >> release_notes.md
+          echo "sudo apt-get install -f" >> release_notes.md
+          echo '```' >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### RPM (Fedora/RHEL/openSUSE)" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo "sudo rpm -i aurynk-*.rpm" >> release_notes.md
+          echo '```' >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Pacman (Arch/Manjaro)" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo "sudo pacman -U aurynk-*.pkg.tar.zst" >> release_notes.md
+          echo '```' >> release_notes.md
+          echo "" >> release_notes.md
+          echo "## Required Dependencies (all formats)" >> release_notes.md
+          echo "- android-tools-adb (for ADB)" >> release_notes.md
+          echo "- scrcpy (for screen mirroring)" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "Install with: \`sudo apt install android-tools-adb scrcpy\` (Debian/Ubuntu)" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "_Generated with AI assistance_" >> release_notes.md
+
+      - name: Release Debian package
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: aurynk_*.deb
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  appimage:
+    name: "AppImage (amd64)"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone upstream source
+        run: |
+          git clone --depth 1 --branch v1.3.1 https://github.com/IshuSinghSE/aurynk.git aurynk-src
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget fuse libfuse2 meson ninja-build python3 python3-gi python3-setuptools pkg-config libglib2.0-dev appstream libgtk-4-dev libadwaita-1-dev python3-dev python3-gi python3-qrcode python3-zeroconf python3-pyudev gettext desktop-file-utils
+
+      - name: Build aurynk
+        run: |
+          cd aurynk-src
+          meson setup builddir --prefix=/usr
+          ninja -C builddir
+          DESTDIR=$(pwd)/../appdir ninja -C builddir install
+
+      - name: Patch application.py for AppImage path
+        run: |
+          sed -i '/# Installed system-wide/i \            # AppImage bundle path\n            os.path.join(os.environ.get("APPDIR", ""), "usr", "share", "aurynk", "io.github.IshuSinghSE.aurynk.gresource"),' appdir/usr/lib/python3/dist-packages/aurynk/application.py
+
+      - name: Bundle Python dependencies into AppDir
+        run: |
+          mkdir -p appdir/usr/lib/python3/dist-packages
+          cp -r /usr/lib/python3/dist-packages/zeroconf appdir/usr/lib/python3/dist-packages/
+          cp -r /usr/lib/python3/dist-packages/pyudev appdir/usr/lib/python3/dist-packages/
+          cp -r /usr/lib/python3/dist-packages/qrcode appdir/usr/lib/python3/dist-packages/
+          # Copy dependency chain for zeroconf
+          cp -r /usr/lib/python3/dist-packages/ifaddr* appdir/usr/lib/python3/dist-packages/ 2>/dev/null || true
+          cp -r /usr/lib/python3/dist-packages/async_timeout* appdir/usr/lib/python3/dist-packages/ 2>/dev/null || true
+
+      - name: Create AppDir structure
+        run: |
+          mkdir -p appdir/usr/bin appdir/usr/share/applications appdir/usr/share/icons/hicolor/scalable/apps appdir/usr/share/metainfo appdir/usr/share/icons/hicolor/16x16/apps appdir/usr/share/icons/hicolor/24x24/apps
+          cp aurynk-src/builddir/data/io.github.IshuSinghSE.aurynk.desktop appdir/aurynk.desktop
+          cp aurynk-src/data/icons/io.github.IshuSinghSE.aurynk.svg appdir/aurynk.svg
+          cp aurynk-src/builddir/data/io.github.IshuSinghSE.aurynk.metainfo.xml appdir/usr/share/metainfo/aurynk.appdata.xml
+          sed -i 's|Exec=.*|Exec=aurynk|' appdir/aurynk.desktop
+          sed -i 's|Icon=.*|Icon=aurynk|' appdir/aurynk.desktop
+
+      - name: Create AppRun
+        run: |
+          cat > appdir/AppRun << 'EOF'
+          #!/bin/bash
+          set -e
+          HERE="$(dirname "$(readlink -f "$0")")"
+          export PATH="${HERE}/usr/bin:${PATH}"
+          export PYTHONPATH="${HERE}/usr/lib/python3/dist-packages:${PYTHONPATH}"
+          export LD_LIBRARY_PATH="${HERE}/usr/lib:${HERE}/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
+          export XDG_DATA_DIRS="${HERE}/usr/share:${XDG_DATA_DIRS}"
+          export APPDIR="${HERE}"
+          exec "${HERE}/usr/bin/aurynk" "$@"
+          EOF
+          chmod +x appdir/AppRun
+
+      - name: Download appimagetool
+        run: |
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+          chmod +x appimagetool
+
+      - name: Build AppImage
+        run: |
+          ARCH=x86_64 ./appimagetool --no-appstream appdir aurynk-x86_64.AppImage
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aurynk-appimage
+          path: aurynk-x86_64.AppImage
+
+      - name: Generate release notes
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "# Aurynk $TAG" > release_notes.md
+          echo "" >> release_notes.md
+          echo "Android Device Manager for Linux - wireless pairing, device management, screenshot capture, and screen mirroring." >> release_notes.md
+          echo "" >> release_notes.md
+          echo "## Installation" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### AppImage (Universal)" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo "chmod +x aurynk-x86_64.AppImage" >> release_notes.md
+          echo "./aurynk-x86_64.AppImage" >> release_notes.md
+          echo '```' >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Debian/Ubuntu" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo "sudo dpkg -i aurynk_*.deb" >> release_notes.md
+          echo "sudo apt-get install -f" >> release_notes.md
+          echo '```' >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### RPM (Fedora/RHEL/openSUSE)" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo "sudo rpm -i aurynk-*.rpm" >> release_notes.md
+          echo '```' >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Pacman (Arch/Manjaro)" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo "sudo pacman -U aurynk-*.pkg.tar.zst" >> release_notes.md
+          echo '```' >> release_notes.md
+          echo "" >> release_notes.md
+          echo "## Required Dependencies (all formats)" >> release_notes.md
+          echo "- android-tools-adb (for ADB)" >> release_notes.md
+          echo "- scrcpy (for screen mirroring)" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "Install with: \`sudo apt install android-tools-adb scrcpy\` (Debian/Ubuntu)" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "_Generated with AI assistance_" >> release_notes.md
+
+      - name: Release AppImage
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: aurynk-x86_64.AppImage
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  rpm:
+    name: "RPM Package (amd64)"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone upstream source
+        run: |
+          git clone --depth 1 --branch v1.3.1 https://github.com/IshuSinghSE/aurynk.git aurynk-src
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm meson ninja-build python3 python3-gi python3-setuptools pkg-config libglib2.0-dev libgtk-4-dev libadwaita-1-dev python3-dev python3-gi python3-qrcode python3-zeroconf python3-pyudev android-tools-adb gettext desktop-file-utils appstream
+
+      - name: Prepare RPM source
+        run: |
+          mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+          cp rpmbuild/SPECS/aurynk.spec ~/rpmbuild/SPECS/
+          cd aurynk-src && git archive --prefix=aurynk-1.3.1/ --format=tar.gz HEAD > ~/rpmbuild/SOURCES/aurynk-1.3.1.tar.gz
+
+      - name: Build RPM
+        run: |
+          rpmbuild -bb --nodeps ~/rpmbuild/SPECS/aurynk.spec
+
+      - name: Copy RPM to workspace
+        run: |
+          cp ~/rpmbuild/RPMS/x86_64/aurynk-*.rpm .
+
+      - name: Upload RPM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aurynk-rpm
+          path: aurynk-*.rpm
+
+      - name: Generate release notes
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "# Aurynk $TAG" > release_notes.md
+          echo "" >> release_notes.md
+          echo "Android Device Manager for Linux - wireless pairing, device management, screenshot capture, and screen mirroring." >> release_notes.md
+          echo "" >> release_notes.md
+          echo "## Installation" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### AppImage (Universal)" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo "chmod +x aurynk-x86_64.AppImage" >> release_notes.md
+          echo "./aurynk-x86_64.AppImage" >> release_notes.md
+          echo '```' >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Debian/Ubuntu" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo "sudo dpkg -i aurynk_*.deb" >> release_notes.md
+          echo "sudo apt-get install -f" >> release_notes.md
+          echo '```' >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### RPM (Fedora/RHEL/openSUSE)" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo "sudo rpm -i aurynk-*.rpm" >> release_notes.md
+          echo '```' >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Pacman (Arch/Manjaro)" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo "sudo pacman -U aurynk-*.pkg.tar.zst" >> release_notes.md
+          echo '```' >> release_notes.md
+          echo "" >> release_notes.md
+          echo "## Required Dependencies (all formats)" >> release_notes.md
+          echo "- android-tools-adb (for ADB)" >> release_notes.md
+          echo "- scrcpy (for screen mirroring)" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "Install with: \`sudo apt install android-tools-adb scrcpy\` (Debian/Ubuntu)" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "_Generated with AI assistance_" >> release_notes.md
+
+      - name: Release RPM
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: aurynk-*.rpm
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  pacman:
+    name: "Pacman Package (amd64)"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Pacman package in Arch Linux container
+        run: |
+          docker run --rm -v "${{ github.workspace }}":/work archlinux/archlinux:latest bash -c "
+            pacman -Syu --noconfirm base-devel
+            cd /work
+            cat > PKGBUILD << 'PKGBUILD_EOF'
+            # Maintainer: IshuSinghSE <ishu.111636@yahoo.com>
+            pkgname=aurynk
+            pkgver=1.3.1
+            pkgrel=1
+            pkgdesc=\"Android Device Manager for Linux\"
+            arch=('x86_64')
+            url=\"https://github.com/IshuSinghSE/aurynk\"
+            license=('GPL-3.0-or-later')
+            depends=('python' 'python-gobject' 'gtk4' 'libadwaita' 'python-qrcode' 'python-zeroconf' 'python-pyudev' 'android-tools' 'libayatana-appindicator')
+            makedepends=('meson' 'ninja' 'python-setuptools')
+            source=(\"https://github.com/IshuSinghSE/aurynk/archive/v\${pkgver}.tar.gz\")
+            sha256sums=('SKIP')
+
+            build() {
+              cd \"\${srcdir}/\${pkgname}-\${pkgver}\"
+              meson setup builddir --prefix=/usr
+              ninja -C builddir
+            }
+
+            package() {
+              cd \"\${srcdir}/\${pkgname}-\${pkgver}\"
+              DESTDIR=\"\${pkgdir}\" ninja -C builddir install
+            }
+            PKGBUILD_EOF
+            chown -R builduser:builduser .
+            su builduser -c 'makepkg -f --noconfirm --skippgpcheck'
+          "
+
+      - name: Upload Pacman artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aurynk-pacman
+          path: aurynk-*.pkg.tar.zst
+
+      - name: Generate release notes
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "# Aurynk $TAG" > release_notes.md
+          echo "" >> release_notes.md
+          echo "Android Device Manager for Linux - wireless pairing, device management, screenshot capture, and screen mirroring." >> release_notes.md
+          echo "" >> release_notes.md
+          echo "## Installation" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### AppImage (Universal)" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo "chmod +x aurynk-x86_64.AppImage" >> release_notes.md
+          echo "./aurynk-x86_64.AppImage" >> release_notes.md
+          echo '```' >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Debian/Ubuntu" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo "sudo dpkg -i aurynk_*.deb" >> release_notes.md
+          echo "sudo apt-get install -f" >> release_notes.md
+          echo '```' >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### RPM (Fedora/RHEL/openSUSE)" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo "sudo rpm -i aurynk-*.rpm" >> release_notes.md
+          echo '```' >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Pacman (Arch/Manjaro)" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo "sudo pacman -U aurynk-*.pkg.tar.zst" >> release_notes.md
+          echo '```' >> release_notes.md
+          echo "" >> release_notes.md
+          echo "## Required Dependencies (all formats)" >> release_notes.md
+          echo "- android-tools-adb (for ADB)" >> release_notes.md
+          echo "- scrcpy (for screen mirroring)" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "Install with: \`sudo apt install android-tools-adb scrcpy\` (Debian/Ubuntu)" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "_Generated with AI assistance_" >> release_notes.md
+
+      - name: Release Pacman package
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: aurynk-*.pkg.tar.zst
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
