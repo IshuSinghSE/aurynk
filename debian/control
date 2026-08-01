@@ -32,6 +32,7 @@ Depends: ${python3:Depends},
          gir1.2-ayatanaappindicator3-0.1,
          python3-qrcode,
          python3-zeroconf,
+         python3-pyudev,
          android-tools-adb
 Description: Android Device Manager for Linux
  Aurynk is a modern Android device manager for Linux that allows you to
