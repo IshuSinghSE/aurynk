@@ -185,51 +185,60 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - name: Clone upstream source
+        run: |
+          git clone https://github.com/IshuSinghSE/aurynk.git aurynk-src
+          git -C aurynk-src checkout -q "${VERSION}" 2>/dev/null || git -C aurynk-src checkout -q "v${VERSION}"
+          git -C aurynk-src archive --prefix=aurynk-${VERSION}/ --format=tar.gz HEAD > aurynk-src.tar.gz
 
       - name: Resolve version
         run: |
           if [ -z "$VERSION" ]; then
-            VERSION=$(grep -m1 "version:" meson.build | grep -o '[0-9.]*')
+            VERSION=$(grep -m1 "version:" aurynk-src/meson.build | grep -o '[0-9.]*')
           fi
           VERSION=${VERSION#v}
           echo "Building version $VERSION"
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
-      - name: Build Pacman package in Arch Linux container
+      - name: Prepare PKGBUILD
         run: |
-          docker run --rm -v "${{ github.workspace }}":/work -e VERSION="${VERSION}" archlinux/archlinux:latest bash -c "
-            pacman -Syu --noconfirm base-devel sudo
-            useradd -m builduser
-            echo 'builduser ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
-            cd /work
-            cat > PKGBUILD << 'PKGBUILD_EOF'
-            # Maintainer: IshuSinghSE <ishu.111636@yahoo.com>
-            pkgname=aurynk
-            pkgver=\${VERSION}
-            pkgrel=1
-            pkgdesc=\"Android Device Manager for Linux\"
-            arch=('x86_64')
-            url=\"https://github.com/IshuSinghSE/aurynk\"
-            license=('GPL-3.0-or-later')
-            depends=('python' 'python-gobject' 'gtk4' 'libadwaita' 'python-qrcode' 'python-zeroconf' 'python-pyudev' 'android-tools' 'libayatana-appindicator')
-            makedepends=('meson' 'ninja' 'python-setuptools')
-            source=(\"https://github.com/IshuSinghSE/aurynk/archive/v\${pkgver}.tar.gz\")
-            sha256sums=('SKIP')
+          cat > PKGBUILD << PKGBUILD_EOF
+          # Maintainer: TheRealFame <packaging>
+          pkgname=aurynk
+          pkgver=${VERSION}
+          pkgrel=1
+          pkgdesc="Android Device Manager for Linux"
+          arch=('x86_64')
+          url="https://github.com/IshuSinghSE/aurynk"
+          license=('GPL-3.0-or-later')
+          depends=('python' 'python-gobject' 'gtk4' 'libadwaita' 'python-qrcode' 'python-zeroconf' 'python-pyudev' 'android-tools' 'libayatana-appindicator')
+          makedepends=('meson' 'ninja' 'python-setuptools')
+          source=("aurynk-src.tar.gz")
+          sha256sums=('SKIP')
 
-            build() {
-              cd \"\${srcdir}/\${pkgname}-\${pkgver}\"
+          build() {
+            cd "${srcdir}/aurynk-${pkgver}"
               meson setup builddir --prefix=/usr
               ninja -C builddir
-            }
+          }
 
-            package() {
-              cd \"\${srcdir}/\${pkgname}-\${pkgver}\"
-              DESTDIR=\"\${pkgdir}\" ninja -C builddir install
-            }
-            PKGBUILD_EOF
+          package() {
+            cd "${srcdir}/aurynk-${pkgver}"
+              DESTDIR="${pkgdir}" ninja -C builddir install
+          }
+          PKGBUILD_EOF
+
+      - name: Build Pacman package in Arch Linux container
+        run: |
+          docker run --rm -v "${{ github.workspace }}":/work archlinux/archlinux:latest bash -c '
+            set -ex
+            pacman -Syu --noconfirm base-devel sudo
+            useradd -m builduser
+            echo "builduser ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+            cd /work
             chown -R builduser:builduser .
-            su builduser -c 'makepkg -f --syncdeps --noconfirm --skippgpcheck'
-          "
+            su builduser -c "makepkg -f --syncdeps --noconfirm --skippgpcheck"
+          '
 
       - name: Upload Pacman artifact
         uses: actions/upload-artifact@v4
