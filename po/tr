@@ -1,0 +1,1169 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the aurynk package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: aurynk\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-12-01 01:51+0530\n"
+"PO-Revision-Date: 2026-11-08 15:48+0300\n"
+"Last-Translator: \n"
+"Language-Team: https://github.com/umablognot \n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 3.10\n"
+
+#: aurynk/ui/windows/main_window.py:161
+msgid "Main Menu"
+msgstr "Ana Menü"
+
+#. Primary menu section
+#: aurynk/ui/windows/main_window.py:165
+msgid "Preferences"
+msgstr "Tercihler"
+
+#: aurynk/ui/windows/main_window.py:169
+msgid "About"
+msgstr "Hakkında"
+
+#: aurynk/ui/windows/main_window.py:180
+msgid "Add Device"
+msgstr "Cihaz Ekle"
+
+#: aurynk/ui/windows/main_window.py:205
+msgid "Paired Devices"
+msgstr "Eşleştirilmiş Cihazlar"
+
+#: aurynk/ui/windows/main_window.py:262
+msgid "Click to add a device"
+msgstr "Cihaz eklemek için tıklayın"
+
+#. use intermediate variable to avoid f-string escaping issues in older python
+#: aurynk/ui/windows/main_window.py:300
+msgid "Click \"Add Device\" to get started"
+msgstr "Başlamak için \"Cihaz Ekle\"ye tıklayın"
+
+#: aurynk/ui/windows/main_window.py:351 aurynk/services/tray_service.py:42
+#: aurynk/services/tray_service.py:104
+msgid "Unknown Device"
+msgstr "Bilinmeyen Cihaz"
+
+#: aurynk/ui/windows/main_window.py:383
+msgid "Disconnect"
+msgstr "Bağlantıyı Kes"
+
+#: aurynk/ui/windows/main_window.py:386
+msgid "Connect"
+msgstr "Bağlan"
+
+#: aurynk/ui/windows/main_window.py:395
+msgid "Screen Mirror"
+msgstr "Ekran Yansıtma"
+
+#: aurynk/ui/windows/main_window.py:408
+msgid "Details"
+msgstr "Ayrıntılar"
+
+#: aurynk/ui/windows/main_window.py:437 aurynk/services/device_monitor.py:454
+msgid "Remove Device?"
+msgstr "Cihaz Kaldırılsın mı?"
+
+#: aurynk/ui/windows/main_window.py:438
+#, python-brace-format
+msgid ""
+"Are you sure you want to remove\n"
+"{device} ?"
+msgstr ""
+"{device} cihazını kaldırmak istediğinizden\n"
+"emin misiniz?"
+
+#. Change action button back to Cancel
+#: aurynk/ui/windows/main_window.py:449 aurynk/ui/windows/device_details.py:268
+#: aurynk/ui/dialogs/pairing_dialog.py:97 aurynk/ui/dialogs/pairing_dialog.py:208
+#: aurynk/services/device_monitor.py:468
+msgid "Cancel"
+msgstr "İptal"
+
+#: aurynk/ui/windows/main_window.py:450 aurynk/ui/windows/device_details.py:269
+#: aurynk/services/device_monitor.py:469
+msgid "Remove"
+msgstr "Kaldır"
+
+#. connecting is a status message, we can wrap it, but it has dynamic dots.
+#. "Connecting" should be translated.
+#: aurynk/ui/windows/main_window.py:591
+msgid "Connecting"
+msgstr "Bağlanıyor"
+
+#: aurynk/ui/windows/main_window.py:670
+msgid "Unpair Device?"
+msgstr "Cihaz Eşleştirmesi Kaldırılsın mı?"
+
+#: aurynk/ui/windows/main_window.py:673
+msgid "Are you sure you want to unpair device {}?"
+msgstr "Cihazının {} eşleştirmesini kaldırmak istediğinizden emin misiniz?"
+
+#. Window properties
+#: aurynk/ui/windows/settings_window.py:28
+msgid "Settings"
+msgstr "Ayarlar"
+
+#: aurynk/ui/windows/settings_window.py:63
+msgid "Application"
+msgstr "Uygulama"
+
+#: aurynk/ui/windows/settings_window.py:68
+msgid "Appearance"
+msgstr "Görünüm"
+
+#: aurynk/ui/windows/settings_window.py:72
+msgid "Theme"
+msgstr "Tema"
+
+#: aurynk/ui/windows/settings_window.py:73
+msgid "Choose the application theme"
+msgstr "Uygulama temasını seçin"
+
+#: aurynk/ui/windows/settings_window.py:75
+msgid "System"
+msgstr "Sistem"
+
+#: aurynk/ui/windows/settings_window.py:75
+msgid "Light"
+msgstr "Açık"
+
+#: aurynk/ui/windows/settings_window.py:75
+msgid "Dark"
+msgstr "Koyu"
+
+#: aurynk/ui/windows/settings_window.py:89
+msgid "General"
+msgstr "Genel"
+
+#: aurynk/ui/windows/settings_window.py:90
+msgid "Application behavior settings"
+msgstr "Uygulama davranış ayarları"
+
+#: aurynk/ui/windows/settings_window.py:94
+msgid "Auto Connect"
+msgstr "Otomatik Bağlan"
+
+#: aurynk/ui/windows/settings_window.py:95
+msgid "Automatically connect to devices when detected"
+msgstr "Algılandığında cihazlara otomatik olarak bağlan"
+
+#: aurynk/ui/windows/settings_window.py:102
+msgid "Show Notifications"
+msgstr "Bildirimleri Göster"
+
+#: aurynk/ui/windows/settings_window.py:103
+msgid "Display system notifications for device events"
+msgstr "Cihaz olayları için sistem bildirimlerini göster"
+
+#: aurynk/ui/windows/settings_window.py:110
+msgid "Monitor Interval"
+msgstr "İzleme Aralığı"
+
+#: aurynk/ui/windows/settings_window.py:111
+msgid "Device monitoring interval in seconds"
+msgstr "Saniye cinsinden cihaz izleme aralığı"
+
+#: aurynk/ui/windows/settings_window.py:128
+msgid "Behavior"
+msgstr "Davranış"
+
+#: aurynk/ui/windows/settings_window.py:132
+msgid "Close to Tray"
+msgstr "Sistem Tepsisine Küçült"
+
+#: aurynk/ui/windows/settings_window.py:133
+msgid "Hide window to system tray when closing (X)"
+msgstr "Kapatırken (X) pencereyi sistem tepsisine gizle"
+
+#: aurynk/ui/windows/settings_window.py:140
+msgid "Start Minimized"
+msgstr "Küçültülmüş Başlat"
+
+#: aurynk/ui/windows/settings_window.py:141
+msgid "Start application minimized to tray"
+msgstr "Uygulamayı sistem tepsisine küçültülmüş olarak başlat"
+
+#: aurynk/ui/windows/settings_window.py:148
+msgid "Start on System Startup"
+msgstr "Sistem Açılışında Başlat"
+
+#: aurynk/ui/windows/settings_window.py:149
+msgid "Automatically start Aurynk when you log in"
+msgstr "Oturum açtığınızda Aurynk'i otomatik olarak başlat"
+
+#: aurynk/ui/windows/settings_window.py:160 data/io.github.IshuSinghSE.aurynk.metainfo.xml:43
+msgid "Device"
+msgstr "Cihaz"
+
+#: aurynk/ui/windows/settings_window.py:165
+msgid "Connection"
+msgstr "Bağlantı"
+
+#: aurynk/ui/windows/settings_window.py:166
+msgid "ADB connection settings"
+msgstr "ADB bağlantı ayarları"
+
+#: aurynk/ui/windows/settings_window.py:170
+msgid "ADB Path"
+msgstr "ADB Yolu"
+
+#: aurynk/ui/windows/settings_window.py:171
+msgid "Path to adb (leave blank for system default)"
+msgstr "Adb yolu (sistem varsayılanı için boş bırakın)"
+
+#: aurynk/ui/windows/settings_window.py:192
+msgid "Connection Timeout"
+msgstr "Bağlantı Zaman Aşımı"
+
+#: aurynk/ui/windows/settings_window.py:193
+msgid "Timeout for ADB connections in seconds"
+msgstr "Saniye cinsinden ADB bağlantıları için zaman aşımı"
+
+#: aurynk/ui/windows/settings_window.py:208
+msgid "Max Retry Attempts"
+msgstr "Maksimum Yeniden Deneme Sayısı"
+
+#: aurynk/ui/windows/settings_window.py:209
+msgid "Maximum number of connection retry attempts"
+msgstr "Maksimum bağlantı yeniden deneme sayısı"
+
+#: aurynk/ui/windows/settings_window.py:226
+msgid "Keep Alive Connection Interval"
+msgstr "Bağlantıyı Canlı Tutma Aralığı"
+
+#: aurynk/ui/windows/settings_window.py:227
+msgid "Keep the connection alive (0 to disable)"
+msgstr "Bağlantıyı canlı tut (devre dışı bırakmak için 0)"
+
+#: aurynk/ui/windows/settings_window.py:242
+msgid "Security"
+msgstr "Güvenlik"
+
+#: aurynk/ui/windows/settings_window.py:246
+msgid "Auto-unpair on Disconnect"
+msgstr "Bağlantı Kesildiğinde Otomatik Eşleştirme Kaldır"
+
+#: aurynk/ui/windows/settings_window.py:247
+msgid "Remove device from paired list when disconnected"
+msgstr "Bağlantı kesildiğinde cihazı eşleştirilmiş listeden kaldır"
+
+#: aurynk/ui/windows/settings_window.py:254
+msgid "Require Confirmation for Unpair"
+msgstr "Eşleştirme Kaldırma için Onay İste"
+
+#: aurynk/ui/windows/settings_window.py:255
+msgid "Show confirmation dialog before unpairing a device"
+msgstr "Bir cihazın eşleştirmesini kaldırmadan önce onay iletişim kutusu göster"
+
+#: aurynk/ui/windows/settings_window.py:266
+msgid "Power Management"
+msgstr "Güç Yönetimi"
+
+#: aurynk/ui/windows/settings_window.py:270
+msgid "Auto Disconnect on Sleep"
+msgstr "Uyku Modunda Otomatik Bağlantı Kes"
+
+#: aurynk/ui/windows/settings_window.py:271
+msgid "Disconnect devices when system goes to sleep"
+msgstr "Sistem uyku moduna geçtiğinde cihazların bağlantısını kes"
+
+#: aurynk/ui/windows/settings_window.py:289 data/io.github.IshuSinghSE.aurynk.metainfo.xml:42
+msgid "Mirroring"
+msgstr "Ekran Yansıtma"
+
+#: aurynk/ui/windows/settings_window.py:294
+msgid "Session Options"
+msgstr "Oturum Seçenekleri"
+
+#: aurynk/ui/windows/settings_window.py:298
+msgid "Scrcpy Path"
+msgstr "Scrcpy Yolu"
+
+#: aurynk/ui/windows/settings_window.py:299
+msgid "Path to scrcpy binary (leave blank for system default)"
+msgstr "Scrcpy çalıştırılabilir dosyasının yolu (sistem varsayılanı için boş bırakın)"
+
+#: aurynk/ui/windows/settings_window.py:314
+msgid "Select scrcpy Binary"
+msgstr "Scrcpy Çalıştırılabilir Dosyasını Seç"
+
+#: aurynk/ui/windows/settings_window.py:317 aurynk/ui/windows/settings_window.py:1059
+msgid "Executable files"
+msgstr "Çalıştırılabilir dosyalar"
+
+#: aurynk/ui/windows/settings_window.py:347
+msgid "Always on Top"
+msgstr "Her Zaman Üstte"
+
+#: aurynk/ui/windows/settings_window.py:348
+msgid "Keep mirror window above others."
+msgstr "Yansıtma penceresini diğerlerinin üstünde tut."
+
+#: aurynk/ui/windows/settings_window.py:355
+msgid "Fullscreen"
+msgstr "Tam Ekran"
+
+#: aurynk/ui/windows/settings_window.py:356
+msgid "Start in fullscreen mode."
+msgstr "Tam ekran modunda başlat."
+
+#: aurynk/ui/windows/settings_window.py:363
+msgid "Borderless Window"
+msgstr "Kenarlıksız Pencere"
+
+#: aurynk/ui/windows/settings_window.py:364
+msgid "Remove window decorations."
+msgstr "Pencere süslemelerini kaldır."
+
+#. Translators: "Default" is a configuration option value meaning the standard or preset value
+#: aurynk/ui/windows/settings_window.py:371 aurynk/ui/windows/settings_window.py:902
+msgid "Default"
+msgstr "Varsayılan"
+
+#: aurynk/ui/windows/settings_window.py:377 aurynk/ui/windows/settings_window.py:477
+msgid "Custom..."
+msgstr "Özel..."
+
+#: aurynk/ui/windows/settings_window.py:395
+msgid "Window Initial Size"
+msgstr "Pencere Başlangıç Boyutu"
+
+#: aurynk/ui/windows/settings_window.py:404 aurynk/ui/windows/settings_window.py:408
+#: aurynk/ui/windows/settings_window.py:425
+msgid "Width"
+msgstr "Genişlik"
+
+#: aurynk/ui/windows/settings_window.py:406 aurynk/ui/windows/settings_window.py:410
+#: aurynk/ui/windows/settings_window.py:425
+msgid "Height"
+msgstr "Yükseklik"
+
+#: aurynk/ui/windows/settings_window.py:413
+msgid "Custom Size"
+msgstr "Özel Boyut"
+
+#: aurynk/ui/windows/settings_window.py:422
+msgid "Let scrcpy decide"
+msgstr "Scrcpy karar versin"
+
+#: aurynk/ui/windows/settings_window.py:466
+msgid "Window Initial Position"
+msgstr "Pencere Başlangıç Konumu"
+
+#: aurynk/ui/windows/settings_window.py:468
+msgid "Center"
+msgstr "Merkez"
+
+#: aurynk/ui/windows/settings_window.py:469
+msgid "Top Left"
+msgstr "Sol Üst"
+
+#: aurynk/ui/windows/settings_window.py:470
+msgid "Top Center"
+msgstr "Üst Orta"
+
+#: aurynk/ui/windows/settings_window.py:471
+msgid "Top Right"
+msgstr "Sağ Üst"
+
+#: aurynk/ui/windows/settings_window.py:472
+msgid "Center Left"
+msgstr "Sol Orta"
+
+#: aurynk/ui/windows/settings_window.py:473
+msgid "Center Right"
+msgstr "Sağ Orta"
+
+#: aurynk/ui/windows/settings_window.py:474
+msgid "Bottom Left"
+msgstr "Sol Alt"
+
+#: aurynk/ui/windows/settings_window.py:475
+msgid "Bottom Center"
+msgstr "Alt Orta"
+
+#: aurynk/ui/windows/settings_window.py:476
+msgid "Bottom Right"
+msgstr "Sağ Alt"
+
+#: aurynk/ui/windows/settings_window.py:504
+msgid "X Position"
+msgstr "X Konumu"
+
+#: aurynk/ui/windows/settings_window.py:506
+msgid "Y Position"
+msgstr "Y Konumu"
+
+#: aurynk/ui/windows/settings_window.py:513
+msgid "Custom Position"
+msgstr "Özel Konum"
+
+#: aurynk/ui/windows/settings_window.py:555
+msgid "Disable Screensaver"
+msgstr "Ekran Koruyucuyu Devre Dışı Bırak"
+
+#: aurynk/ui/windows/settings_window.py:556
+msgid "Prevent computer screensaver during mirroring."
+msgstr "Yansıtma sırasında bilgisayar ekran koruyucusunu engelle."
+
+#: aurynk/ui/windows/settings_window.py:565
+msgid "Stream Quality"
+msgstr "Yayın Kalitesi"
+
+#: aurynk/ui/windows/settings_window.py:569
+msgid "Resolution Limit"
+msgstr "Çözünürlük Sınırı"
+
+#: aurynk/ui/windows/settings_window.py:570
+msgid "Limit the maximum dimension of the video stream."
+msgstr "Video yayınının maksimum boyutunu sınırla."
+
+#: aurynk/ui/windows/settings_window.py:571
+msgid "Native (Max)"
+msgstr "Doğal (Maks)"
+
+#: aurynk/ui/windows/settings_window.py:596
+msgid "Video Bitrate (Mbps)"
+msgstr "Video Bit Hızı (Mbps)"
+
+#: aurynk/ui/windows/settings_window.py:597
+msgid "Higher is better quality but uses more bandwidth."
+msgstr "Yüksek değer daha iyi kalite sağlar ancak daha fazla bant genişliği kullanır."
+
+#: aurynk/ui/windows/settings_window.py:604
+msgid "Video bitrate in Mbps"
+msgstr "Mbps cinsinden video bit hızı"
+
+#: aurynk/ui/windows/settings_window.py:615
+msgid "Frame Rate Cap"
+msgstr "Kare Hızı Sınırı"
+
+#: aurynk/ui/windows/settings_window.py:616
+msgid "Limit the frame rate to save resources."
+msgstr "Kaynak tasarrufu için kare hızını sınırla."
+
+#: aurynk/ui/windows/settings_window.py:617
+msgid "Max"
+msgstr "Maks"
+
+#: aurynk/ui/windows/settings_window.py:642
+msgid "Video Codec"
+msgstr "Video Kodek"
+
+#: aurynk/ui/windows/settings_window.py:643
+msgid "Codec for video encoding."
+msgstr "Video kodlama için kodek."
+
+#: aurynk/ui/windows/settings_window.py:665
+msgid "Audio Input"
+msgstr "Ses Girişi"
+
+#: aurynk/ui/windows/settings_window.py:669
+msgid "Enable Audio"
+msgstr "Sesi Etkinleştir"
+
+#: aurynk/ui/windows/settings_window.py:671
+msgid "Stream device audio to PC (experimental, may not work over wireless connection)."
+msgstr "Cihaz sesini bilgisayara aktar (deneysel, kablosuz bağlantıda çalışmayabilir)."
+
+#: aurynk/ui/windows/settings_window.py:683
+msgid "Audio Source (experimental)"
+msgstr "Ses Kaynağı (deneysel)"
+
+#: aurynk/ui/windows/settings_window.py:686
+msgid ""
+"Choose between device output or mic (experimental, may not work over wireless connection)."
+msgstr ""
+"Cihaz çıkışı veya mikrofon arasında seçim yapın (deneysel, kablosuz bağlantıda "
+"çalışmayabilir)."
+
+#: aurynk/ui/windows/settings_window.py:689
+msgid "default"
+msgstr "varsayılan"
+
+#: aurynk/ui/windows/settings_window.py:689
+msgid "output"
+msgstr "çıkış"
+
+#: aurynk/ui/windows/settings_window.py:689
+msgid "mic"
+msgstr "mikrofon"
+
+#: aurynk/ui/windows/settings_window.py:709
+msgid "Show Touches"
+msgstr "Dokunmaları Göster"
+
+#: aurynk/ui/windows/settings_window.py:711
+msgid "Visual feedback for touches (only works for physical device input)."
+msgstr "Dokunmalar için görsel geri bildirim (yalnızca fiziksel cihaz girişinde çalışır)."
+
+#: aurynk/ui/windows/settings_window.py:742
+msgid "Keep Device Screen On (experimental)"
+msgstr "Cihaz Ekranını Açık Tut (deneysel)"
+
+#: aurynk/ui/windows/settings_window.py:745
+msgid "Keep device screen on during mirroring (may not work on all devices or wireless mode)."
+msgstr ""
+"Yansıtma sırasında cihaz ekranını açık tut (tüm cihazlarda veya kablosuz modda "
+"çalışmayabilir)."
+
+#: aurynk/ui/windows/settings_window.py:762
+msgid "Turn Device Screen Off"
+msgstr "Cihaz Ekranını Kapat"
+
+#: aurynk/ui/windows/settings_window.py:763
+msgid "Mirror with device screen off."
+msgstr "Cihaz ekranı kapalıyken yansıt."
+
+#: aurynk/ui/windows/settings_window.py:778
+msgid "View-only Mode"
+msgstr "Yalnızca Görüntüleme Modu"
+
+#: aurynk/ui/windows/settings_window.py:779
+msgid "Disable device control (view only)"
+msgstr "Cihaz kontrolünü devre dışı bırak (yalnızca görüntüleme)"
+
+#: aurynk/ui/windows/settings_window.py:790
+msgid "Keyboard/Mouse via OTG (experimental)"
+msgstr "OTG ile Klavye/Fare (deneysel)"
+
+#: aurynk/ui/windows/settings_window.py:791
+msgid "Control device using OTG keyboard/mouse"
+msgstr "OTG klavye/fare kullanarak cihazı kontrol et"
+
+#: aurynk/ui/windows/settings_window.py:793
+msgid "None"
+msgstr "Yok"
+
+#: aurynk/ui/windows/settings_window.py:794
+msgid "Keyboard (uhid)"
+msgstr "Klavye (uhid)"
+
+#: aurynk/ui/windows/settings_window.py:795
+msgid "Mouse (uhid)"
+msgstr "Fare (uhid)"
+
+#: aurynk/ui/windows/settings_window.py:796
+msgid "Keyboard (aoa)"
+msgstr "Klavye (aoa)"
+
+#: aurynk/ui/windows/settings_window.py:797
+msgid "Mouse (aoa)"
+msgstr "Fare (aoa)"
+
+#: aurynk/ui/windows/settings_window.py:817
+msgid "Recording"
+msgstr "Kayıt"
+
+#: aurynk/ui/windows/settings_window.py:821
+msgid "Record Mirroring"
+msgstr "Yansıtmayı Kaydet"
+
+#: aurynk/ui/windows/settings_window.py:822
+msgid "Enable/disable recording of mirroring session."
+msgstr "Yansıtma oturumunun kaydını etkinleştir/devre dışı bırak."
+
+#: aurynk/ui/windows/settings_window.py:833
+msgid "Record Format"
+msgstr "Kayıt Formatı"
+
+#: aurynk/ui/windows/settings_window.py:834
+msgid "Select recording format."
+msgstr "Kayıt formatını seçin."
+
+#: aurynk/ui/windows/settings_window.py:855
+msgid "Recording Path"
+msgstr "Kayıt Yolu"
+
+#: aurynk/ui/windows/settings_window.py:870
+msgid "Choose Recording Directory"
+msgstr "Kayıt Dizinini Seç"
+
+#: aurynk/ui/windows/settings_window.py:895
+msgid "Advanced Options (experimental)"
+msgstr "Gelişmiş Seçenekler (deneysel)"
+
+#: aurynk/ui/windows/settings_window.py:899
+msgid "Hardware Acceleration"
+msgstr "Donanım Hızlandırma"
+
+#: aurynk/ui/windows/settings_window.py:900
+msgid "Use GPU for encoding."
+msgstr "Kodlama için GPU kullan."
+
+#: aurynk/ui/windows/settings_window.py:920
+msgid "No Window"
+msgstr "Pencere Yok"
+
+#: aurynk/ui/windows/settings_window.py:921
+msgid "Run without a window (background only)"
+msgstr "Pencere olmadan çalıştır (yalnızca arka plan)"
+
+#: aurynk/ui/windows/settings_window.py:932
+msgid "No Video"
+msgstr "Video Yok"
+
+#: aurynk/ui/windows/settings_window.py:933
+msgid "Audio/control only (no video stream)"
+msgstr "Yalnızca ses/kontrol (video akışı yok)"
+
+#: aurynk/ui/windows/settings_window.py:944
+msgid "No Audio"
+msgstr "Ses Yok"
+
+#: aurynk/ui/windows/settings_window.py:945
+msgid "Video/control only (no audio stream)"
+msgstr "Yalnızca video/kontrol (ses akışı yok)"
+
+#: aurynk/ui/windows/settings_window.py:956
+msgid "No Control"
+msgstr "Kontrol Yok"
+
+#: aurynk/ui/windows/settings_window.py:957
+msgid "Mirror only, no input"
+msgstr "Yalnızca yansıtma, giriş yok"
+
+#: aurynk/ui/windows/settings_window.py:1041
+msgid "Invalid path or not executable"
+msgstr "Geçersiz yol veya çalıştırılabilir değil"
+
+#: aurynk/ui/windows/settings_window.py:1044
+msgid "Path to adb binary (leave blank for system default)"
+msgstr "Adb çalıştırılabilir dosyasının yolu (sistem varsayılanı için boş bırakın)"
+
+#: aurynk/ui/windows/settings_window.py:1053
+msgid "Select ADB Binary"
+msgstr "ADB Çalıştırılabilir Dosyasını Seç"
+
+#: aurynk/ui/windows/about_window.py:36
+msgid "Android Device Manager for Linux with wireless pairing and mirroring support"
+msgstr "Kablosuz eşleştirme ve yansıtma desteği ile Linux için Android Cihaz Yöneticisi"
+
+#. Add useful links
+#: aurynk/ui/windows/about_window.py:41
+msgid "Documentation"
+msgstr "Belgeler"
+
+#: aurynk/ui/windows/about_window.py:42
+msgid "Source Code"
+msgstr "Kaynak Kodu"
+
+#: aurynk/ui/windows/about_window.py:43
+msgid "Donate"
+msgstr "Bağış Yap"
+
+#: aurynk/ui/windows/about_window.py:47
+msgid "Built with"
+msgstr "Şununla oluşturuldu"
+
+#: aurynk/ui/windows/about_window.py:58
+msgid "Python Libraries"
+msgstr "Python Kütüphaneleri"
+
+#: aurynk/ui/windows/about_window.py:69
+msgid "Special Thanks"
+msgstr "Özel Teşekkürler"
+
+#: aurynk/ui/windows/device_details.py:25
+#, python-brace-format
+msgid "Device: {name}"
+msgstr "Cihaz: {name}"
+
+#: aurynk/ui/windows/device_details.py:25 aurynk/ui/windows/device_details.py:123
+#: aurynk/ui/windows/device_details.py:125 aurynk/ui/windows/device_details.py:128
+#: aurynk/ui/windows/device_details.py:130 aurynk/ui/windows/device_details.py:184
+#: aurynk/ui/windows/device_details.py:185 aurynk/ui/windows/device_details.py:186
+#: aurynk/services/device_monitor.py:107 aurynk/core/adb_manager.py:142
+#: aurynk/core/adb_manager.py:291
+msgid "Unknown"
+msgstr "Bilinmiyor"
+
+#: aurynk/ui/windows/device_details.py:60
+msgid "Preview"
+msgstr "Önizleme"
+
+#: aurynk/ui/windows/device_details.py:91
+msgid "Refresh Screenshot"
+msgstr "Ekran Görüntüsünü Yenile"
+
+#: aurynk/ui/windows/device_details.py:99
+msgid "Refresh All Device Data"
+msgstr "Tüm Cihaz Verilerini Yenile"
+
+#: aurynk/ui/windows/device_details.py:106 aurynk/ui/windows/device_details.py:255
+msgid "Remove Device"
+msgstr "Cihazı Kaldır"
+
+#: aurynk/ui/windows/device_details.py:121
+msgid "Basic Information"
+msgstr "Temel Bilgiler"
+
+#: aurynk/ui/windows/device_details.py:123
+msgid "Device Name"
+msgstr "Cihaz Adı"
+
+#: aurynk/ui/windows/device_details.py:125
+msgid "Manufacturer"
+msgstr "Üretici"
+
+#: aurynk/ui/windows/device_details.py:128
+msgid "Android Version"
+msgstr "Android Sürümü"
+
+#: aurynk/ui/windows/device_details.py:130
+msgid "IP Address"
+msgstr "IP Adresi"
+
+#: aurynk/ui/windows/device_details.py:136
+msgid "Specifications"
+msgstr "Özellikler"
+
+#: aurynk/ui/windows/device_details.py:139
+msgid "RAM"
+msgstr "RAM"
+
+#: aurynk/ui/windows/device_details.py:139 aurynk/ui/windows/device_details.py:141
+#: aurynk/ui/windows/device_details.py:144
+msgid "Loading..."
+msgstr "Yükleniyor..."
+
+#: aurynk/ui/windows/device_details.py:141
+msgid "Storage"
+msgstr "Depolama"
+
+#: aurynk/ui/windows/device_details.py:144
+msgid "Battery"
+msgstr "Pil"
+
+#: aurynk/ui/windows/device_details.py:191
+msgid "Refreshing..."
+msgstr "Yenileniyor..."
+
+#. Use line break and wrapping for the body label
+#: aurynk/ui/windows/device_details.py:257
+#, python-brace-format
+msgid ""
+"Are you sure you want to remove \n"
+" {device} ?"
+msgstr ""
+"Cihazını {device} kaldırmak istediğinizden \r\n"
+" {device} emin misiniz?"
+
+#: aurynk/ui/windows/device_details.py:258
+msgid "this device"
+msgstr "bu cihaz"
+
+#: aurynk/ui/dialogs/pairing_dialog.py:21
+msgid "Pair New Device"
+msgstr "Yeni Cihaz Eşleştir"
+
+#: aurynk/ui/dialogs/pairing_dialog.py:48
+msgid "How to Pair New Device"
+msgstr "Yeni Cihaz Nasıl Eşleştirilir"
+
+#. translators: <b> and </b> tags are used for bold text, please preserve them in the translation.
+#: aurynk/ui/dialogs/pairing_dialog.py:62
+msgid "1. On your phone, go to <b>Developer Options → Wireless Debugging</b>"
+msgstr "1. Telefonunuzda <b>Geliştirici Seçenekleri → Kablosuz Hata Ayıklama</b> bölümüne gidin"
+
+#. translators: <b> and </b> tags are used for bold text, please preserve them in the translation.
+#: aurynk/ui/dialogs/pairing_dialog.py:69
+msgid "2. Tap <b>Pair device with QR code</b> and scan below"
+msgstr "2. <b>QR kodu ile cihaz eşleştir</b> seçeneğine dokunun ve aşağıdaki kodu tarayın"
+
+#. Status label (centered, subtle)
+#: aurynk/ui/dialogs/pairing_dialog.py:90
+msgid "Generating QR code..."
+msgstr "QR kodu oluşturuluyor..."
+
+#: aurynk/ui/dialogs/pairing_dialog.py:124
+msgid "Scan the QR code with your phone"
+msgstr "QR kodunu telefonunuzla tarayın"
+
+#: aurynk/ui/dialogs/pairing_dialog.py:147 aurynk/ui/widgets/qr_view.py:79
+msgid "Error: {}"
+msgstr "Hata: {}"
+
+#: aurynk/ui/dialogs/pairing_dialog.py:151
+#, python-brace-format
+msgid "Device found: {name}"
+msgstr "Cihaz bulundu: {name}"
+
+#: aurynk/ui/dialogs/pairing_dialog.py:170
+msgid "✓ Device paired successfully!"
+msgstr "✓ Cihaz başarıyla eşleştirildi!"
+
+#: aurynk/ui/dialogs/pairing_dialog.py:187
+msgid "QR code expired. Try again."
+msgstr "QR kodunun süresi doldu. Tekrar deneyin."
+
+#. Change action button to Try Again
+#: aurynk/ui/dialogs/pairing_dialog.py:189
+msgid "Try Again"
+msgstr "Tekrar Dene"
+
+#. Fallback if qrcode library is not available
+#: aurynk/ui/widgets/qr_view.py:39
+msgid "QR code library not available"
+msgstr "QR kod kütüphanesi mevcut değil"
+
+#: aurynk/services/device_monitor.py:383
+msgid "Unlock device to auto-connect"
+msgstr "Otomatik bağlanmak için cihazın kilidini açın"
+
+#: aurynk/services/device_monitor.py:456
+msgid ""
+"Are you sure you want to remove\n"
+"{} ?"
+msgstr ""
+"{} cihazını kaldırmak istediğinizden\n"
+"emin misiniz?"
+
+#: aurynk/utils/notify.py:28
+msgid "Device Connected"
+msgstr "Cihaz Bağlandı"
+
+#: aurynk/utils/notify.py:28
+#, python-brace-format
+msgid "{name} is now connected."
+msgstr "{name} artık bağlı."
+
+#: aurynk/utils/notify.py:32
+msgid "Device Disconnected"
+msgstr "Cihaz Bağlantısı Kesildi"
+
+#: aurynk/utils/notify.py:33
+#, python-brace-format
+msgid "{name} is now disconnected."
+msgstr "{name} artık bağlı değil."
+
+#: aurynk/utils/notify.py:37
+msgid "Device Error"
+msgstr "Cihaz Hatası"
+
+#: aurynk/utils/notify.py:38
+#, python-brace-format
+msgid "{name}: {extra}"
+msgstr "{name}: {extra}"
+
+#: aurynk/utils/notify.py:42
+msgid "Device Event"
+msgstr "Cihaz Olayı"
+
+#: aurynk/core/adb_manager.py:142
+#, python-brace-format
+msgid "✓ Device saved: {name}"
+msgstr "✓ Cihaz kaydedildi: {name}"
+
+#: aurynk/core/scrcpy_runner.py:97
+#, python-brace-format
+msgid "Aurynk: {serial_number}"
+msgstr "Aurynk: {serial_number}"
+
+#: data/io.github.IshuSinghSE.aurynk.desktop.in:2
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:6
+msgid "Aurynk"
+msgstr "Aurynk"
+
+#: data/io.github.IshuSinghSE.aurynk.desktop.in:3
+msgid "Android Mirroring Tool"
+msgstr "Android Yansıtma Aracı"
+
+#: data/io.github.IshuSinghSE.aurynk.desktop.in:4
+msgid "Manage and mirror Android devices"
+msgstr "Android cihazlarını yönetin ve yansıtın"
+
+#: data/io.github.IshuSinghSE.aurynk.desktop.in:12
+msgid "Android;ADB;Mirroring;Device;Linux;Wireless;Scrcpy;Screen;Manager;"
+msgstr "Android;ADB;Yansıtma;Cihaz;Linux;Kablosuz;Scrcpy;Ekran;Yönetici;"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:7
+msgid "Android Mirroring Tool for Linux"
+msgstr "Linux için Android Yansıtma Aracı"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:9
+msgid ""
+"Aurynk is a modern Linux application for managing Android devices, pairing via ADB, and "
+"mirroring screens using scrcpy. It features a native GTK4/libadwaita interface, device "
+"details, wireless pairing, tray integration, and screenshot capture."
+msgstr ""
+"Aurynk, Android cihazlarını yönetmek, ADB ile eşleştirmek ve scrcpy kullanarak ekranları "
+"yansıtmak için modern bir Linux uygulamasıdır. Yerel GTK4/libadwaita arayüzü, cihaz "
+"ayrıntıları, kablosuz eşleştirme, sistem tepsisi entegrasyonu ve ekran görüntüsü alma "
+"özelliklerine sahiptir."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:12
+msgid ""
+"With Aurynk, you can easily connect to your Android devices wirelessly by scanning a QR code, "
+"view detailed device specifications, and mirror your screen with low latency."
+msgstr ""
+"Aurynk ile bir QR kodu tarayarak Android cihazlarınıza kablosuz olarak kolayca bağlanabilir, "
+"ayrıntılı cihaz özelliklerini görüntüleyebilir ve ekranınızı düşük gecikmeyle "
+"yansıtabilirsiniz."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:15
+msgid "Features:"
+msgstr "Özellikler:"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:17
+msgid "Wireless pairing via QR code"
+msgstr "QR kodu ile kablosuz eşleştirme"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:18
+msgid "Device information and specifications"
+msgstr "Cihaz bilgileri ve özellikleri"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:19
+msgid "Screenshot capture"
+msgstr "Ekran görüntüsü alma"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:20
+msgid "Modern GTK4/libadwaita interface"
+msgstr "Modern GTK4/libadwaita arayüzü"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:21
+msgid "Easy device management"
+msgstr "Kolay cihaz yönetimi"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:22
+msgid "Screen mirroring with scrcpy"
+msgstr "Scrcpy ile ekran yansıtma"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:26
+msgid "Ishu Singh"
+msgstr "Ishu Singh"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:40
+msgid "Android"
+msgstr "Android"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:41
+msgid "ADB"
+msgstr "ADB"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:44
+msgid "Linux"
+msgstr "Linux"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:45
+msgid "Wireless"
+msgstr "Kablosuz"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:46
+msgid "Scrcpy"
+msgstr "Scrcpy"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:47
+msgid "Screen"
+msgstr "Ekran"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:48
+msgid "Manager"
+msgstr "Yönetici"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:56
+msgid "Main window showing paired devices"
+msgstr "Eşleştirilmiş cihazları gösteren ana pencere"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:60
+msgid "Scanning the QR code to pair"
+msgstr "Eşleştirmek için QR kodunu tarama"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:64
+msgid "Screen mirroring active"
+msgstr "Ekran yansıtma etkin"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:73
+msgid ""
+"A massive update with a complete settings overhaul, advanced mirroring controls, and many new "
+"features to give you full control over your experience."
+msgstr ""
+"Kapsamlı bir ayar yenilemesi, gelişmiş yansıtma kontrolleri ve deneyiminiz üzerinde tam "
+"kontrol sağlayan birçok yeni özellik içeren büyük bir güncelleme."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:74
+msgid "🚀 New Features"
+msgstr "🚀 Yeni Özellikler"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:76
+msgid ""
+"Complete Settings Overhaul: A new modern settings window with dedicated tabs for Application, "
+"Device, and Mirroring preferences."
+msgstr ""
+"Kapsamlı Ayar Yenilemesi: Uygulama, Cihaz ve Yansıtma tercihleri için özel sekmeler içeren "
+"yeni modern bir ayar penceresi."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:77
+msgid ""
+"Advanced Mirroring Controls: Full control over bitrate, max FPS, video codec, audio sources, "
+"and recording options."
+msgstr ""
+"Gelişmiş Yansıtma Kontrolleri: Bit hızı, maksimum FPS, video kodek, ses kaynakları ve kayıt "
+"seçenekleri üzerinde tam kontrol."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:78
+msgid "Instant Settings: All changes are saved automatically and applied instantly."
+msgstr "Anında Ayarlar: Tüm değişiklikler otomatik olarak kaydedilir ve anında uygulanır."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:79
+msgid ""
+"Window Management: Customize window size and position, with handy presets for mobile form "
+"factors. Added options for always on top, fullscreen, and borderless modes."
+msgstr ""
+"Pencere Yönetimi: Mobil form faktörleri için kullanışlı ön ayarlarla pencere boyutu ve "
+"konumunu özelleştirin. Her zaman üstte, tam ekran ve kenarlıksız modlar için seçenekler "
+"eklendi."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:80
+msgid ""
+"New Control Modes: Added View-only mode and OTG support for using your PC's keyboard and "
+"mouse on the device."
+msgstr ""
+"Yeni Kontrol Modları: Bilgisayarınızın klavye ve faresini cihazda kullanmak için Yalnızca "
+"Görüntüleme modu ve OTG desteği eklendi."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:81
+msgid ""
+"Recording: Easily record your mirroring session with customizable formats and save paths."
+msgstr ""
+"Kayıt: Özelleştirilebilir formatlar ve kayıt yolları ile yansıtma oturumunuzu kolayca "
+"kaydedin."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:82
+msgid "About Page: A new section with app information and credits."
+msgstr "Hakkında Sayfası: Uygulama bilgileri ve katkıda bulunanları içeren yeni bir bölüm."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:84
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:109
+msgid "📈 Improvements"
+msgstr "📈 İyileştirmeler"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:86
+msgid "Improved Connectivity: Device pairing and discovery are now faster and more reliable."
+msgstr ""
+"Geliştirilmiş Bağlantı: Cihaz eşleştirme ve keşfetme artık daha hızlı ve daha güvenilir."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:87
+msgid ""
+"Better Performance: Added advanced options for hardware acceleration and running without a "
+"window."
+msgstr ""
+"Daha İyi Performans: Donanım hızlandırma ve pencere olmadan çalıştırma için gelişmiş "
+"seçenekler eklendi."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:88
+msgid ""
+"User Interface: A completely refreshed and consistent user interface across the application."
+msgstr ""
+"Kullanıcı Arayüzü: Uygulama genelinde tamamen yenilenmiş ve tutarlı bir kullanıcı arayüzü."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:89
+msgid ""
+"Enhanced Stability: Improved settings management, device monitoring, and tray icon "
+"integration."
+msgstr ""
+"Geliştirilmiş Kararlılık: İyileştirilmiş ayar yönetimi, cihaz izleme ve sistem tepsisi "
+"simgesi entegrasyonu."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:95
+msgid ""
+"Critical bug fixes and improvements to enhance application stability and reliability, "
+"including a new logging system."
+msgstr ""
+"Uygulama kararlılığını ve güvenilirliğini artırmak için kritik hata düzeltmeleri ve "
+"iyileştirmeler, yeni bir günlük kayıt sistemi dahil."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:96
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:130
+msgid "🐛 Bug Fixes"
+msgstr "🐛 Hata Düzeltmeleri"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:98
+msgid "Fixed an issue causing mirroring synchronization problems."
+msgstr "Yansıtma senkronizasyon sorunlarına neden olan bir hata düzeltildi."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:99
+msgid "Fixed a bug where the application would quit prematurely."
+msgstr "Uygulamanın erken kapanmasına neden olan bir hata düzeltildi."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:100
+msgid "Resolved issues with the tray menu synchronization."
+msgstr "Sistem tepsisi menüsü senkronizasyon sorunları giderildi."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:101
+msgid "Fixed GPU permission issues for the Flatpak version."
+msgstr "Flatpak sürümü için GPU izin sorunları düzeltildi."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:102
+msgid "Added a centralized logging system for better debugging."
+msgstr "Daha iyi hata ayıklama için merkezi bir günlük kayıt sistemi eklendi."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:108
+msgid "A maintenance release with documentation updates."
+msgstr "Belge güncellemeleri içeren bir bakım sürümü."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:111
+msgid "Updated the README with new screenshots."
+msgstr "README yeni ekran görüntüleriyle güncellendi."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:112
+msgid "General documentation improvements."
+msgstr "Genel belge iyileştirmeleri."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:118
+msgid "Under-the-hood improvements for better performance and modern platform support."
+msgstr "Daha iyi performans ve modern platform desteği için arka plan iyileştirmeleri."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:119
+msgid "⚙️ Under the Hood"
+msgstr "⚙️ Arka Planda"
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:121
+msgid "Updated to the GNOME 49 runtime for better performance and stability."
+msgstr "Daha iyi performans ve kararlılık için GNOME 49 çalışma zamanına güncellendi."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:122
+msgid "Switched to an inline Ayatana stack."
+msgstr "Satır içi Ayatana yığınına geçildi."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:123
+msgid "Refreshed Flatpak and Debian build artifacts."
+msgstr "Flatpak ve Debian derleme çıktıları yenilendi."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:129
+msgid "Important bug fixes to improve reliability and prevent crashes."
+msgstr "Güvenilirliği artırmak ve çökmeleri önlemek için önemli hata düzeltmeleri."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:132
+msgid "Fixed a crash (UnboundLocalError) when starting device mirroring."
+msgstr "Cihaz yansıtmayı başlatırken oluşan bir çökme (UnboundLocalError) düzeltildi."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:133
+msgid "Ensured the main window and tray icon stay perfectly synchronized."
+msgstr "Ana pencere ve sistem tepsisi simgesinin tamamen senkronize kalması sağlandı."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:134
+msgid "Fixed an issue where the tray command listener couldn't be stopped."
+msgstr "Sistem tepsisi komut dinleyicisinin durdurulamaması sorunu düzeltildi."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:135
+msgid "Added a PID fallback for better tray icon reliability."
+msgstr "Daha iyi sistem tepsisi simgesi güvenilirliği için bir PID yedek mekanizması eklendi."
+
+#: data/io.github.IshuSinghSE.aurynk.metainfo.xml:141
+msgid ""
+"Initial release of Aurynk with device management, wireless pairing, low-latency mirroring, "
+"and screenshot support for Flatpak and Debian."
+msgstr ""
+"Aurynk'in cihaz yönetimi, kablosuz eşleştirme, düşük gecikmeli yansıtma ve Flatpak ile Debian "
+"için ekran görüntüsü desteği içeren ilk sürümü."
